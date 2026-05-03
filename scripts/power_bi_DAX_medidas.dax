@@ -1,0 +1,336 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// ÁGUAS DE IPAMERI – Power BI | Medidas DAX
+// Criar uma tabela "Medidas" (sem dados) e adicionar todas as medidas abaixo
+// ═══════════════════════════════════════════════════════════════════════════
+
+
+// ────────────────────────────────────────────────────────────────────────────
+// GRUPO: FATURAMENTO
+// ────────────────────────────────────────────────────────────────────────────
+
+[Faturamento Total] =
+SUMX(Faturamento, [vl_total_faturado])
+
+[Faturamento Água] =
+SUM(Faturamento[vl_agua])
+
+[Faturamento Esgoto] =
+SUM(Faturamento[vl_esgoto])
+
+[Faturamento Serviços] =
+SUM(Faturamento[vl_servico])
+
+[Volume Faturado m3] =
+SUM(Faturamento[volume_m3])
+
+[Qtd Faturas Emitidas] =
+SUM(Faturamento[qt_fatura])
+
+[Economias Ativas Água] =
+SUM(Faturamento[nr_economia_agua])
+
+[Economias Ativas Esgoto] =
+SUM(Faturamento[nr_economia_esgoto])
+
+[Ticket Médio por Fatura] =
+DIVIDE([Faturamento Total], [Qtd Faturas Emitidas])
+
+[Faturamento MêsAnterior] =
+CALCULATE([Faturamento Total],
+    DATEADD(Calendario[Data], -1, MONTH))
+
+[Faturamento Variação %] =
+DIVIDE([Faturamento Total] - [Faturamento MêsAnterior], [Faturamento MêsAnterior])
+
+[Faturamento AnoAnterior] =
+CALCULATE([Faturamento Total],
+    SAMEPERIODLASTYEAR(Calendario[Data]))
+
+[Faturamento YoY %] =
+DIVIDE([Faturamento Total] - [Faturamento AnoAnterior], [Faturamento AnoAnterior])
+
+[Faturamento YTD] =
+TOTALYTD([Faturamento Total], Calendario[Data])
+
+[Faturamento MTD] =
+TOTALMTD([Faturamento Total], Calendario[Data])
+
+[Faturamento QTD] =
+TOTALQTD([Faturamento Total], Calendario[Data])
+
+[Faturamento 12M Móvel] =
+CALCULATE([Faturamento Total],
+    DATESINPERIOD(Calendario[Data], LASTDATE(Calendario[Data]), -12, MONTH))
+
+
+// ────────────────────────────────────────────────────────────────────────────
+// GRUPO: ARRECADAÇÃO
+// ────────────────────────────────────────────────────────────────────────────
+
+// FONTE: painel_arrecadacao_contabil (única com dados atuais — comercial retorna zero para 2026)
+[Arrecadação Total] =
+SUM(ArrecadacaoDiaria[vl_arrecadado])
+
+[Arrecadação Água] =
+SUM(Arrecadacao[vl_agua])
+
+[Arrecadação Esgoto] =
+SUM(Arrecadacao[vl_esgoto])
+
+[Qtd Pagamentos] =
+SUM(ArrecadacaoDiaria[qt_pagamentos])
+
+[Qtd Documentos Arrecadados] =
+SUM(ArrecadacaoDiaria[qt_documentos])
+
+[Índice de Eficiência de Arrecadação %] =
+DIVIDE([Arrecadação Total], [Faturamento Total])
+
+[Arrecadação MêsAnterior] =
+CALCULATE([Arrecadação Total],
+    DATEADD(Calendario[Data], -1, MONTH))
+
+[Arrecadação Variação %] =
+DIVIDE([Arrecadação Total] - [Arrecadação MêsAnterior], [Arrecadação MêsAnterior])
+
+[Arrecadação YTD] =
+TOTALYTD([Arrecadação Total], Calendario[Data])
+
+[Arrecadação MTD] =
+TOTALMTD([Arrecadação Total], Calendario[Data])
+
+[Arrecadação 12M Móvel] =
+CALCULATE([Arrecadação Total],
+    DATESINPERIOD(Calendario[Data], LASTDATE(Calendario[Data]), -12, MONTH))
+
+
+// ────────────────────────────────────────────────────────────────────────────
+// GRUPO: INADIMPLÊNCIA
+// ────────────────────────────────────────────────────────────────────────────
+
+[Inadimplência Total] =
+SUM(Inadimplencia[vl_divida])
+
+[Qtd Faturas Vencidas] =
+COUNTROWS(Inadimplencia)
+
+[Inadimplência Até 30 Dias] =
+CALCULATE([Inadimplência Total],
+    Inadimplencia[faixa_atraso] = "01-Até 30 dias")
+
+[Inadimplência 31-60 Dias] =
+CALCULATE([Inadimplência Total],
+    Inadimplencia[faixa_atraso] = "02-31 a 60 dias")
+
+[Inadimplência Acima 90 Dias] =
+CALCULATE([Inadimplência Total],
+    Inadimplencia[nr_dias_atraso] > 90)
+
+[Inadimplência Acima 365 Dias] =
+CALCULATE([Inadimplência Total],
+    Inadimplencia[faixa_atraso] = "06-Mais de 365 dias")
+
+// % de cada faixa em relação ao total — para exibir junto ao gráfico de inadimplência
+[% Faixa Até 30 Dias] =
+DIVIDE(
+    CALCULATE([Inadimplência Total], Inadimplencia[faixa_atraso] = "01-Até 30 dias"),
+    [Inadimplência Total])
+
+[% Faixa 31-60 Dias] =
+DIVIDE(
+    CALCULATE([Inadimplência Total], Inadimplencia[faixa_atraso] = "02-31 a 60 dias"),
+    [Inadimplência Total])
+
+[% Faixa 61-90 Dias] =
+DIVIDE(
+    CALCULATE([Inadimplência Total], Inadimplencia[faixa_atraso] = "03-61 a 90 dias"),
+    [Inadimplência Total])
+
+[% Faixa 91-180 Dias] =
+DIVIDE(
+    CALCULATE([Inadimplência Total], Inadimplencia[faixa_atraso] = "04-91 a 180 dias"),
+    [Inadimplência Total])
+
+[% Faixa 181-365 Dias] =
+DIVIDE(
+    CALCULATE([Inadimplência Total], Inadimplencia[faixa_atraso] = "05-181 a 365 dias"),
+    [Inadimplência Total])
+
+[% Faixa Acima 365 Dias] =
+DIVIDE(
+    CALCULATE([Inadimplência Total], Inadimplencia[faixa_atraso] = "06-Mais de 365 dias"),
+    [Inadimplência Total])
+
+[% Inadimplência Recuperável] =
+DIVIDE([Inadimplência Até 30 Dias] + [Inadimplência 31-60 Dias], [Inadimplência Total])
+
+[Índice de Inadimplência %] =
+DIVIDE([Inadimplência Total], [Faturamento Total])
+
+[Qtd Corte Pendente] =
+CALCULATE(COUNTROWS(Inadimplencia),
+    Inadimplencia[Corte Pendente] = "Sim")
+
+[Inadimplência com Corte Pendente] =
+CALCULATE([Inadimplência Total],
+    Inadimplencia[Corte Pendente] = "Sim")
+
+[Ticket Médio Inadimplência] =
+DIVIDE([Inadimplência Total], [Qtd Faturas Vencidas])
+
+
+// ────────────────────────────────────────────────────────────────────────────
+// GRUPO: CORTES E RELIGAÇÕES
+// ────────────────────────────────────────────────────────────────────────────
+
+// Conta apenas CORTE CAVALETE FALTA PAGAMENTO (def=30) solicitados e executados no mesmo período
+// OPE0020 "Exec. Mes" = solicitado no período E encerrado-executado (sit=3) no mesmo período
+[Qtd Cortes Realizados] =
+CALCULATE(
+    SUM(Cortes[qt_servico]),
+    Cortes[id_servico_definicao] = 30,
+    Cortes[id_situacao_servico] = 3)
+
+// Total geral de cortes (todos os tipos) para referência
+[Qtd Cortes Todos Tipos] =
+CALCULATE(
+    SUM(Cortes[qt_servico]),
+    Cortes[id_situacao_servico] = 3)
+
+[Qtd Cortes Fora Prazo] =
+CALCULATE(SUM(Cortes[qt_servico]),
+    Cortes[Fora Prazo] = "Sim")
+
+[% Cortes no Prazo] =
+DIVIDE([Qtd Cortes Realizados] - [Qtd Cortes Fora Prazo], [Qtd Cortes Realizados])
+
+[Tempo Médio Corte (h)] =
+AVERAGEX(Cortes, [Tempo Execução (h)])
+
+[Valor Pendência nos Cortes] =
+SUM(Cortes[vl_pendencia_atual])
+
+[Qtd Religações Realizadas] =
+COUNTROWS(Religacoes)
+
+[Qtd Religações MêsAnterior] =
+CALCULATE([Qtd Religações Realizadas],
+    DATEADD(Calendario[Data], -1, MONTH))
+
+[Dias Médios Corte-Religação] =
+AVERAGE(Religacoes[dias_corte_religacao])
+
+[Taxa Religação / Corte %] =
+DIVIDE([Qtd Religações Realizadas], [Qtd Cortes Realizados])
+
+[Cortes MêsAnterior] =
+CALCULATE([Qtd Cortes Realizados],
+    DATEADD(Calendario[Data], -1, MONTH))
+
+[Cortes Variação %] =
+DIVIDE([Qtd Cortes Realizados] - [Cortes MêsAnterior], [Cortes MêsAnterior])
+
+
+// ────────────────────────────────────────────────────────────────────────────
+// GRUPO: SERVIÇOS / OPERACIONAL
+// ────────────────────────────────────────────────────────────────────────────
+
+// Para o visual "Canal de Atendimento": agrupa ch_tipo_atendimento 3 (Interno) e 4 (Automático-Sistema)
+// Use uma coluna calculada na tabela Servicos com essa lógica:
+//   Canal Agrupado = IF(Servicos[ch_tipo_atendimento] IN {3,4}, "Ações Internas", Servicos[nm_tipo_atendimento])
+
+[Qtd Serviços Ações Internas] =
+CALCULATE(
+    SUM(Servicos[qt_servico]),
+    Servicos[ch_tipo_atendimento] IN {3, 4})
+
+[Qtd Serviços Total] =
+SUM(Servicos[qt_servico])
+
+[Qtd Serviços Fora Prazo] =
+CALCULATE(SUM(Servicos[qt_servico]),
+    Servicos[Status SLA] = "Fora do Prazo")
+
+[% SLA Atendido] =
+DIVIDE([Qtd Serviços Total] - [Qtd Serviços Fora Prazo], [Qtd Serviços Total])
+
+[Tempo Médio Execução (h)] =
+AVERAGEX(Servicos, [Tempo Execução (h)])
+
+[Tempo Médio Deslocamento (min)] =
+AVERAGEX(Servicos, Servicos[qt_tempo_deslocamento])
+
+[Backlog Pendente] =
+SUM(Backlog[qt_pendente])
+
+[Backlog Solicitado] =
+SUM(Backlog[qt_solicitado])
+
+[Backlog Executado] =
+SUM(Backlog[qt_executado])
+
+[Taxa Execução Backlog %] =
+DIVIDE([Backlog Executado], [Backlog Solicitado])
+
+[Serviços MêsAnterior] =
+CALCULATE([Qtd Serviços Total],
+    DATEADD(Calendario[Data], -1, MONTH))
+
+[Serviços Variação %] =
+DIVIDE([Qtd Serviços Total] - [Serviços MêsAnterior], [Serviços MêsAnterior])
+
+
+// ────────────────────────────────────────────────────────────────────────────
+// GRUPO: LEITURAS
+// ────────────────────────────────────────────────────────────────────────────
+
+[Qtd Leituras Realizadas] =
+SUM(Leituras[qt_leitura])
+
+[Volume Lido m3] =
+SUM(Leituras[qt_volume_lido])
+
+[Volume Faturado m3 Leituras] =
+SUM(Leituras[qt_volume_faturado])
+
+[% Eficiência Leitura] =
+DIVIDE(
+    CALCULATE([Qtd Leituras Realizadas], Leituras[Erro Leitura] = "Não"),
+    [Qtd Leituras Realizadas]
+)
+
+[Qtd Leituras Críticas] =
+CALCULATE([Qtd Leituras Realizadas],
+    Leituras[Leitura Crítica] = "Sim")
+
+[% Leituras Críticas] =
+DIVIDE([Qtd Leituras Críticas], [Qtd Leituras Realizadas])
+
+[Perdas Volume (m3)] =
+[Volume Lido m3] - [Volume Faturado m3 Leituras]
+
+[Índice de Perdas %] =
+DIVIDE([Perdas Volume (m3)], [Volume Lido m3])
+
+
+// ────────────────────────────────────────────────────────────────────────────
+// GRUPO: KPIs COMPARATIVOS (para cartões com seta up/down)
+// ────────────────────────────────────────────────────────────────────────────
+
+[KPI Faturamento Trend] =
+IF([Faturamento Variação %] >= 0,
+    "▲ " & FORMAT(ABS([Faturamento Variação %]), "0.0%"),
+    "▼ " & FORMAT(ABS([Faturamento Variação %]), "0.0%"))
+
+[KPI Inadimplência Trend] =
+IF([Índice de Inadimplência %] <= 0.15,
+    "SAUDÁVEL",
+    IF([Índice de Inadimplência %] <= 0.25, "ATENÇÃO", "CRÍTICO"))
+
+[KPI SLA Status] =
+IF([% SLA Atendido] >= 0.90,
+    "META ATINGIDA",
+    IF([% SLA Atendido] >= 0.75, "ABAIXO DA META", "CRÍTICO"))
+
+[Data Última Atualização] =
+"Atualizado em: " & FORMAT(NOW(), "DD/MM/YYYY HH:MM")
