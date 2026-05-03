@@ -39,8 +39,21 @@ SEQ_AZUL = ["#D0E8F8", "#9BC8EC", "#5FA8D8", "#1A6FAD", "#0D3F63"]
 st.markdown("""
 <style>
 /* oculta toolbar do Streamlit para evitar header cortado */
-header[data-testid="stHeader"] { display:none !important; }
-[data-testid="stToolbar"]       { display:none !important; }
+header[data-testid="stHeader"] {
+    height: 0 !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+[data-testid="stToolbar"] {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 999 !important;
+    height: auto !important;
+    background: transparent !important;
+    width: 100% !important;
+}
 #MainMenu                       { display:none !important; }
 footer                          { display:none !important; }
 
@@ -126,7 +139,7 @@ footer                          { display:none !important; }
 /* ═══ MAIN BACKGROUND ═══════════════════════════════════════════════════════ */
 .stApp { background:#EEF4FB !important; }
 .block-container {
-    padding-top:1.5rem !important; padding-bottom:2rem !important;
+    padding-top:4rem !important; padding-bottom:2rem !important;
     max-width:1400px !important;
 }
 
