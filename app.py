@@ -119,9 +119,6 @@ footer                          { display:none !important; }
 [data-testid="stSidebar"] [data-testid="stRadio"] > div {
     padding-top:0 !important; margin-top:0 !important;
 }
-[data-testid="stSidebar"] label:has(svg) {
-    display:none !important;
-}
 [data-testid="stSidebar"] [data-testid="stRadio"] label:empty {
     display:none !important; height:0 !important; margin:0 !important; padding:0 !important;
 }
