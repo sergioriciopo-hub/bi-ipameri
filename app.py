@@ -585,8 +585,9 @@ def pg_cockpit(D, d0, d1):
     qtd_sla = int(srv["qt_servico"].sum())       if not srv.empty else 0
     qtd_fpr = int(srv[srv["fl_fora_prazo"] == True]["qt_servico"].sum()) if not srv.empty else 0
     sla_ok  = (qtd_sla - qtd_fpr) / qtd_sla     if qtd_sla else 0
+    qtd_lig = int(fat["nr_economia_agua"].sum()) if not fat.empty and "nr_economia_agua" in fat.columns else 0
 
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
     kpi(c1, "💰 Faturamento",   vl_fat)
     kpi(c2, "🏦 Arrecadação",   vl_arr)
     if idx_arr is not None:
@@ -598,6 +599,7 @@ def pg_cockpit(D, d0, d1):
     c6.metric("⚙️ SLA Serviços", fmt_pct(sla_ok),
               delta=f"{fmt_pct(sla_ok - 0.9)} vs meta 90%",
               delta_color="normal" if sla_ok >= 0.9 else "inverse")
+    c7.metric("💧 Total Ligações", f"{qtd_lig:,}".replace(",", "."))
 
     st.markdown("---")
 
