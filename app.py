@@ -933,15 +933,7 @@ def pg_cockpit(D, d0, d1):
         )
         st.plotly_chart(fig7, use_container_width=True)
     else:
-        fu2 = fat_all2.copy() if not fat_all2.empty else pd.DataFrame()
-        if not fu2.empty and "nr_lig_agua" in fu2.columns:
-            fu2["dt_ref"] = pd.to_datetime(fu2["dt_ref"])
-            fu2 = fu2[fu2["dt_ref"] == fu2["dt_ref"].max()]
-            total_lig = int(fu2["nr_lig_agua"].sum())
-            st.metric("Total Ligações", f"{total_lig:,}".replace(",", "."),
-                      help="Execute o ETL para ver o detalhamento por situação.")
-        else:
-            st.info("Execute o ETL para atualizar.")
+        st.info("Execute o ETL para ver o detalhamento por situação de ligação.")
 
     # ── Rodapé ────────────────────────────────────────────────────────────────
     fat_max_dt = pd.to_datetime(D["fat"]["dt_ref"]).max() if not D["fat"].empty else None
