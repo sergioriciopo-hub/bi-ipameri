@@ -876,8 +876,8 @@ def pg_cockpit(D, d0, d1):
         fi_g = fi_g.sort_values("faixa_atraso")
         fig6 = go.Figure(go.Bar(
             y=fi_g["Label"], x=fi_g["Pct"], orientation="h",
-            text=fi_g["Txt"], textposition="outside", textanchor="start",
-            textfont=dict(color=COR["vermelho"], size=12, weight="bold"),
+            text=fi_g["Txt"], textposition="outside",
+            textfont=dict(color=COR["vermelho"], size=12),
             marker_color=COR["vermelho"],
         ))
         fig6.update_layout(
