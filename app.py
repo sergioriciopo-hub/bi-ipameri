@@ -124,10 +124,13 @@ footer { display:none !important; }
     transition: all 0.25s ease !important; min-height:38px !important;
     display:flex !important; align-items:center !important;
     line-height:1.4 !important; position:relative !important;
-    overflow:visible !important; margin:0.35rem 0 !important;
+    overflow:visible !important; margin:0.25rem 0 !important;
     font-weight: 500 !important;
     background: rgba(100, 150, 200, 0.25) !important;
     border: 1px solid rgba(100, 150, 200, 0.2) !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:first-of-type {
+    margin-top: 0 !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
     background: rgba(100, 150, 200, 0.35) !important;
@@ -152,6 +155,10 @@ footer { display:none !important; }
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label:empty {
     display:none !important; height:0 !important; margin:0 !important; padding:0 !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] > div > div {
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 /* ═══ MAIN BACKGROUND ═══════════════════════════════════════════════════════ */
