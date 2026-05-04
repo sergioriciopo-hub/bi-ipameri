@@ -584,12 +584,28 @@ def kpi(col, label, valor, delta=None, delta_inv=False, prefixo="R$"):
         vstr = f"{valor:,.0f}".replace(",", ".") if valor else "0"
 
     dstr = None
+    delta_html = ""
     if delta is not None:
         sinal = "+" if delta >= 0 else ""
         dstr = f"{sinal}{delta:.1%}".replace(".", ",") + " vs período ant."
+        delta_color = "#0ABF53" if not delta_inv else "#FF2B2B"
+        delta_html = f'<div style="font-size:0.75rem;color:{delta_color};margin-top:4px;">{dstr}</div>'
 
-    col.metric(label, vstr, delta=dstr,
-               delta_color="normal" if not delta_inv else "inverse")
+    html = f"""
+    <div style="
+        background:linear-gradient(135deg, rgba(100,150,200,0.08) 0%, rgba(100,150,200,0.02) 100%);
+        border:1px solid rgba(100,150,200,0.15);
+        border-radius:12px;
+        padding:14px 16px;
+        margin-bottom:8px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.06);
+    ">
+        <div style="font-size:0.85rem;color:rgba(0,0,0,0.6);margin-bottom:6px;font-weight:500;">{label}</div>
+        <div style="font-size:1.75rem;font-weight:700;color:#0B3558;line-height:1.2;">{vstr}</div>
+        {delta_html}
+    </div>
+    """
+    col.markdown(html, unsafe_allow_html=True)
 
 
 def bar_mensal(df, col_data, col_val, title, cor=None, agrupamento="M"):
@@ -734,7 +750,7 @@ def pg_cockpit(D, d0, d1):
                 line=dict(color=COR["azul"], width=2),
                 mode="lines+markers+text",
                 text=[f"{v/1000:.0f} Mil" for v in vf],
-                textposition="top center", textfont=dict(size=11, color=COR["azul_esc"], weight="bold"),
+                textposition="top center", textfont=dict(size=13, color=COR["azul_esc"], weight="bold"),
             ))
         if not arr_m.empty:
             va = arr_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
@@ -744,7 +760,7 @@ def pg_cockpit(D, d0, d1):
                 line=dict(color=COR["verde"], width=2),
                 mode="lines+markers+text",
                 text=[f"{v/1000:.0f} Mil" for v in va],
-                textposition="bottom center", textfont=dict(size=11, color="#1a6b3c", weight="bold"),
+                textposition="bottom center", textfont=dict(size=13, color="#1a6b3c", weight="bold"),
             ))
         fig1.update_layout(
             title="Faturamento e Arrecadação Mensal (R$)",
@@ -775,7 +791,7 @@ def pg_cockpit(D, d0, d1):
             x=eco_m["Mês"], y=eco_m["Agua"], name="Economias Água",
             mode="lines+markers+text",
             text=eco_m["Agua"].apply(lambda v: f"{int(v):,}".replace(",", ".")),
-            textposition="top center", textfont=dict(size=11, weight="bold"),
+            textposition="top center", textfont=dict(size=13, weight="bold"),
             line=dict(color=COR["azul"], width=2), marker=dict(size=5),
         ))
         # Adiciona Esgoto apenas se houver dados
@@ -784,7 +800,7 @@ def pg_cockpit(D, d0, d1):
                 x=eco_m["Mês"], y=eco_m["Esgoto"], name="Economias Esgoto",
                 mode="lines+markers+text",
                 text=eco_m["Esgoto"].apply(lambda v: f"{int(v):,}".replace(",", ".")),
-                textposition="bottom center", textfont=dict(size=11, weight="bold"),
+                textposition="bottom center", textfont=dict(size=13, weight="bold"),
                 line=dict(color=COR["amarelo"], width=2), marker=dict(size=5),
             ))
         fig2.update_layout(
@@ -847,7 +863,7 @@ def pg_cockpit(D, d0, d1):
                     x=meses_fm, y=vals.round(1), name=nome,
                     mode="lines+markers+text",
                     text=vals.round(1).apply(lambda v: f"{v:.1f}" if v > 0 else ""),
-                    textposition=textpos, textfont=dict(size=10, weight="bold"),
+                    textposition=textpos, textfont=dict(size=13, weight="bold"),
                     line=dict(color=cor_v, width=width), marker=dict(size=4),
                     visible=(idx < 4),
                 ))
@@ -889,7 +905,7 @@ def pg_cockpit(D, d0, d1):
             x=meses_vf, y=y_agua, name="Água",
             mode="lines+markers+text",
             text=y_agua.apply(lambda v: f"{v:.1f}"),
-            textposition="top center", textfont=dict(size=11, weight="bold"),
+            textposition="top center", textfont=dict(size=13, weight="bold"),
             line=dict(color=COR["azul"], width=2), marker=dict(size=4),
         ))
         if has_ev:
@@ -899,7 +915,7 @@ def pg_cockpit(D, d0, d1):
                 x=meses_vf, y=y_esgo, name="Esgoto",
                 mode="lines+markers+text",
                 text=y_esgo.apply(lambda v: f"{v:.1f}" if v == v else ""),
-                textposition="bottom center", textfont=dict(size=11, weight="bold"),
+                textposition="bottom center", textfont=dict(size=13, weight="bold"),
                 line=dict(color=COR["esgoto"], width=2), marker=dict(size=4),
             ))
         fig4.update_layout(
@@ -1849,7 +1865,7 @@ def pg_cortes(D, d0, d1):
                       title="Tempo entre abertura e encerramento das Ordens de Corte",
                       color_discrete_map={"Normal": COR["azul_c"], "Urgente": COR["vermelho"], "Outros": COR["cinza"]},
                       category_orders={"Faixa": labels_d})
-        fig4.update_traces(textposition="inside", textfont=dict(size=11, weight="bold"))
+        fig4.update_traces(textposition="inside", textfont=dict(size=13, weight="bold"))
         fig4.update_layout(margin=dict(t=35, b=0, l=0, r=20),
                            xaxis_title="", yaxis_title="Qtd")
         st.plotly_chart(fig4, use_container_width=True)
@@ -2024,7 +2040,7 @@ def pg_leituras(D, d0, d1):
     fig3.add_trace(go.Scatter(x=ag_ef["Mês"], y=ag_ef["Eficiência"], mode="lines+markers+text",
                                name="Eficiência de Leitura", line=dict(color=COR["verde"], width=3),
                                marker=dict(size=8), text=text_eficiencia, textposition="top center",
-                               textfont=dict(size=10, color=COR["verde"], family="Arial Black"),
+                               textfont=dict(size=13, color=COR["verde"], family="Arial Black"),
                                yaxis="y1"))
     fig3.add_trace(go.Scatter(x=ag_ef["Mês"], y=ag_ef["Ordens_Executadas"], mode="lines+markers",
                                name="Ordens de Correção Executadas", line=dict(color=COR["amarelo"], width=3, dash="dash"),
@@ -2068,7 +2084,7 @@ def pg_leituras(D, d0, d1):
             fig4.update_traces(
                 text=[f"R$ {val:,.2f}" for val in perdas_bairro["Perda_Valor"]],
                 textposition="inside",
-                textfont=dict(size=11, color="white", family="Arial Black")
+                textfont=dict(size=13, color="white", family="Arial Black")
             )
             fig4.update_layout(margin=dict(t=35, b=0, l=0, r=20),
                                xaxis_title="R$", yaxis_title="",
