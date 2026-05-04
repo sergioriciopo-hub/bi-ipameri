@@ -995,6 +995,7 @@ def pg_cockpit(D, d0, d1):
                       tickfont=dict(size=11)),
             showlegend=False,
             plot_bgcolor="rgba(245,248,250,0.8)",
+            uniformtext_minsize=32, uniformtext_mode="show",
         )
         st.plotly_chart(fig5, use_container_width=True)
 
