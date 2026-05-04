@@ -142,7 +142,7 @@ footer { display:none !important; }
     margin:0.5rem 0 0.75rem 0 !important; padding:0 !important; font-size:1.0rem !important; font-weight: 600 !important;
 }
 [data-testid="stSidebar"] [data-baseweb="select"] {
-    margin-bottom:0.5rem !important;
+    margin-bottom: 1.2rem !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] {
     margin-top:0.5rem !important; margin-bottom:0.5rem !important;
@@ -379,7 +379,7 @@ def sidebar_periodo():
         "Últimos 12 Meses", "Últimos 24 Meses",
         "Todo o Histórico", "Período Personalizado",
     ]
-    sel = st.sidebar.selectbox("Período", opcoes, index=10)
+    sel = st.sidebar.selectbox("", opcoes, index=10, label_visibility="collapsed")
 
     hoje = date.today()
     if sel == "Hoje":
