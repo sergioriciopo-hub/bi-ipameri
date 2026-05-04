@@ -1813,7 +1813,7 @@ def pg_leituras(D, d0, d1):
         # Criar gráfico stacked por leiturista (vertical)
         fig2 = px.bar(ag_ref_lr, x="Referência", y="Leituras", color="nm_leiturista_dim",
                       barmode="stack",
-                      title="Leituras por Referência (Mês) - Distribuição por Leiturista",
+                      title="",
                       labels={"nm_leiturista_dim": "Leiturista", "Leituras": "Quantidade"})
 
         # Atualizar cores para melhor visualização
@@ -1846,6 +1846,7 @@ def pg_leituras(D, d0, d1):
             ),
             hovermode="x unified"
         )
+        st.markdown("### Leituras por Referência (Mês) - Distribuição por Leiturista + <span style='color:#E74C3C'>porcentagens de leituras criticadas</span>", unsafe_allow_html=True)
         st.plotly_chart(fig2, use_container_width=True)
 
         # Mostrar tabela com detalhe mensal e %Críticas
