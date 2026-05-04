@@ -1916,63 +1916,41 @@ def pg_leituras(D, d0, d1):
     )
     st.plotly_chart(fig3, use_container_width=True)
 
-    # Por bairro — perdas (diferença entre primeira e última fatura de um cliente por referência)
-    fat_filtered = filtrar(D["fat"], "dt_ref", d0, d1)
-    if "id_bairro" in fat_filtered.columns and not fat_filtered.empty:
-        fat_filtered = merge_bairro(fat_filtered, D)
+    # Por bairro — perdas por alteração de fatura (cancelamento/reemissão)
+    alt_fat_filtered = filtrar(D["alt_fat"], "dt_ref", d0, d1)
+    if not alt_fat_filtered.empty and "ch_rsf_bairro_dim" in alt_fat_filtered.columns:
+        # Merge com tabela de bairro para ter o nome
+        alt_fat_filtered = alt_fat_filtered.merge(
+            D["d_bairro"][["id_bairro", "nm_bairro_dim"]],
+            left_on="ch_rsf_bairro_dim",
+            right_on="id_bairro",
+            how="left"
+        )
 
-        # Resetar índice para usar posição para identificar primeira e última fatura
-        fat_reset = fat_filtered.reset_index(drop=True)
+        # Agrupar por bairro e somar abatimentos (perdas em R$)
+        perdas_bairro = alt_fat_filtered.groupby("nm_bairro_dim").agg(
+            Perda_Valor=("vl_abatimento", lambda x: abs(x.sum())),  # Converter para positivo
+            Qtd_Alteracoes=("id_localizacao_dim", "count")
+        ).reset_index().sort_values("Perda_Valor", ascending=True).tail(12)
 
-        # Para cada cliente (economia + localização) e referência (dt_ref), pegar primeira e última fatura
-        perdas_list = []
-        for (economia, localizacao, dt_ref), group in fat_reset.groupby(["nr_economia_agua", "id_localizacao", "dt_ref"]):
-            if len(group) > 1:  # Só conta se há múltiplas faturas
-                primeira_vol = group.iloc[0]["volume_m3"]  # Primeira fatura
-                ultima_vol = group.iloc[-1]["volume_m3"]   # Última fatura
-                perda = primeira_vol - ultima_vol  # Diferença
-
-                if perda > 0:  # Só conta se houve redução (perda)
-                    id_bairro = group.iloc[0]["id_bairro"]
-                    nm_bairro = group.iloc[0].get("nm_bairro_dim", "")
-                    matricula = f"{economia}-{localizacao}"  # Formato: 19-1
-                    perdas_list.append({
-                        "id_bairro": id_bairro,
-                        "nm_bairro_dim": nm_bairro,
-                        "matricula": matricula,
-                        "nr_economia_agua": economia,
-                        "id_localizacao": localizacao,
-                        "dt_ref": dt_ref,
-                        "volume_primeira": primeira_vol,
-                        "volume_ultima": ultima_vol,
-                        "perda": perda
-                    })
-
-        if perdas_list:
-            perdas_df = pd.DataFrame(perdas_list)
-            # Agrupar por bairro
-            ag_pb = perdas_df.groupby("nm_bairro_dim").agg(
-                Perda=("perda", "sum"),
-                Qtd_Alteracoes=("matricula", "count")
-            ).reset_index().sort_values("Perda", ascending=True).tail(12)
-
-            fig4 = px.bar(ag_pb, x="Perda", y="nm_bairro_dim", orientation="h",
-                          title="Perdas por Bairro - Diferença entre 1ª e Última Fatura (Volume m³)",
-                          color="Perda",
+        if not perdas_bairro.empty and perdas_bairro["Perda_Valor"].sum() > 0:
+            fig4 = px.bar(perdas_bairro, x="Perda_Valor", y="nm_bairro_dim", orientation="h",
+                          title="Perdas por Bairro - Abatimentos em Alterações de Fatura (R$)",
+                          color="Perda_Valor",
                           color_continuous_scale=["#27AE60","#F39C12","#E74C3C"],
                           hover_data={"Qtd_Alteracoes": True})
             # Adicionar valores dentro das barras
             fig4.update_traces(
-                text=[f"{val:,.0f} <b>m³</b>" for val in ag_pb["Perda"]],
+                text=[f"R$ {val:,.2f}" for val in perdas_bairro["Perda_Valor"]],
                 textposition="inside",
                 textfont=dict(size=11, color="white", family="Arial Black")
             )
             fig4.update_layout(margin=dict(t=35, b=0, l=0, r=0),
-                               xaxis_title="m³", yaxis_title="",
+                               xaxis_title="R$", yaxis_title="",
                                coloraxis_showscale=False)
             st.plotly_chart(fig4, use_container_width=True)
         else:
-            st.info("Sem perdas detectadas (sem diferenças entre primeira e última fatura por cliente/referência)")
+            st.info("Sem perdas detectadas no período selecionado")
 
 
 # ── Navegação ─────────────────────────────────────────────────────────────────
