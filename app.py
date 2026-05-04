@@ -1800,20 +1800,61 @@ def pg_leituras(D, d0, d1):
                       color_continuous_scale=["#27AE60","#F39C12","#E74C3C"])
         fig2.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
         st.plotly_chart(fig2, use_container_width=True)
-    # Eficiência de leitura mensal
-    ef_m = lei.copy()
-    ef_m["_mes"] = pd.to_datetime(ef_m["dt_ref"]).dt.to_period("M").dt.to_timestamp()
-    ef_m["ok"] = ef_m["fl_erro_leitura"] == 0
-    ag_ef = ef_m.groupby("_mes").agg(Total=("qt_leitura","sum"), OK=("ok","sum")).reset_index()
-    ag_ef["Eficiência"] = ag_ef["OK"] / ag_ef["Total"]
-    ag_ef.columns = ["Mês","Total","OK","Eficiência"]
-    fig3 = px.line(ag_ef, x="Mês", y="Eficiência", markers=True,
-                   title="Eficiência de Leitura (sem erros)",
-                   color_discrete_sequence=[COR["verde"]])
+    # ════ CÁLCULO DE EFICIÊNCIA DE LEITURA ════════════════════════════════════════
+    # Passo 1: Total de Leituras Realizadas por Mês (referência)
+    lei_m = lei.copy()
+    lei_m["_mes"] = pd.to_datetime(lei_m["dt_ref"]).dt.to_period("M").dt.to_timestamp()
+    total_leituras = lei_m.groupby("_mes").agg(
+        Total_Leituras=("qt_leitura","sum")
+    ).reset_index()
+    total_leituras.columns = ["Mês", "Total_Leituras"]
+
+    # Passo 2: Ordens de Correção Executadas (ID=42, Situação=3 "Encerrado - Executado")
+    srv_m = D["srv"].copy()
+    srv_correcoes = srv_m[
+        (srv_m["id_servico_definicao"] == 42) &  # Serviço 1042 (ALTERAÇÃO DE FATURA - ERRO LEITURA)
+        (srv_m["id_situacao_servico"] == 3) &    # Situação 3 = Encerrado - Executado
+        (srv_m["dt_fim_execucao"].notna())       # Data de execução preenchida
+    ] if "id_servico_definicao" in srv_m.columns else pd.DataFrame()
+
+    if not srv_correcoes.empty:
+        srv_correcoes["_mes"] = pd.to_datetime(srv_correcoes["dt_fim_execucao"]).dt.to_period("M").dt.to_timestamp()
+        ordens_executadas = srv_correcoes.groupby("_mes").agg(
+            Ordens_Executadas=("qt_servico","sum")
+        ).reset_index()
+        ordens_executadas.columns = ["Mês", "Ordens_Executadas"]
+    else:
+        ordens_executadas = pd.DataFrame(columns=["Mês", "Ordens_Executadas"])
+
+    # Passo 3: Mesclar dados
+    ag_ef = total_leituras.merge(ordens_executadas, on="Mês", how="left")
+    ag_ef["Ordens_Executadas"] = ag_ef["Ordens_Executadas"].fillna(0)
+
+    # Passo 4: Calcular Eficiência = (Total Leituras - Ordens Corrigidas) / Total Leituras
+    ag_ef["Eficiência"] = (ag_ef["Total_Leituras"] - ag_ef["Ordens_Executadas"]) / ag_ef["Total_Leituras"]
+
+    # Criar gráfico com duas linhas
+    fig3 = go.Figure()
+    # Formatação com 2 casas decimais para mostrar valores exatos
+    text_eficiencia = [f"{val:.2%}" for val in ag_ef["Eficiência"]]
+    fig3.add_trace(go.Scatter(x=ag_ef["Mês"], y=ag_ef["Eficiência"], mode="lines+markers+text",
+                               name="Eficiência de Leitura", line=dict(color=COR["verde"], width=3),
+                               marker=dict(size=8), text=text_eficiencia, textposition="top center",
+                               textfont=dict(size=10, color=COR["verde"], family="Arial Black"),
+                               yaxis="y1"))
+    fig3.add_trace(go.Scatter(x=ag_ef["Mês"], y=ag_ef["Ordens_Executadas"], mode="lines+markers",
+                               name="Ordens de Correção Executadas", line=dict(color=COR["amarelo"], width=3, dash="dash"),
+                               marker=dict(size=6), yaxis="y2"))
     fig3.add_hline(y=0.95, line_dash="dash", line_color=COR["vermelho"],
-                   annotation_text="Meta 95%")
-    fig3.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
-    fig3.update_yaxes(tickformat=".0%")
+                   annotation_text="Meta 95%", yref="y1")
+    fig3.update_layout(
+        title="Eficiência de Leitura (sem erros)",
+        margin=dict(t=35, b=0, l=0, r=0), xaxis_title="",
+        yaxis=dict(title="Eficiência (%)", tickformat=".1%"),
+        yaxis2=dict(title="Qtd Alterações Executadas", overlaying="y", side="right", range=[-50, 50]),
+        hovermode="x unified",
+        legend=dict(x=0.5, y=1.15, orientation="h", xanchor="center", yanchor="top"),
+    )
     st.plotly_chart(fig3, use_container_width=True)
 
     # Por bairro — perdas
