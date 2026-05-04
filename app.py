@@ -129,17 +129,6 @@ footer { display:none !important; }
     background: rgba(100, 150, 200, 0.25) !important;
     border: 1px solid rgba(100, 150, 200, 0.2) !important;
 }
-[data-testid="stSidebar"] [data-testid="stRadio"] label:first-of-type {
-    margin-top: 0 !important;
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    min-height: 0 !important;
-    display: none !important;
-}
-[data-testid="stSidebar"] [data-testid="stRadio"] label:nth-of-type(2) {
-    margin-top: 0 !important;
-}
 [data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
     background: rgba(100, 150, 200, 0.35) !important;
     border-color: rgba(100, 150, 200, 0.3) !important;
@@ -156,7 +145,7 @@ footer { display:none !important; }
     margin-bottom: 1.2rem !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] {
-    margin-top:0.5rem !important; margin-bottom:0.5rem !important;
+    margin-top:0 !important; margin-bottom:0.5rem !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] > div {
     padding-top:0 !important; margin-top:0 !important;
