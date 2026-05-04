@@ -877,13 +877,13 @@ def pg_cockpit(D, d0, d1):
         fig6 = go.Figure(go.Bar(
             y=fi_g["Label"], x=fi_g["Pct"], orientation="h",
             text=fi_g["Txt"], textposition="outside",
-            textfont=dict(color=COR["vermelho"], size=12),
+            textfont=dict(color=COR["vermelho"], size=14, family="Arial Black"),
             marker_color=COR["vermelho"],
         ))
         fig6.update_layout(
             title="Inadimplência Geral",
             margin=dict(t=40, b=10, l=0, r=0), height=300,
-            xaxis=dict(title="", visible=False),
+            xaxis=dict(title="", visible=False, range=[0, 8]),
             yaxis=dict(title="", autorange="reversed", tickangle=0),
             showlegend=False,
         )
