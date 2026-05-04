@@ -334,3 +334,37 @@ IF([% SLA Atendido] >= 0.90,
 
 [Data Última Atualização] =
 "Atualizado em: " & FORMAT(NOW(), "DD/MM/YYYY HH:MM")
+
+
+// ────────────────────────────────────────────────────────────────────────────
+// GRUPO: ENERGIA ELÉTRICA
+// ────────────────────────────────────────────────────────────────────────────
+
+[Custo Total Energia] =
+SUM(Energia[valor_r])
+
+[Custo Energia Médio Mensal] =
+AVERAGE(Energia[valor_r])
+
+[Custo Energia por UC] =
+SUMX(VALUES(DimensaoUnidadeConsumo[uc]), SUM(Energia[valor_r]))
+
+[Custo por m³ Faturado] =
+DIVIDE([Custo Total Energia], [Volume Faturado m3])
+
+[Energia MêsAnterior] =
+CALCULATE([Custo Total Energia],
+    DATEADD(Calendario[Data], -1, MONTH))
+
+[Energia Variação %] =
+DIVIDE([Custo Total Energia] - [Energia MêsAnterior], [Energia MêsAnterior])
+
+[Energia YTD] =
+TOTALYTD([Custo Total Energia], Calendario[Data])
+
+[Energia 12M Móvel] =
+CALCULATE([Custo Total Energia],
+    DATESINPERIOD(Calendario[Data], LASTDATE(Calendario[Data]), -12, MONTH))
+
+[Custo Energia % do Faturamento] =
+DIVIDE([Custo Total Energia], [Faturamento Total])

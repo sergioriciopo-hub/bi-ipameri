@@ -167,6 +167,43 @@ in
 
 
 // ═══════════════════════════════════════════════════════════════════════════
+// TABELA: Energia
+// ═══════════════════════════════════════════════════════════════════════════
+let
+    Source = Parquet.Document(File.Contents(BASE_PATH & "energia_consolidada.parquet")),
+    #"Tipo corrigido" = Table.TransformColumnTypes(Source, {
+        {"uc", type text},
+        {"mes", Int64.Type},
+        {"ano", Int64.Type},
+        {"mes_ano", type date},
+        {"valor_r", type currency},
+        {"tipo_contrato", type text},
+        {"fornecedor", type text},
+        {"data_extracao", type datetime}
+    }),
+    #"Mês Num" = Table.AddColumn(#"Tipo corrigido", "Mês Num", each [mes], Int64.Type),
+    #"Ano" = Table.AddColumn(#"Mês Num", "Ano", each [ano], Int64.Type)
+in
+    #"Ano"
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TABELA: DimensãoUnidadeConsumo
+// ═══════════════════════════════════════════════════════════════════════════
+let
+    Source = Parquet.Document(File.Contents(BASE_PATH & "dim_unidade_consumo_energia.parquet")),
+    #"Tipo corrigido" = Table.TransformColumnTypes(Source, {
+        {"uc", type text},
+        {"local", type text},
+        {"tipo_contrato", type text},
+        {"fornecedor", type text},
+        {"status", type text}
+    })
+in
+    #"Tipo corrigido"
+
+
+// ═══════════════════════════════════════════════════════════════════════════
 // TABELA CALENDÁRIO (criar como nova consulta em branco)
 // ═══════════════════════════════════════════════════════════════════════════
 let

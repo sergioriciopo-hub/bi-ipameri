@@ -343,6 +343,7 @@ def load():
     d_sit_lig  = rd("dim_situacao_ligacao")
     ene        = rd("energia_consolidada_completa")
     d_uc_ene   = rd("dim_unidade_consumo_energia")
+    desc_ene   = rd("desconto_energia")
 
     # normaliza data_pagamento em arr_d para datetime
     if not arr_d.empty and "data_pagamento" in arr_d.columns:
@@ -359,7 +360,7 @@ def load():
         fat=fat, alt_fat=alt_fat, arr=arr, arr_d=arr_d, arr_rub=arr_rub,
         parr=parr, inad=inad,
         cor=cor, rel=rel, srv=srv, lei=lei, bkl=bkl,
-        ene=ene, d_uc_ene=d_uc_ene,
+        ene=ene, d_uc_ene=d_uc_ene, desc_ene=desc_ene,
         d_bairro=d_bairro, d_cat=d_cat, d_cls=d_cls,
         d_grp=d_grp, d_seq=d_seq, d_frm=d_frm,
         d_lei=d_lei, d_eqp=d_eqp, d_agente=d_agente,
@@ -2247,6 +2248,60 @@ def pg_energia(D, d0, d1):
         d_uc_view = d_uc.copy()
         d_uc_view.columns = ["UC", "Localização", "Tipo Contrato", "Fornecedor", "Status"]
         st.dataframe(d_uc_view, use_container_width=True)
+
+    # Análise de Desconto (Matrix e EchoEnergia)
+    desc_ene = D.get("desc_ene", pd.DataFrame())
+    if not desc_ene.empty:
+        desc_f = desc_ene[(desc_ene["mes_ano"] >= f"{d0.month:02d}/{d0.year}") &
+                          (desc_ene["mes_ano"] <= f"{d1.month:02d}/{d1.year}")]
+
+        st.markdown("---")
+        st.markdown("## Análise de Descontos Contratuais")
+        st.markdown("**Fornecedores:** Matrix e EchoEnergia")
+
+        if not desc_f.empty:
+            col1, col2, col3 = st.columns(3)
+
+            # KPIs de desconto
+            desc_total = desc_f["desconto_r"].sum()
+            desc_media_pct = desc_f["desconto_pct"].mean()
+            valor_economizado = desc_f["desconto_r"].sum()
+
+            with col1:
+                st.metric("Desconto Total (R$)", f"R$ {desc_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+            with col2:
+                st.metric("Desconto Médio (%)", f"{desc_media_pct:.1f}%")
+            with col3:
+                st.metric("Economia Gerada", f"R$ {valor_economizado:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+
+            st.markdown("")
+
+            # Gráfico de desconto por fornecedor
+            desc_fornecedor = desc_f.groupby("fornecedor")[["desconto_r", "desconto_pct"]].agg({"desconto_r": "sum", "desconto_pct": "mean"}).reset_index()
+            fig_desc = px.bar(desc_fornecedor, x="fornecedor", y="desconto_r",
+                             title="Desconto Total por Fornecedor",
+                             labels={"fornecedor": "Fornecedor", "desconto_r": "Desconto (R$)"},
+                             color="fornecedor",
+                             color_discrete_map={"Matrix": COR["azul"], "EchoEnergia": COR["verde"]})
+            fig_desc.update_layout(margin=dict(t=50, b=0, l=0, r=20), height=350, showlegend=False)
+            fig_desc.update_traces(text=[f"R$ {v:,.0f}" for v in desc_fornecedor["desconto_r"]], textposition="outside")
+            st.plotly_chart(fig_desc, use_container_width=True)
+
+            # Tabela detalhada
+            st.markdown("#### Descontos por Período e UC")
+            desc_table = desc_f[["uc", "mes_ano", "valor_pago", "valor_cheio", "desconto_r", "desconto_pct", "fornecedor"]].copy()
+            desc_table.columns = ["UC", "Período", "Valor Pago", "Valor Cheio", "Desconto (R$)", "Desconto (%)", "Fornecedor"]
+            desc_table = desc_table.sort_values("Período", ascending=False)
+
+            st.dataframe(
+                desc_table.style
+                .format({"Valor Pago": "R$ {:,.2f}", "Valor Cheio": "R$ {:,.2f}",
+                        "Desconto (R$)": "R$ {:,.2f}", "Desconto (%)": "{:.2f}%"}),
+                use_container_width=True,
+                height=400
+            )
+        else:
+            st.info("Sem dados de desconto no período selecionado.")
 
 
 # ── Navegação ─────────────────────────────────────────────────────────────────
