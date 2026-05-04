@@ -2166,11 +2166,8 @@ def pg_energia(D, d0, d1):
 
     st.markdown("---")
 
-    # Gráficos: por UC e série temporal
-    col1, col2 = st.columns(2)
-
-    # Por UC
-    ene_uc = ene_f.groupby("uc")["valor_r"].sum().sort_values(ascending=False)
+    # Gráfico: por UC (largura total)
+    ene_uc = ene_f.groupby("uc")["valor_r"].sum().sort_values(ascending=True)
     fig_uc = px.bar(
         y=ene_uc.index, x=ene_uc.values,
         orientation="h",
@@ -2178,9 +2175,11 @@ def pg_energia(D, d0, d1):
         labels={"x": "R$", "y": ""},
         color_discrete_sequence=[COR["azul"]]
     )
-    fig_uc.update_layout(margin=dict(t=50, b=0, l=200, r=30), height=300, showlegend=False)
+    fig_uc.update_layout(margin=dict(t=50, b=0, l=200, r=30), height=500, showlegend=False)
     fig_uc.update_traces(text=[f"R$ {v:,.0f}" for v in ene_uc.values], textposition="outside")
-    col1.plotly_chart(fig_uc, use_container_width=True)
+    st.plotly_chart(fig_uc, use_container_width=True)
+
+    st.markdown("---")
 
     # Série temporal
     ene_ts = ene_f.groupby("mes_ano")["valor_r"].sum().reset_index()
@@ -2192,9 +2191,9 @@ def pg_energia(D, d0, d1):
         markers=True
     )
     fig_ts.update_traces(line=dict(color=COR["azul"], width=2), marker=dict(size=6))
-    fig_ts.update_layout(margin=dict(t=50, b=0, l=0, r=30), height=300, hovermode="x unified")
+    fig_ts.update_layout(margin=dict(t=50, b=0, l=0, r=30), height=400, hovermode="x unified")
     fig_ts.update_yaxes(tickformat="$,.0f")
-    col2.plotly_chart(fig_ts, use_container_width=True)
+    st.plotly_chart(fig_ts, use_container_width=True)
 
     st.markdown("---")
 
