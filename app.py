@@ -226,6 +226,7 @@ def load():
         return df
 
     fat      = rd("faturamento")
+    alt_fat  = rd("alteracao_fatura_contabil")
     arr      = rd("arrecadacao")
     arr_d    = rd("arrecadacao_diaria")
     arr_rub  = rd("arrecadacao_rubricas")
@@ -252,7 +253,7 @@ def load():
         arr_d["data_pagamento"] = pd.to_datetime(arr_d["data_pagamento"])
 
     return dict(
-        fat=fat, arr=arr, arr_d=arr_d, arr_rub=arr_rub,
+        fat=fat, alt_fat=alt_fat, arr=arr, arr_d=arr_d, arr_rub=arr_rub,
         parr=parr, inad=inad,
         cor=cor, rel=rel, srv=srv, lei=lei, bkl=bkl,
         d_bairro=d_bairro, d_cat=d_cat, d_cls=d_cls,
