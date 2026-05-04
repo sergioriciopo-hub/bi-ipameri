@@ -1927,6 +1927,12 @@ def pg_leituras(D, d0, d1):
                       title="Perdas por Bairro (Volume m³)",
                       color="Perda",
                       color_continuous_scale=["#27AE60","#F39C12","#E74C3C"])
+        # Adicionar valores dentro das barras
+        fig4.update_traces(
+            text=[f"{val:,.0f} <b>m³</b>" for val in ag_pb["Perda"]],
+            textposition="inside",
+            textfont=dict(size=11, color="white", family="Arial Black")
+        )
         fig4.update_layout(margin=dict(t=35, b=0, l=0, r=0),
                            xaxis_title="m³", yaxis_title="",
                            coloraxis_showscale=False)
