@@ -955,7 +955,7 @@ def pg_cockpit(D, d0, d1):
             return COR["vermelho"] if v > 10 else COR["amarelo"] if v > 3 else COR["azul_c"]
 
         # Mostrar rótulos apenas para valores acima de 1%
-        texto_condicional = [val if val > 1 else "" for val in df_per["Rótulo"]]
+        texto_condicional = [df_per["Rótulo"].iloc[i] if df_per["pct"].iloc[i] > 1 else "" for i in range(len(df_per))]
 
         fig5 = go.Figure(go.Bar(
             x=df_per["Mês"], y=df_per["pct"],
