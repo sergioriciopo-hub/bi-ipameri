@@ -714,7 +714,7 @@ def pg_cockpit(D, d0, d1):
               delta_color="normal" if sla_ok >= 0.9 else "inverse")
 
     c7 = st.columns(1)[0]
-    c7.metric("💧 Total Ligações", f"{qtd_lig:,}".replace(",", "."))
+    kpi(c7, "💧 Total Ligações", qtd_lig, prefixo="")
 
     st.markdown("---")
 
