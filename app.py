@@ -44,6 +44,8 @@ SEQ_AZUL = ["#D0E8F8", "#9BC8EC", "#5FA8D8", "#1A6FAD", "#0D3F63"]
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+* { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif !important; }
+
 /* oculta toolbar do Streamlit para evitar header cortado */
 header[data-testid="stHeader"] {
     height: 0 !important;
@@ -60,19 +62,19 @@ header[data-testid="stHeader"] {
     background: transparent !important;
     width: 100% !important;
 }
-#MainMenu                       { display:none !important; }
-footer                          { display:none !important; }
+#MainMenu { display:none !important; }
+footer { display:none !important; }
 
 /* ═══ SIDEBAR ═══════════════════════════════════════════════════════════════ */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg,#0B3558 0%,#1A6FAD 100%) !important;
+    background: linear-gradient(180deg, #1e4d6d 0%, #2a5f7f 100%) !important;
     border-right: none !important;
-    box-shadow: 4px 0 24px rgba(0,0,0,.20);
+    box-shadow: 2px 0 12px rgba(0,0,0,.08) !important;
     overflow-y:auto !important;
 }
 [data-testid="stSidebar"] .block-container,
 [data-testid="stSidebar"] [data-testid="stSidebarContent"] {
-    padding-top:0.5rem !important; padding-bottom:0.8rem !important;
+    padding-top:1rem !important; padding-bottom:1rem !important;
     overflow-y:auto !important;
 }
 [data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div {
@@ -87,39 +89,46 @@ footer                          { display:none !important; }
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] span,
 [data-testid="stSidebar"] .stCaption,
-[data-testid="stSidebar"] small { color:rgba(255,255,255,.92) !important; }
-[data-testid="stSidebar"] hr { border-color:rgba(255,255,255,.18) !important; }
+[data-testid="stSidebar"] small { color:rgba(255,255,255,.88) !important; font-size: 0.95rem !important; }
+[data-testid="stSidebar"] hr { border-color:rgba(255,255,255,.12) !important; margin: 1rem 0 !important; }
 [data-testid="stSidebar"] [data-baseweb="select"] > div {
-    background:rgba(255,255,255,.12) !important;
-    border-color:rgba(255,255,255,.28) !important;
-    color:white !important; border-radius:8px !important;
+    background:rgba(255,255,255,.08) !important;
+    border-color:rgba(255,255,255,.16) !important;
+    color:white !important; border-radius:10px !important;
+    transition: all 0.25s ease !important;
 }
 [data-testid="stSidebar"] [data-baseweb="select"] svg { fill:white !important; }
-[data-testid="stSidebar"] [data-baseweb="popover"] { background:#0D3F63 !important; }
+[data-testid="stSidebar"] [data-baseweb="popover"] { background:#1e4d6d !important; }
 [data-testid="stSidebar"] [data-baseweb="popover"] li { color:white !important; }
 [data-testid="stSidebar"] [data-baseweb="popover"] li:hover {
-    background:rgba(255,255,255,.15) !important;
+    background:rgba(255,255,255,.08) !important;
 }
 [data-testid="stSidebar"] button {
-    background:rgba(255,255,255,.16) !important;
+    background:rgba(255,255,255,.1) !important;
     color:white !important;
-    border:1px solid rgba(255,255,255,.30) !important;
-    border-radius:8px !important; width:100% !important;
+    border:1px solid rgba(255,255,255,.18) !important;
+    border-radius:10px !important; width:100% !important;
+    transition: all 0.25s ease !important;
+    font-weight: 500 !important;
 }
-[data-testid="stSidebar"] button:hover { background:rgba(255,255,255,.26) !important; }
+[data-testid="stSidebar"] button:hover {
+    background:rgba(255,255,255,.15) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,.1) !important;
+}
 [data-testid="stSidebar"] [data-testid="stRadio"] > div {
     gap:0px !important; overflow:visible !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label {
-    padding:6px 14px !important; border-radius:6px !important;
-    color:white !important; font-size:.86rem !important;
-    transition:background .15s; min-height:30px !important;
+    padding:8px 12px !important; border-radius:8px !important;
+    color:white !important; font-size:.90rem !important;
+    transition: all 0.25s ease !important; min-height:36px !important;
     display:flex !important; align-items:center !important;
-    line-height:1 !important; position:relative !important;
-    overflow:visible !important; margin:0 !important;
+    line-height:1.4 !important; position:relative !important;
+    overflow:visible !important; margin:0.25rem 0 !important;
+    font-weight: 500 !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
-    background:rgba(255,255,255,.16) !important;
+    background:rgba(255,255,255,.12) !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label p,
 [data-testid="stSidebar"] [data-testid="stRadio"] label span,
@@ -127,13 +136,13 @@ footer                          { display:none !important; }
     color:white !important;
 }
 [data-testid="stSidebar"] h3 {
-    margin:0 0 0 0 !important; padding:0 !important; font-size:.95rem !important;
+    margin:0.5rem 0 0.75rem 0 !important; padding:0 !important; font-size:1.0rem !important; font-weight: 600 !important;
 }
 [data-testid="stSidebar"] [data-baseweb="select"] {
-    margin-bottom:2px !important;
+    margin-bottom:0.5rem !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] {
-    margin-top:0 !important; margin-bottom:0 !important;
+    margin-top:0.5rem !important; margin-bottom:0.5rem !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] > div {
     padding-top:0 !important; margin-top:0 !important;
@@ -143,71 +152,107 @@ footer                          { display:none !important; }
 }
 
 /* ═══ MAIN BACKGROUND ═══════════════════════════════════════════════════════ */
-.stApp { background:#EEF4FB !important; }
+.stApp { background: linear-gradient(135deg, #f5f9fc 0%, #f0f6fa 100%) !important; }
 .block-container {
-    padding-top:4rem !important; padding-bottom:2rem !important;
+    padding-top:4.5rem !important; padding-bottom:2.5rem !important;
     max-width:1400px !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
 }
 
 /* ═══ METRIC CARDS ══════════════════════════════════════════════════════════ */
 [data-testid="metric-container"] {
-    background:white !important; border-radius:14px !important;
-    padding:18px 22px 14px !important;
-    box-shadow:0 2px 14px rgba(13,63,99,.09) !important;
-    border:1px solid rgba(26,111,173,.10) !important;
-    transition:transform .18s ease, box-shadow .18s ease;
+    background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%) !important;
+    border-radius:16px !important;
+    padding:20px 24px 16px !important;
+    box-shadow: 0 1px 6px rgba(0,0,0,.04), 0 4px 12px rgba(13,63,99,.06) !important;
+    border:1px solid rgba(26,111,173,.06) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 [data-testid="metric-container"]:hover {
-    transform:translateY(-2px) !important;
-    box-shadow:0 6px 22px rgba(13,63,99,.15) !important;
+    transform: translateY(-4px) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,.06), 0 8px 20px rgba(13,63,99,.12) !important;
 }
 [data-testid="stMetricValue"] {
-    font-size:1.40rem !important; font-weight:700 !important;
-    color:#0D3F63 !important; letter-spacing:-.3px !important;
+    font-size: 1.65rem !important; font-weight: 700 !important;
+    color: #0d3f63 !important; letter-spacing: -0.5px !important;
+    line-height: 1.2 !important;
 }
 [data-testid="stMetricLabel"] {
-    font-size:.62rem !important; color:#5A7A9A !important;
-    font-weight:600 !important; text-transform:uppercase !important;
-    letter-spacing:.5px !important;
+    font-size: 0.7rem !important; color: #6a8cb5 !important;
+    font-weight: 600 !important; text-transform: uppercase !important;
+    letter-spacing: 0.6px !important;
+    margin-top: 0.5rem !important;
 }
-[data-testid="stMetricDelta"] { font-size:.78rem !important; }
+[data-testid="stMetricDelta"] { font-size: 0.85rem !important; font-weight: 500 !important; }
 
 /* ═══ HEADINGS ═══════════════════════════════════════════════════════════════ */
-h1 { color:#0D3F63 !important; font-weight:700 !important; font-size:.95rem !important; }
-h2 { color:#1A6FAD !important; font-size:.88rem !important; font-weight:600 !important; }
-h3 { color:#0D3F63 !important; font-size:.82rem !important; }
-h4 { color:#1A6FAD !important; font-size:.78rem !important; }
+h1 { color: #0d3f63 !important; font-weight: 700 !important; font-size: 1.45rem !important; margin: 1.5rem 0 0.75rem !important; }
+h2 { color: #1e5580 !important; font-size: 1.15rem !important; font-weight: 600 !important; margin: 1.25rem 0 0.75rem !important; }
+h3 { color: #2a5f7f !important; font-size: 1.0rem !important; font-weight: 600 !important; }
+h4 { color: #3a6f8f !important; font-size: 0.95rem !important; font-weight: 600 !important; }
+p, span, div { line-height: 1.6 !important; }
 
 /* ═══ CHARTS ═════════════════════════════════════════════════════════════════ */
 .stPlotlyChart > div {
-    background:white !important; border-radius:14px !important;
-    box-shadow:0 2px 10px rgba(13,63,99,.07) !important;
-    border:1px solid rgba(26,111,173,.08) !important; padding:4px !important;
+    background: white !important; border-radius: 16px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,.03), 0 4px 12px rgba(13,63,99,.05) !important;
+    border: 1px solid rgba(26,111,173,.06) !important;
+    padding: 8px !important;
+    transition: all 0.3s ease !important;
+}
+.stPlotlyChart > div:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,.05), 0 8px 16px rgba(13,63,99,.08) !important;
 }
 
 /* ═══ DATAFRAMES ═════════════════════════════════════════════════════════════ */
 [data-testid="stDataFrame"] {
-    border-radius:12px !important; overflow:hidden !important;
-    box-shadow:0 2px 8px rgba(13,63,99,.06) !important;
-    border:1px solid rgba(26,111,173,.08) !important;
+    border-radius: 14px !important; overflow: hidden !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,.03), 0 4px 10px rgba(13,63,99,.05) !important;
+    border: 1px solid rgba(26,111,173,.06) !important;
+    transition: all 0.3s ease !important;
+}
+[data-testid="stDataFrame"]:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,.05), 0 8px 16px rgba(13,63,99,.08) !important;
 }
 
 /* ═══ EXPANDER ═══════════════════════════════════════════════════════════════ */
 .streamlit-expanderHeader {
-    background:white !important; border-radius:10px !important;
-    border:1px solid rgba(26,111,173,.12) !important;
-    font-weight:600 !important; color:#0D3F63 !important;
+    background: linear-gradient(135deg, #f8fafb 0%, #f5f8fa 100%) !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(26,111,173,.08) !important;
+    font-weight: 600 !important; color: #0d3f63 !important;
+    transition: all 0.25s ease !important;
+    padding: 12px 16px !important;
+}
+.streamlit-expanderHeader:hover {
+    background: linear-gradient(135deg, #f0f4f8 0%, #eff2f7 100%) !important;
+    border-color: rgba(26,111,173,.12) !important;
 }
 .streamlit-expanderContent {
-    background:white !important;
-    border:1px solid rgba(26,111,173,.08) !important;
-    border-top:none !important; border-radius:0 0 10px 10px !important;
+    background: #fafbfc !important;
+    border: 1px solid rgba(26,111,173,.06) !important;
+    border-top: none !important; border-radius: 0 0 12px 12px !important;
+    padding: 16px !important;
+}
+
+/* ═══ INPUTS & SELECTIONS ═══════════════════════════════════════════════════ */
+input[type="text"], input[type="number"], input[type="date"] {
+    border-radius: 10px !important;
+    border: 1px solid rgba(26,111,173,.12) !important;
+    transition: all 0.25s ease !important;
+    padding: 8px 12px !important;
+}
+input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus {
+    border-color: rgba(26,111,173,.3) !important;
+    box-shadow: 0 0 0 3px rgba(26,111,173,.08) !important;
 }
 
 /* ═══ MISC ═══════════════════════════════════════════════════════════════════ */
-.stAlert { border-radius:10px !important; }
-[data-baseweb="notification"] { border-radius:10px !important; }
-hr { border-color:#D0E8F8 !important; margin:12px 0 !important; }
+.stAlert { border-radius: 12px !important; padding: 14px 16px !important; }
+[data-baseweb="notification"] { border-radius: 12px !important; }
+hr { border-color: rgba(26,111,173,.08) !important; margin: 1.5rem 0 !important; }
+.stMarkdown { font-size: 0.95rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
