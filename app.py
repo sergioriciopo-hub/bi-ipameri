@@ -623,21 +623,21 @@ def line_mensal(df, col_data, col_val, title, cor=None):
 
 # ── Header executivo por página ───────────────────────────────────────────────
 _PG_CORES = {
-    "🏠 Cockpit Executivo":      ("#0B3558", "#1A6FAD"),
-    "💰 Faturamento":            ("#0B5563", "#17A589"),
-    "🏦 Arrecadação":            ("#145A32", "#27AE60"),
-    "📅 Arrecadação Diária":     ("#1A5276", "#2E86C1"),
-    "⚠️ Inadimplência":          ("#922B21", "#C0392B"),
-    "⚙️ Serviços Operacionais":  ("#6E2F15", "#CA6F1E"),
-    "✂️ Cortes e Religações":    ("#4A235A", "#7D3C98"),
-    "📊 Leituras e Hidrômetros": ("#0E6655", "#1ABC9C"),
+    "Executivo":                ("#3E5F7F", "#5B8FB8"),
+    "Faturamento":              ("#3E5F7F", "#5B8FB8"),
+    "Arrecadação":              ("#3E5F7F", "#5B8FB8"),
+    "Arrecadação Diária":       ("#3E5F7F", "#5B8FB8"),
+    "Inadimplência":            ("#3E5F7F", "#5B8FB8"),
+    "Serviços Operacionais":    ("#3E5F7F", "#5B8FB8"),
+    "Cortes e Religações":      ("#3E5F7F", "#5B8FB8"),
+    "Leituras e Hidrômetros":   ("#3E5F7F", "#5B8FB8"),
 }
 
 def page_header(titulo, periodo_str=""):
-    c1, c2 = _PG_CORES.get(titulo, ("#0B3558", "#1A6FAD"))
+    c1, c2 = _PG_CORES.get(titulo, ("#3E5F7F", "#5B8FB8"))
     per = (
         f'<div style="font-size:.90rem;color:white;font-weight:500;margin-top:6px;">'
-        f'📅 {periodo_str}</div>'
+        f'{periodo_str}</div>'
         if periodo_str else ""
     )
     st.markdown(
@@ -659,7 +659,7 @@ def page_header(titulo, periodo_str=""):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def pg_cockpit(D, d0, d1):
-    page_header("🏠 Executivo",
+    page_header("Executivo",
                 f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
     # ── Dados filtrados pelo período da sidebar ──────────────────────────────
@@ -1040,7 +1040,7 @@ def pg_cockpit(D, d0, d1):
 
 
 def pg_faturamento(D, d0, d1):
-    page_header("💰 Faturamento",
+    page_header("Faturamento",
                 f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
     fat_max = pd.to_datetime(D["fat"]["dt_ref"]).max() if not D["fat"].empty else None
@@ -1173,11 +1173,11 @@ def pg_faturamento(D, d0, d1):
 
     # Aviso de cobertura
     if fat_max is not None:
-        st.info(f"ℹ️ Dados de faturamento disponíveis até **{fat_max.strftime('%B/%Y').capitalize()}**.")
+        st.info(f"Dados de faturamento disponíveis até **{fat_max.strftime('%B/%Y').capitalize()}**.")
 
 
 def pg_arrecadacao(D, d0, d1):
-    page_header("🏦 Arrecadação",
+    page_header("Arrecadação",
                 f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
     # arr = arrecadacao_comercial (mensal) — rubrica breakdown e gráfico histórico
@@ -1311,7 +1311,7 @@ def pg_arrecadacao(D, d0, d1):
 
 
 def pg_arrecadacao_diaria(D, d0, d1):
-    page_header("📅 Arrecadação Diária",
+    page_header("Arrecadação Diária",
                 f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
     ad = D["arr_d"].copy()
@@ -1459,7 +1459,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
 
 
 def pg_inadimplencia(D, d0, d1):
-    page_header("⚠️ Inadimplência",
+    page_header("Inadimplência",
                 f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
     inad = D["inad"]  # snapshot atual, sem filtro de data
@@ -1553,7 +1553,7 @@ def pg_inadimplencia(D, d0, d1):
 
 
 def pg_servicos(D, d0, d1):
-    page_header("⚙️ Serviços Operacionais",
+    page_header("Serviços Operacionais",
                 f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
     srv = filtrar(D["srv"], "dt_solicitacao", d0, d1)
@@ -1664,7 +1664,7 @@ def pg_servicos(D, d0, d1):
 
 
 def pg_cortes(D, d0, d1):
-    page_header("✂️ Cortes e Religações",
+    page_header("Cortes e Religações",
                 f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
     cor = filtrar(D["cor"], "dt_solicitacao", d0, d1)
@@ -1840,7 +1840,7 @@ def pg_cortes(D, d0, d1):
 
 
 def pg_leituras(D, d0, d1):
-    page_header("📊 Leituras e Hidrômetros",
+    page_header("Leituras e Hidrômetros",
                 f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
     lei = filtrar(D["lei"], "dt_ref", d0, d1)

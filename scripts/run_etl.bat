@@ -1,10 +1,28 @@
 @echo off
-REM ── Agendador diário – Águas de Ipameri ETL ──────────────────────────────
-REM Agendar no Task Scheduler:
-REM   Programa : C:\Users\SérgioRiciopo\AGUAS DE IPAMERI\03 COMERCIAL - Documentos\01 - Projetos e Propostas\Claude\BI_Ipameri\scripts\run_etl.bat
-REM   Horário  : 06:00 diariamente
+REM ═══════════════════════════════════════════════════════════════════════════
+REM ETL - Águas de Ipameri | BigQuery → Parquet (Task Scheduler)
+REM Agendar: Task Scheduler diário às 06:00 AM
+REM ═══════════════════════════════════════════════════════════════════════════
 
-cd /d "%~dp0"
-echo [%date% %time%] Iniciando ETL Ipameri...
-python etl_bigquery.py
-echo [%date% %time%] ETL finalizado.
+setlocal enabledelayedexpansion
+
+REM Diretório do projeto
+cd /d "C:\Users\SérgioRiciopo\AGUAS DE IPAMERI\03 COMERCIAL - Documentos\01 - Projetos e Propostas\Claude\BI_Ipameri"
+
+REM Executar script Python
+python scripts\etl_bigquery.py
+
+REM Capturar exit code
+set EXIT_CODE=%errorlevel%
+
+REM Log da execução
+echo.
+echo ============================================================
+if %EXIT_CODE% equ 0 (
+    echo [OK] ETL executado com sucesso em %date% %time%
+) else (
+    echo [ERRO] ETL falhou com código: %EXIT_CODE%
+)
+echo ============================================================
+
+exit /b %EXIT_CODE%
