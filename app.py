@@ -954,22 +954,26 @@ def pg_cockpit(D, d0, d1):
         def _cb(v):
             return COR["vermelho"] if v > 10 else COR["amarelo"] if v > 3 else COR["azul_c"]
 
-        # Mostrar rótulos apenas para valores acima de 1%
-        texto_condicional = [df_per["Rótulo"].iloc[i] if df_per["pct"].iloc[i] > 1 else "" for i in range(len(df_per))]
+        # Mostrar rótulos para todos os valores
+        texto_condicional = df_per["Rótulo"].tolist()
+
+        # Garantir escala mínima de 80%
+        max_pct = df_per["pct"].max()
+        scale_max = max(80, max_pct * 1.15)
 
         fig5 = go.Figure(go.Bar(
             x=df_per["Mês"], y=df_per["pct"],
             text=texto_condicional, textposition="outside", textangle=90,
-            textfont=dict(size=15, weight="bold", color="#0B3558"),
+            textfont=dict(size=17, weight="bold", color="#0B3558"),
             marker_color=[_cb(v) for v in df_per["pct"]],
         ))
         fig5.update_layout(
             title="Inadimplência por Período de Medição",
-            margin=dict(t=70, b=60, l=0, r=80), height=550,
+            margin=dict(t=70, b=60, l=0, r=90), height=550,
             xaxis=dict(title="", categoryorder="array",
                        categoryarray=df_per["Mês"].tolist(),
                        tickangle=-60),
-            yaxis=dict(title="", ticksuffix="%", tickformat=".1f"),
+            yaxis=dict(title="", ticksuffix="%", tickformat=".1f", range=[0, scale_max]),
             showlegend=False,
         )
         st.plotly_chart(fig5, use_container_width=True)
