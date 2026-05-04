@@ -131,6 +131,14 @@ footer { display:none !important; }
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label:first-of-type {
     margin-top: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    display: none !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:nth-of-type(2) {
+    margin-top: 0 !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
     background: rgba(100, 150, 200, 0.35) !important;
