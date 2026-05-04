@@ -156,7 +156,18 @@ footer { display:none !important; }
 [data-testid="stSidebar"] [data-testid="stRadio"] label:empty {
     display:none !important; height:0 !important; margin:0 !important; padding:0 !important;
 }
+[data-testid="stSidebar"] [data-testid="stRadio"] > div {
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
 [data-testid="stSidebar"] [data-testid="stRadio"] > div > div {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:nth-child(1):empty {
+    display: none !important;
+    height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
 }
