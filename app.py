@@ -275,7 +275,9 @@ hr { border-color: rgba(26,111,173,.08) !important; margin: 1.5rem 0 !important;
 /* Remove tooltips and descriptions */
 [title] { pointer-events: none !important; }
 *[aria-label*="keyboard"] { display: none !important; }
+*[aria-label*="double"] { display: none !important; }
 .stTooltip { display: none !important; }
+[data-testid="stSidebar"] [aria-label] { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
