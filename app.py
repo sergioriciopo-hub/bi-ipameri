@@ -1846,7 +1846,7 @@ def pg_leituras(D, d0, d1):
             ),
             hovermode="x unified"
         )
-        st.markdown("### Leituras por Referência (Mês) - Distribuição por Leiturista + <span style='color:#E74C3C'>porcentagens de leituras criticadas</span>", unsafe_allow_html=True)
+        st.markdown("### Leituras por Referência (Mês) - Distribuição por Leiturista + <span style='color:#E74C3C'>Porcentagens de Leituras Criticadas</span>", unsafe_allow_html=True)
         st.plotly_chart(fig2, use_container_width=True)
 
         # Mostrar tabela com detalhe mensal e %Críticas
