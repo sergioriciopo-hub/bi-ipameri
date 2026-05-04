@@ -589,19 +589,19 @@ def kpi(col, label, valor, delta=None, delta_inv=False, prefixo="R$"):
         sinal = "+" if delta >= 0 else ""
         dstr = f"{sinal}{delta:.1%}".replace(".", ",") + " vs período ant."
         delta_color = "#0ABF53" if not delta_inv else "#FF2B2B"
-        delta_html = f'<div style="font-size:0.75rem;color:{delta_color};margin-top:4px;">{dstr}</div>'
+        delta_html = f'<div style="font-size:0.6rem;color:{delta_color};margin-top:2px;">{dstr}</div>'
 
     html = f"""
     <div style="
         background:linear-gradient(135deg, rgba(100,150,200,0.08) 0%, rgba(100,150,200,0.02) 100%);
         border:1px solid rgba(100,150,200,0.15);
         border-radius:12px;
-        padding:14px 16px;
-        margin-bottom:8px;
+        padding:11px 13px;
+        margin-bottom:6px;
         box-shadow:0 2px 8px rgba(0,0,0,0.06);
     ">
-        <div style="font-size:0.85rem;color:rgba(0,0,0,0.6);margin-bottom:6px;font-weight:500;">{label}</div>
-        <div style="font-size:1.75rem;font-weight:700;color:#0B3558;line-height:1.2;">{vstr}</div>
+        <div style="font-size:0.68rem;color:rgba(0,0,0,0.6);margin-bottom:4px;font-weight:500;">{label}</div>
+        <div style="font-size:1.4rem;font-weight:700;color:#0B3558;line-height:1.2;">{vstr}</div>
         {delta_html}
     </div>
     """
@@ -708,10 +708,8 @@ def pg_cockpit(D, d0, d1):
 
     c4, c5, c6 = st.columns(3)
     kpi(c4, "⚠️ Inadimplência", vl_inad)
-    c5.metric("✂️ Cortes Executados", f"{qtd_cor:,}".replace(",", "."))
-    c6.metric("⚙️ SLA Serviços", fmt_pct(sla_ok),
-              delta=f"{fmt_pct(sla_ok - 0.9)} vs meta 90%",
-              delta_color="normal" if sla_ok >= 0.9 else "inverse")
+    kpi(c5, "✂️ Cortes Executados", qtd_cor, prefixo="")
+    kpi(c6, "⚙️ SLA Serviços", sla_ok, delta=sla_ok - 0.9, prefixo="%")
 
     c7 = st.columns(1)[0]
     kpi(c7, "💧 Total Ligações", qtd_lig, prefixo="")
