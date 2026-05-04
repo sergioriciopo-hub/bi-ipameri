@@ -987,7 +987,7 @@ def pg_cockpit(D, d0, d1):
         ))
         fig5.update_layout(
             title="Inadimplência por Período de Medição",
-            margin=dict(t=100, b=80, l=50, r=50), height=550,
+            margin=dict(t=50, b=40, l=50, r=50), height=275,
             xaxis=dict(title="", categoryorder="array",
                        categoryarray=df_per["Mês"].tolist(),
                        tickangle=-45, tickfont=dict(size=11)),
