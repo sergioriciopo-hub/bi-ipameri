@@ -1,13 +1,23 @@
-[browser]
-gatherUsageStats = false
-
-[server]
-headless = true
-port = 8501
-
 [theme]
 primaryColor = "#1A6FAD"
-backgroundColor = "#F8FBFF"
-secondaryBackgroundColor = "#E8F4FD"
-textColor = "#0D3F63"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F8F9FA"
+textColor = "#262730"
 font = "sans serif"
+
+[client]
+showErrorDetails = false
+toolbarMode = "minimal"
+
+[server]
+port = 8501
+headless = true
+runOnSave = true
+maxUploadSize = 200
+
+[logger]
+level = "error"
+
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
