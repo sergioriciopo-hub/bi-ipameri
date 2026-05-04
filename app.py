@@ -2010,14 +2010,14 @@ def main():
     d0, d1 = sidebar_periodo()
 
     paginas = {
-        "🏠 Executivo":             pg_cockpit,
-        "💰 Faturamento":           pg_faturamento,
-        "🏦 Arrecadação":           pg_arrecadacao,
-        "📅 Arrecadação Diária":    pg_arrecadacao_diaria,
-        "⚠️ Inadimplência":         pg_inadimplencia,
-        "⚙️ Serviços Operacionais": pg_servicos,
-        "✂️ Cortes e Religações":   pg_cortes,
-        "📊 Leituras":              pg_leituras,
+        "▸ Executivo":             pg_cockpit,
+        "◉ Faturamento":           pg_faturamento,
+        "◎ Arrecadação":           pg_arrecadacao,
+        "◈ Arrecadação Diária":    pg_arrecadacao_diaria,
+        "⬥ Inadimplência":         pg_inadimplencia,
+        "▪ Serviços Operacionais": pg_servicos,
+        "■ Cortes e Religações":   pg_cortes,
+        "◆ Leituras":              pg_leituras,
     }
 
     st.sidebar.markdown("### Cockpits")
@@ -2026,7 +2026,7 @@ def main():
     st.sidebar.markdown("---")
     agora_br = datetime.now(ZoneInfo("America/Sao_Paulo"))
     st.sidebar.caption(f"Atualizado: {agora_br.strftime('%d/%m/%Y %H:%M')}")
-    if st.sidebar.button("🔄 Recarregar dados"):
+    if st.sidebar.button("↻ Recarregar dados"):
         st.cache_data.clear()
         st.rerun()
 
