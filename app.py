@@ -119,16 +119,19 @@ footer { display:none !important; }
     gap:0px !important; overflow:visible !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label {
-    padding:8px 12px !important; border-radius:8px !important;
-    color:white !important; font-size:.90rem !important;
-    transition: all 0.25s ease !important; min-height:36px !important;
+    padding:10px 14px !important; border-radius:10px !important;
+    color:white !important; font-size:.92rem !important;
+    transition: all 0.25s ease !important; min-height:38px !important;
     display:flex !important; align-items:center !important;
     line-height:1.4 !important; position:relative !important;
-    overflow:visible !important; margin:0.25rem 0 !important;
+    overflow:visible !important; margin:0.35rem 0 !important;
     font-weight: 500 !important;
+    background: rgba(100, 150, 200, 0.25) !important;
+    border: 1px solid rgba(100, 150, 200, 0.2) !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
-    background:rgba(255,255,255,.12) !important;
+    background: rgba(100, 150, 200, 0.35) !important;
+    border-color: rgba(100, 150, 200, 0.3) !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label p,
 [data-testid="stSidebar"] [data-testid="stRadio"] label span,
@@ -2010,14 +2013,14 @@ def main():
     d0, d1 = sidebar_periodo()
 
     paginas = {
-        "▸ Executivo":             pg_cockpit,
-        "◉ Faturamento":           pg_faturamento,
-        "◎ Arrecadação":           pg_arrecadacao,
-        "◈ Arrecadação Diária":    pg_arrecadacao_diaria,
-        "⬥ Inadimplência":         pg_inadimplencia,
-        "▪ Serviços Operacionais": pg_servicos,
-        "■ Cortes e Religações":   pg_cortes,
-        "◆ Leituras":              pg_leituras,
+        "Executivo":             pg_cockpit,
+        "Faturamento":           pg_faturamento,
+        "Arrecadação":           pg_arrecadacao,
+        "Arrecadação Diária":    pg_arrecadacao_diaria,
+        "Inadimplência":         pg_inadimplencia,
+        "Serviços Operacionais": pg_servicos,
+        "Cortes e Religações":   pg_cortes,
+        "Leituras":              pg_leituras,
     }
 
     st.sidebar.markdown("### Cockpits")
