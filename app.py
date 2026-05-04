@@ -275,6 +275,16 @@ hr { border-color: rgba(26,111,173,.08) !important; margin: 1.5rem 0 !important;
 /* Remove tooltips and descriptions */
 [title] { pointer-events: none !important; }
 .stTooltip { display: none !important; }
+
+/* Hide Streamlit keyboard shortcut labels in header area */
+[data-testid="stSidebar"]::before {
+    content: none !important;
+}
+/* Target the top-right expand/collapse button description */
+[data-testid="stSidebar"] > div:first-child div[class*="button"] span {
+    color: transparent !important;
+    font-size: 0 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
