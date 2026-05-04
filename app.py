@@ -2040,7 +2040,7 @@ def main():
 
     st.sidebar.markdown("### Cockpits")
     cockpit_list = [k for k in paginas.keys() if k.strip()]
-    pg_sel = st.sidebar.radio("", cockpit_list, label_visibility="collapsed")
+    pg_sel = st.sidebar.radio("Cockpits", cockpit_list, label_visibility="hidden", horizontal=False)
 
     st.sidebar.markdown("---")
     agora_br = datetime.now(ZoneInfo("America/Sao_Paulo"))
