@@ -589,19 +589,19 @@ def kpi(col, label, valor, delta=None, delta_inv=False, prefixo="R$"):
         sinal = "+" if delta >= 0 else ""
         dstr = f"{sinal}{delta:.1%}".replace(".", ",") + " vs período ant."
         delta_color = "#0ABF53" if not delta_inv else "#FF2B2B"
-        delta_html = f'<div style="font-size:0.6rem;color:{delta_color};margin-top:2px;">{dstr}</div>'
+        delta_html = f'<div style="font-size:0.52rem;color:{delta_color};margin-top:1px;">{dstr}</div>'
 
     html = f"""
     <div style="
         background:linear-gradient(135deg, rgba(100,150,200,0.08) 0%, rgba(100,150,200,0.02) 100%);
         border:1px solid rgba(100,150,200,0.15);
-        border-radius:12px;
-        padding:11px 13px;
-        margin-bottom:6px;
+        border-radius:10px;
+        padding:8px 10px;
+        margin-bottom:4px;
         box-shadow:0 2px 8px rgba(0,0,0,0.06);
     ">
-        <div style="font-size:0.68rem;color:rgba(0,0,0,0.6);margin-bottom:4px;font-weight:500;">{label}</div>
-        <div style="font-size:1.4rem;font-weight:700;color:#0B3558;line-height:1.2;">{vstr}</div>
+        <div style="font-size:0.62rem;color:rgba(0,0,0,0.6);margin-bottom:3px;font-weight:500;">{label}</div>
+        <div style="font-size:1.2rem;font-weight:700;color:#0B3558;line-height:1.1;">{vstr}</div>
         {delta_html}
     </div>
     """
@@ -698,21 +698,20 @@ def pg_cockpit(D, d0, d1):
     sla_ok  = (qtd_sla - qtd_fpr) / qtd_sla     if qtd_sla else 0
     qtd_lig = int(fat["nr_economia_agua"].sum()) if not fat.empty and "nr_economia_agua" in fat.columns else 0
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     kpi(c1, "💰 Faturamento",   vl_fat)
     kpi(c2, "🏦 Arrecadação",   vl_arr)
     if idx_arr is not None:
         kpi(c3, "📊 Eficiência Arrec.", idx_arr, prefixo="%")
     else:
         c3.metric("📊 Eficiência Arrec.", "—")
-
-    c4, c5, c6 = st.columns(3)
     kpi(c4, "⚠️ Inadimplência", vl_inad)
+
+    c5, c6, c7, c8 = st.columns(4)
     kpi(c5, "✂️ Cortes Executados", qtd_cor, prefixo="")
     kpi(c6, "⚙️ SLA Serviços", sla_ok, delta=sla_ok - 0.9, prefixo="%")
-
-    c7 = st.columns(1)[0]
     kpi(c7, "💧 Total Ligações", qtd_lig, prefixo="")
+    c8.empty()
 
     st.markdown("---")
 
