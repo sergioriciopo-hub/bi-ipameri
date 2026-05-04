@@ -959,7 +959,7 @@ def pg_cockpit(D, d0, d1):
 
         fig5 = go.Figure(go.Bar(
             x=df_per["Mês"], y=df_per["pct"],
-            text=texto_condicional, textposition="top",
+            text=texto_condicional, textposition="outside",
             textfont=dict(size=13, weight="bold", color="#0B3558"),
             marker_color=[_cb(v) for v in df_per["pct"]],
         ))
