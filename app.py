@@ -981,13 +981,13 @@ def pg_cockpit(D, d0, d1):
         fig5 = go.Figure(go.Bar(
             x=df_per["Mês"], y=df_per["pct"],
             text=texto_condicional, textposition="outside", textangle=90,
-            textfont=dict(size=12, weight="bold", family="Arial Black", color="#0B3558"),
+            textfont=dict(size=6, weight="bold", family="Arial Black", color="#0B3558"),
             marker_color=[_cb(v) for v in df_per["pct"]],
             marker=dict(line=dict(width=2, color="rgba(0,0,0,0.1)")),
         ))
         fig5.update_layout(
             title="Inadimplência por Período de Medição",
-            margin=dict(t=50, b=40, l=50, r=50), height=275,
+            margin=dict(t=50, b=40, l=50, r=50), height=350,
             xaxis=dict(title="", categoryorder="array",
                        categoryarray=df_per["Mês"].tolist(),
                        tickangle=-45, tickfont=dict(size=11)),
