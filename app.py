@@ -1922,6 +1922,8 @@ def pg_leituras(D, d0, d1):
             Faturado=("qt_volume_faturado","sum")
         ).reset_index()
         ag_pb["Perda"] = ag_pb["Lido"] - ag_pb["Faturado"]
+        # Filtrar apenas bairros com perda real (Lido > Faturado)
+        ag_pb = ag_pb[ag_pb["Perda"] > 0]
         ag_pb = ag_pb.sort_values("Perda", ascending=True).tail(12)
         fig4 = px.bar(ag_pb, x="Perda", y="nm_bairro_dim", orientation="h",
                       title="Perdas por Bairro (Volume m³)",
