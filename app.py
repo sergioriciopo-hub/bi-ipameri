@@ -274,9 +274,17 @@ hr { border-color: rgba(26,111,173,.08) !important; margin: 1.5rem 0 !important;
 
 /* Remove tooltips and descriptions */
 [title] { pointer-events: none !important; }
-*[aria-label*="keyboard"] { display: none !important; }
-*[aria-label*="double"] { display: none !important; }
+*[aria-label*="keyboard"] { visibility: hidden !important; }
+*[aria-label*="double"] { visibility: hidden !important; }
 .stTooltip { display: none !important; }
+/* Hide sidebar keyboard shortcuts */
+[data-testid="stSidebar"] button[aria-label],
+[data-testid="stSidebar"] div[aria-label] {
+    font-size: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
