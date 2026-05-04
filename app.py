@@ -884,7 +884,7 @@ def pg_cockpit(D, d0, d1):
             title="Inadimplência Geral",
             margin=dict(t=40, b=10, l=0, r=0), height=300,
             xaxis=dict(title="", visible=False),
-            yaxis=dict(title="", autorange="reversed"),
+            yaxis=dict(title="", autorange="reversed", tickangle=0),
             showlegend=False,
         )
         st.plotly_chart(fig6, use_container_width=True)
