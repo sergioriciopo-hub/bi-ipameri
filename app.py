@@ -832,10 +832,10 @@ def pg_cockpit(D, d0, d1):
 
         fig3 = go.Figure()
         series_fm = [
-            ("Água + Tarifa Básica",    (agg["vl_agua"] + agg["vl_tbas_a"]) / agg["nr_eco"], "#1A6FAD", "top center", 4),
-            ("Consumo Água",            agg["vl_agua"] / agg["nr_eco"], COR["azul"], "top center", 2),
-            ("Produção Esgoto",         agg["vl_esgo"] / agg["nr_eco"], "#7B3F00", "bottom center", 2),
-            ("Tarifa Básica Água",      agg["vl_tbas_a"] / agg["nr_eco"], "#5BA3D0", "top center", 2),
+            ("Faturamento Total",       (agg["vl_agua"] + agg["vl_tbas_a"]) / agg["nr_eco"], "#1A6FAD", "top center", 4),
+            ("Consumo Água",            agg["vl_agua"] / agg["nr_eco"], "#2E7FD6", "top center", 2),
+            ("Produção Esgoto",         agg["vl_esgo"] / agg["nr_eco"], "#8B4513", "bottom center", 2),
+            ("Tarifa Básica + Serviços", (agg["vl_tbas_a"] + agg["vl_srv_div"]) / agg["nr_eco"], "#FF9F43", "top center", 2),
             ("Tarifa Básica Esgoto",    agg["vl_tbas_e"] / agg["nr_eco"], "#A0622D", "bottom center", 2),
             ("Lixo",                    agg["vl_lixo"] / agg["nr_eco"], "#E74C3C", "bottom center", 2),
             ("Serviços Diversos",       agg["vl_srv_div"] / agg["nr_eco"], COR["amarelo"], "top center", 2),
@@ -849,11 +849,14 @@ def pg_cockpit(D, d0, d1):
                     text=vals.round(1).apply(lambda v: f"{v:.1f}" if v > 0 else ""),
                     textposition=textpos, textfont=dict(size=10, weight="bold"),
                     line=dict(color=cor_v, width=width), marker=dict(size=4),
-                    visible=(idx == 0),
+                    visible=(idx < 4),
                 ))
 
         fig3.update_layout(
-            title="Fatura Média por Economia (R$/Economia)",
+            title=dict(
+                text="Fatura Média por Economia (R$/Economia) <span style='font-size:0.8em;cursor:help;'>ℹ️</span>",
+                x=0.0, xanchor="left"
+            ),
             margin=dict(t=70, b=10, l=0, r=0), height=400,
             xaxis=dict(title="", categoryorder="array", categoryarray=meses_fm),
             yaxis=dict(title=""),
