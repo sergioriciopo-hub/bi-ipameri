@@ -1082,12 +1082,12 @@ def pg_faturamento(D, d0, d1):
     qt_faturas     = fat["qt_fatura"].sum()          if "qt_fatura"        in fat.columns else len(fat)
 
     # ── KPIs linha 1 — totais ─────────────────────────────────────────────────
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     kpi(c1, "💰 Total Líquido Faturado", vl_liquido)
     kpi(c2, "🔻 Abatimentos / Descontos", vl_abat)
-    c3.metric("📄 Qtd Faturas", f"{int(qt_faturas):,}".replace(",", "."))
 
-    c4 = st.columns(1)[0]
+    c3, c4 = st.columns(2)
+    c3.metric("📄 Qtd Faturas", f"{int(qt_faturas):,}".replace(",", "."))
     c4.metric("💧 Volume (m³)", f"{vol_m3:,.0f}".replace(",", "."))
 
     st.markdown("---")
@@ -1210,15 +1210,18 @@ def pg_arrecadacao(D, d0, d1):
     # Rubricas (água/esgoto) vêm de arr — arr_d não tem breakdown por rubrica
     vl_agua_arr = arr["vl_agua"].sum() if not arr.empty and "vl_agua" in arr.columns else 0
     vl_esg_arr  = arr["vl_esgoto"].sum() if not arr.empty and "vl_esgoto" in arr.columns else 0
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2 = st.columns(2)
     kpi(c1, "Total Arrecadado", vl_arr)
-    kpi(c2, "Água Arrecadada", vl_agua_arr)
-    kpi(c3, "Esgoto Arrecadado", vl_esg_arr)
-    kpi(c4, "Faturado no Período", vl_fat)
+    kpi(c2, "Faturado no Período", vl_fat)
+
+    c3, c4 = st.columns(2)
+    kpi(c3, "Água Arrecadada", vl_agua_arr)
+    kpi(c4, "Esgoto Arrecadado", vl_esg_arr)
 
     if efic is not None:
-        c_efic = st.columns(1)[0]
-        kpi(c_efic, "Eficiência Arrecadação", efic, prefixo="%")
+        c5, c6 = st.columns(2)
+        kpi(c5, "Eficiência Arrecadação", efic, prefixo="%")
+        c6.empty()
     else:
         st.metric("Eficiência Arrecadação", "—",
                   help="Faturamento não disponível neste período para calcular eficiência")
@@ -1487,13 +1490,18 @@ def pg_inadimplencia(D, d0, d1):
     qtd_fat  = len(inad)
     tkt_med  = vl_inad / qtd_fat if qtd_fat else 0
     qtd_corte = int(inad["fl_corte_pendente"].sum()) if "fl_corte_pendente" in inad.columns else 0
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2 = st.columns(2)
     kpi(c1, "Total Inadimplência", vl_inad)
     kpi(c2, "Índice Inadimplência", idx_inad, prefixo="%")
+
+    c3, c4 = st.columns(2)
     c3.metric("Qtd Faturas Vencidas", f"{qtd_fat:,}".replace(",", "."))
     kpi(c4, "Ticket Médio", tkt_med)
-    st.metric("Com Corte Pendente", f"{qtd_corte:,}".replace(",", "."),
+
+    c5, c6 = st.columns(2)
+    c5.metric("Com Corte Pendente", f"{qtd_corte:,}".replace(",", "."),
               delta="aguardando corte", delta_color="off")
+    c6.empty()
 
     st.markdown("---")
     st.info("ℹ️ Inadimplência exibe o **saldo atual** (snapshot mais recente), independente do período selecionado.")
@@ -1585,8 +1593,10 @@ def pg_servicos(D, d0, d1):
     c1, c2 = st.columns(2)
     c1.metric("Total de Serviços", f"{qtd:,}".replace(",", "."))
     kpi(c2, "% SLA no Prazo", sla, prefixo="%")
-    st.metric("Tempo Médio Exec.", f"{t_med:.1f}h")
-    st.metric("Backlog Pendente", f"{bkl_p:,}".replace(",", "."),
+
+    c3, c4 = st.columns(2)
+    c3.metric("Tempo Médio Exec.", f"{t_med:.1f}h")
+    c4.metric("Backlog Pendente", f"{bkl_p:,}".replace(",", "."),
               delta_color="inverse")
 
     st.markdown("---")
@@ -1733,13 +1743,19 @@ def pg_cortes(D, d0, d1):
     taxa_r = qtd_rel / qtd_cor if qtd_cor else 0
 
     # ── KPIs principais ───────────────────────────────────────────────────────
-    st.metric("Cortes Executados", f"{qtd_cor:,}".replace(",", "."))
-    st.metric("Religações (cavalete)", f"{qtd_rel:,}".replace(",", "."))
-    st.metric("Tempo Médio Execução Corte", f"{t_exec_h:.1f}h",
+    c1, c2 = st.columns(2)
+    c1.metric("Cortes Executados", f"{qtd_cor:,}".replace(",", "."))
+    c2.metric("Religações (cavalete)", f"{qtd_rel:,}".replace(",", "."))
+
+    c3, c4 = st.columns(2)
+    c3.metric("Tempo Médio Execução Corte", f"{t_exec_h:.1f}h",
               help="Da solicitação ao fim da execução (sol→fim). SLA pendente de definição pela empresa.")
-    st.metric("Tempo Médio Operação Corte", f"{t_med:.1f}h",
+    c4.metric("Tempo Médio Operação Corte", f"{t_med:.1f}h",
               help="Tempo cronometrado na execução em campo.")
-    st.metric("Taxa Religação/Corte", fmt_pct(taxa_r))
+
+    c5, c6 = st.columns(2)
+    c5.metric("Taxa Religação/Corte", fmt_pct(taxa_r))
+    c6.empty()
 
     st.caption(
         f"Tempo médio entre corte e pedido de religação (cavalete): "
@@ -1748,11 +1764,13 @@ def pg_cortes(D, d0, d1):
 
     st.markdown("---")
     st.markdown("##### Religações — SLA e prazo")
-    r1, r2, r3, r4, r5 = st.columns(5)
+    r1, r2, r3 = st.columns(3)
     r1.metric("Normal (24h)", f"{qtd_rel_normal:,}".replace(",", "."))
     kpi(r2, "% Normal no Prazo", sla_rel_normal, prefixo="%",
         delta_inv=False)
     r3.metric("Urgente (6h/14h)", f"{qtd_rel_urgente:,}".replace(",", "."))
+
+    r4, r5 = st.columns(2)
     kpi(r4, "% Urgente no Prazo", sla_rel_urgente, prefixo="%",
         delta_inv=False)
     r5.metric("Outros tipos", f"{qtd_rel_outros:,}".replace(",", "."),
@@ -1870,10 +1888,12 @@ def pg_leituras(D, d0, d1):
     efic_lei = (lei["fl_erro_leitura"] == 0).sum() / len(lei) if len(lei) else 0
     perdas   = vol_lid - vol_fat
     idx_perd = perdas / vol_lid if vol_lid else 0
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3 = st.columns(3)
     c1.metric("Leituras Realizadas", f"{qtd_lei:,}".replace(",", "."))
     c2.metric("Volume Lido (m³)", f"{vol_lid:,}".replace(",", "."))
     c3.metric("Volume Faturado (m³)", f"{vol_fat:,}".replace(",", "."))
+
+    c4, c5 = st.columns(2)
     c4.metric("Leituras Críticas", f"{criticas:,}".replace(",", "."))
     kpi(c5, "Índice de Perdas", idx_perd, prefixo="%")
 
