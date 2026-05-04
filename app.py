@@ -946,10 +946,29 @@ def pg_cockpit(D, d0, d1):
         df_per = inad_m.merge(fat_mh, on="Mês", how="inner")
         df_per = df_per[df_per["vl_faturado"] > 0].copy()
         df_per["pct"] = df_per["vl_divida"] / df_per["vl_faturado"] * 100
-        df_per["Rótulo"] = df_per["pct"].apply(lambda v: f"{v:.2f}%")
         df_per = df_per.sort_values(
             "Mês", key=lambda s: pd.to_datetime(s, format="%m/%Y")
         )
+
+        # Manter últimos 18 meses + agrupar anteriores
+        if len(df_per) > 18:
+            df_anteriores = df_per.iloc[:-18].copy()
+            df_per = df_per.iloc[-18:].copy()
+
+            # Criar linha de "anteriores" com somas
+            vl_div_ant = df_anteriores["vl_divida"].sum()
+            vl_fat_ant = df_anteriores["vl_faturado"].sum()
+            pct_ant = (vl_div_ant / vl_fat_ant * 100) if vl_fat_ant > 0 else 0
+
+            df_ant_row = pd.DataFrame({
+                "Mês": ["(anteriores)"],
+                "vl_divida": [vl_div_ant],
+                "vl_faturado": [vl_fat_ant],
+                "pct": [pct_ant],
+            })
+            df_per = pd.concat([df_ant_row, df_per], ignore_index=True)
+
+        df_per["Rótulo"] = df_per["pct"].apply(lambda v: f"{v:.2f}%")
 
         def _cb(v):
             return COR["vermelho"] if v > 10 else COR["amarelo"] if v > 3 else COR["azul_c"]
@@ -957,25 +976,25 @@ def pg_cockpit(D, d0, d1):
         # Mostrar rótulos para todos os valores
         texto_condicional = df_per["Rótulo"].tolist()
 
-        # Garantir escala mínima de 80% com espaço para texto acima
+        # Garantir escala mínima de 80%
         max_pct = df_per["pct"].max()
         scale_max = max(80, max_pct * 1.15)
 
         fig5 = go.Figure(go.Bar(
             x=df_per["Mês"], y=df_per["pct"],
             text=texto_condicional, textposition="outside", textangle=90,
-            textfont=dict(size=80, weight="bold", family="Arial Black", color="#0B3558"),
+            textfont=dict(size=65, weight="bold", family="Arial Black", color="#0B3558"),
             marker_color=[_cb(v) for v in df_per["pct"]],
             marker=dict(line=dict(width=2, color="rgba(0,0,0,0.1)")),
         ))
         fig5.update_layout(
             title="Inadimplência por Período de Medição",
-            margin=dict(t=120, b=100, l=50, r=50), height=800,
+            margin=dict(t=100, b=80, l=50, r=50), height=550,
             xaxis=dict(title="", categoryorder="array",
                        categoryarray=df_per["Mês"].tolist(),
-                       tickangle=-45, tickfont=dict(size=12)),
+                       tickangle=-45, tickfont=dict(size=11)),
             yaxis=dict(title="", ticksuffix="%", tickformat=".1f", range=[0, scale_max],
-                      tickfont=dict(size=12)),
+                      tickfont=dict(size=11)),
             showlegend=False,
             plot_bgcolor="rgba(245,248,250,0.8)",
         )
