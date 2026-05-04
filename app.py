@@ -957,24 +957,27 @@ def pg_cockpit(D, d0, d1):
         # Mostrar rótulos para todos os valores
         texto_condicional = df_per["Rótulo"].tolist()
 
-        # Garantir escala mínima de 80%
+        # Garantir escala mínima de 80% com espaço para texto acima
         max_pct = df_per["pct"].max()
-        scale_max = max(80, max_pct * 1.15)
+        scale_max = max(80, max_pct * 1.25)
 
         fig5 = go.Figure(go.Bar(
             x=df_per["Mês"], y=df_per["pct"],
-            text=texto_condicional, textposition="outside", textangle=90,
-            textfont=dict(size=50, weight="bold", color="#0B3558"),
+            text=texto_condicional, textposition="outside",
+            textfont=dict(size=60, weight="bold", color="#0B3558"),
             marker_color=[_cb(v) for v in df_per["pct"]],
+            marker=dict(line=dict(width=2, color="rgba(0,0,0,0.1)")),
         ))
         fig5.update_layout(
             title="Inadimplência por Período de Medição",
-            margin=dict(t=70, b=60, l=0, r=200), height=600,
+            margin=dict(t=70, b=80, l=40, r=40), height=700,
             xaxis=dict(title="", categoryorder="array",
                        categoryarray=df_per["Mês"].tolist(),
-                       tickangle=-60),
-            yaxis=dict(title="", ticksuffix="%", tickformat=".1f", range=[0, scale_max]),
+                       tickangle=-45, tickfont=dict(size=11)),
+            yaxis=dict(title="", ticksuffix="%", tickformat=".1f", range=[0, scale_max],
+                      tickfont=dict(size=11)),
             showlegend=False,
+            plot_bgcolor="rgba(245,248,250,0.5)",
         )
         st.plotly_chart(fig5, use_container_width=True)
 
