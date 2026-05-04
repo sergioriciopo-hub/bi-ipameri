@@ -955,15 +955,13 @@ def pg_cockpit(D, d0, d1):
             df_anteriores = df_per.iloc[:-18].copy()
             df_per = df_per.iloc[-18:].copy()
 
-            # Criar linha de "anteriores" com somas
-            vl_div_ant = df_anteriores["vl_divida"].sum()
-            vl_fat_ant = df_anteriores["vl_faturado"].sum()
-            pct_ant = (vl_div_ant / vl_fat_ant * 100) if vl_fat_ant > 0 else 0
+            # Criar linha de "anteriores" com soma das porcentagens
+            pct_ant = df_anteriores["pct"].sum()
 
             df_ant_row = pd.DataFrame({
                 "Mês": ["(anteriores)"],
-                "vl_divida": [vl_div_ant],
-                "vl_faturado": [vl_fat_ant],
+                "vl_divida": [df_anteriores["vl_divida"].sum()],
+                "vl_faturado": [df_anteriores["vl_faturado"].sum()],
                 "pct": [pct_ant],
             })
             df_per = pd.concat([df_ant_row, df_per], ignore_index=True)
