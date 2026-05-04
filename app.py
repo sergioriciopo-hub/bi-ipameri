@@ -602,7 +602,7 @@ def bar_mensal(df, col_data, col_val, title, cor=None, agrupamento="M"):
     fig = px.bar(ag, x="Mês", y="Valor", title=title,
                  color_discrete_sequence=[cor or COR["azul"]])
     fig.update_layout(xaxis_title="", yaxis_title="", showlegend=False,
-                      margin=dict(t=35, b=0, l=0, r=0))
+                      margin=dict(t=35, b=0, l=0, r=20))
     fig.update_yaxes(tickformat=",.0f")
     return fig
 
@@ -617,7 +617,7 @@ def line_mensal(df, col_data, col_val, title, cor=None):
     fig = px.line(ag, x="Mês", y="Valor", title=title, markers=True,
                   color_discrete_sequence=[cor or COR["azul"]])
     fig.update_layout(xaxis_title="", yaxis_title="", showlegend=False,
-                      margin=dict(t=35, b=0, l=0, r=0))
+                      margin=dict(t=35, b=0, l=0, r=20))
     return fig
 
 
@@ -748,7 +748,7 @@ def pg_cockpit(D, d0, d1):
             ))
         fig1.update_layout(
             title="Faturamento e Arrecadação Mensal (R$)",
-            margin=dict(t=70, b=10, l=0, r=0), height=400,
+            margin=dict(t=70, b=10, l=0, r=30), height=400,
             xaxis=dict(title="", categoryorder="array", categoryarray=todos),
             yaxis=dict(title="", tickformat=",.0f"),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
@@ -789,7 +789,7 @@ def pg_cockpit(D, d0, d1):
             ))
         fig2.update_layout(
             title="Economias Ativas + Cortadas Cavalete",
-            margin=dict(t=70, b=10, l=0, r=0), height=400,
+            margin=dict(t=70, b=10, l=0, r=30), height=400,
             xaxis=dict(title="", categoryorder="array", categoryarray=meses_eco),
             yaxis=dict(title=""),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
@@ -857,10 +857,10 @@ def pg_cockpit(D, d0, d1):
                 text="Fatura Média por Economia (R$/Economia) <span style='font-size:0.8em;cursor:help;'>ℹ️</span>",
                 x=0.0, xanchor="left"
             ),
-            margin=dict(t=70, b=10, l=0, r=0), height=400,
+            margin=dict(t=70, b=10, l=0, r=30), height=400,
             xaxis=dict(title="", categoryorder="array", categoryarray=meses_fm),
             yaxis=dict(title=""),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
             hovermode="x unified",
         )
         st.plotly_chart(fig3, use_container_width=True)
@@ -904,7 +904,7 @@ def pg_cockpit(D, d0, d1):
             ))
         fig4.update_layout(
             title="Volume Faturado por Economia (m³/Economia)",
-            margin=dict(t=70, b=10, l=0, r=0), height=400,
+            margin=dict(t=70, b=10, l=0, r=30), height=400,
             xaxis=dict(title="", categoryorder="array", categoryarray=meses_vf),
             yaxis=dict(title=""),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
@@ -945,7 +945,7 @@ def pg_cockpit(D, d0, d1):
         ))
         fig5.update_layout(
             title="Inadimplência por Período de Medição",
-            margin=dict(t=70, b=10, l=0, r=0), height=400,
+            margin=dict(t=70, b=10, l=0, r=30), height=400,
             xaxis=dict(title="", categoryorder="array",
                        categoryarray=df_per["Mês"].tolist()),
             yaxis=dict(title="", ticksuffix="%", tickformat=".1f"),
@@ -978,7 +978,7 @@ def pg_cockpit(D, d0, d1):
         ))
         fig6.update_layout(
             title="Inadimplência Geral",
-            margin=dict(t=40, b=10, l=0, r=0), height=300,
+            margin=dict(t=40, b=10, l=0, r=20), height=300,
             xaxis=dict(title="", visible=False, range=[0, 8]),
             yaxis=dict(title="", autorange="reversed", tickangle=0),
             showlegend=False,
@@ -1030,7 +1030,7 @@ def pg_cockpit(D, d0, d1):
         )
         fig7.update_layout(
             title="Ligações por Situação",
-            margin=dict(t=50, b=10, l=0, r=0), height=400,
+            margin=dict(t=50, b=10, l=0, r=20), height=400,
             xaxis=dict(title=""), yaxis=dict(title="", tickformat=",.0f"),
             barmode="group",
         )
@@ -1134,7 +1134,7 @@ def pg_faturamento(D, d0, d1):
                      "Água": COR["agua"], "Tarifa Básica": "#8B5CF6",
                      "Serviços": COR["servico"], "Lixo": COR["lixo"],
                  })
-    fig.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
+    fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
     fig.update_yaxes(tickformat=",.0f")
     st.plotly_chart(fig, use_container_width=True)
 
@@ -1150,7 +1150,7 @@ def pg_faturamento(D, d0, d1):
                           "Água": COR["agua"], "Tarifa Básica": "#8B5CF6",
                           "Serviços": COR["servico"], "Lixo": COR["lixo"],
                       })
-        fig2.update_layout(margin=dict(t=35, b=0, l=0, r=0))
+        fig2.update_layout(margin=dict(t=35, b=0, l=0, r=20))
         st.plotly_chart(fig2, use_container_width=True)
     # Volume m³ mensal
     fig3 = bar_mensal(fat, "dt_ref", "volume_m3",
@@ -1167,7 +1167,7 @@ def pg_faturamento(D, d0, d1):
         fig4 = px.pie(ag_cat, names="Categoria", values="Valor",
                       title="Faturamento por Categoria",
                       color_discrete_sequence=px.colors.qualitative.Set2)
-        fig4.update_layout(margin=dict(t=35, b=0, l=0, r=0))
+        fig4.update_layout(margin=dict(t=35, b=0, l=0, r=20))
         st.plotly_chart(fig4, use_container_width=True)
 
     # Por bairro (top 15)
@@ -1178,7 +1178,7 @@ def pg_faturamento(D, d0, d1):
         fig5 = px.bar(ag_b, x="Valor", y="Bairro", orientation="h",
                       title="Top 15 Bairros — Faturamento",
                       color_discrete_sequence=[COR["azul"]])
-        fig5.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
+        fig5.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
         fig5.update_xaxes(tickformat=",.0f")
         st.plotly_chart(fig5, use_container_width=True)
 
@@ -1248,7 +1248,7 @@ def pg_arrecadacao(D, d0, d1):
                   color_discrete_map={"Faturado": COR["azul"], "Arrecadado": COR["verde"]})
     fig.add_vrect(x0=d0, x1=d1, fillcolor="rgba(26,111,173,0.08)",
                   line_width=0, annotation_text="Período sel.", annotation_position="top left")
-    fig.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
+    fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
     fig.update_yaxes(tickformat=",.0f")
     st.plotly_chart(fig, use_container_width=True)
 
@@ -1271,7 +1271,7 @@ def pg_arrecadacao(D, d0, d1):
                           "Água": COR["agua"], "Esgoto": COR["esgoto"],
                           "Lixo": COR["lixo"], "Serviços": COR["servico"]
                       })
-        fig2.update_layout(margin=dict(t=35, b=0, l=0, r=0))
+        fig2.update_layout(margin=dict(t=35, b=0, l=0, r=20))
         st.plotly_chart(fig2, use_container_width=True)
     # Índice de eficiência mensal (onde fat disponível)
     fat_hist2 = D["fat"].copy()
@@ -1291,7 +1291,7 @@ def pg_arrecadacao(D, d0, d1):
                        color_discrete_sequence=[COR["verde"]])
         fig3.add_hline(y=0.95, line_dash="dash", line_color=COR["vermelho"],
                        annotation_text="Meta 95%")
-        fig3.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
+        fig3.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
         fig3.update_yaxes(tickformat=".0%")
         st.plotly_chart(fig3, use_container_width=True)
     else:
@@ -1308,7 +1308,7 @@ def pg_arrecadacao(D, d0, d1):
         fig4 = px.pie(ag_f.head(8), names="Forma", values="Valor",
                       title="Canal de Pagamento (dados disponíveis)",
                       color_discrete_sequence=px.colors.qualitative.Set3)
-        fig4.update_layout(margin=dict(t=35, b=0, l=0, r=0))
+        fig4.update_layout(margin=dict(t=35, b=0, l=0, r=20))
         st.plotly_chart(fig4, use_container_width=True)
     else:
         # usa tipo_documento da arr quando parr está vazio no período
@@ -1319,7 +1319,7 @@ def pg_arrecadacao(D, d0, d1):
             fig4b = px.bar(ag_td, x="Valor", y="Tipo", orientation="h",
                            title="Arrecadação por Tipo de Documento",
                            color_discrete_sequence=[COR["azul_c"]])
-            fig4b.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
+            fig4b.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
             fig4b.update_xaxes(tickformat=",.0f")
             st.plotly_chart(fig4b, use_container_width=True)
 
@@ -1403,7 +1403,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
         yaxis2=dict(title="Acumulado (R$)", overlaying="y", side="right",
                     showgrid=False),
         legend=dict(orientation="h", y=1.1),
-        margin=dict(t=70, b=0, l=0, r=0), height=400,
+        margin=dict(t=70, b=0, l=0, r=30), height=400,
         hovermode="x unified",
     )
     fig.update_yaxes(tickformat=",.0f")
@@ -1420,7 +1420,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
         fig2 = px.pie(ag_frm.head(7), names="Canal", values="Valor",
                       title="Canal de Pagamento",
                       color_discrete_sequence=px.colors.qualitative.Set3)
-        fig2.update_layout(margin=dict(t=70, b=0, l=0, r=0), height=400,
+        fig2.update_layout(margin=dict(t=70, b=0, l=0, r=30), height=400,
                            legend=dict(font=dict(size=9)))
         st.plotly_chart(fig2, use_container_width=True)
 
@@ -1524,7 +1524,7 @@ def pg_inadimplencia(D, d0, d1):
     fig2 = px.pie(fi_q, names="faixa_atraso", values="Qtd",
                   title="Distribuição por Qtd de Faturas",
                   color_discrete_sequence=px.colors.qualitative.Set3)
-    fig2.update_layout(margin=dict(t=35, b=0, l=0, r=0))
+    fig2.update_layout(margin=dict(t=35, b=0, l=0, r=20))
     st.plotly_chart(fig2, use_container_width=True)
     if "nm_bairro_dim" in inad.columns:
         ag_b = inad.groupby("nm_bairro_dim")["vl_divida"].sum()\
@@ -1534,7 +1534,7 @@ def pg_inadimplencia(D, d0, d1):
                       title="Top 15 Bairros — Inadimplência",
                       color="Valor",
                       color_continuous_scale=["#FFF3CD", "#E74C3C"])
-        fig3.update_layout(margin=dict(t=35, b=0, l=0, r=0),
+        fig3.update_layout(margin=dict(t=35, b=0, l=0, r=20),
                            xaxis_title="", yaxis_title="",
                            coloraxis_showscale=False)
         fig3.update_xaxes(tickformat=",.0f")
@@ -1553,7 +1553,7 @@ def pg_inadimplencia(D, d0, d1):
                           "Corte Pendente": COR["vermelho"],
                           "Sem Corte": COR["amarelo"]
                       })
-        fig4.update_layout(margin=dict(t=35, b=0, l=0, r=0))
+        fig4.update_layout(margin=dict(t=35, b=0, l=0, r=20))
         st.plotly_chart(fig4, use_container_width=True)
 
     # Tabela detalhada
@@ -1612,7 +1612,7 @@ def pg_servicos(D, d0, d1):
     fig = px.bar(ag_can, x="Qtd", y="Canal", orientation="h",
                  title="Serviços por Canal de Atendimento",
                  color_discrete_sequence=[COR["azul"]])
-    fig.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
+    fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
     st.plotly_chart(fig, use_container_width=True)
 
     # SLA por canal
@@ -1630,7 +1630,7 @@ def pg_servicos(D, d0, d1):
                       color_continuous_scale=["#E74C3C","#F39C12","#27AE60"])
         fig2.add_vline(x=0.90, line_dash="dash", line_color="gray",
                        annotation_text="Meta 90%")
-        fig2.update_layout(margin=dict(t=35, b=0, l=0, r=0),
+        fig2.update_layout(margin=dict(t=35, b=0, l=0, r=20),
                            xaxis_title="", yaxis_title="",
                            coloraxis_showscale=False)
         fig2.update_xaxes(tickformat=".0%")
@@ -1649,7 +1649,7 @@ def pg_servicos(D, d0, d1):
     fig3 = px.bar(ag_m, x="Mês", y="Qtd", color="SLA", barmode="stack",
                   title="Serviços Mensais (No Prazo vs Fora)",
                   color_discrete_map={"No Prazo": COR["verde"], "Fora do Prazo": COR["vermelho"]})
-    fig3.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
+    fig3.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
     st.plotly_chart(fig3, use_container_width=True)
 
     # Por equipe
@@ -1660,7 +1660,7 @@ def pg_servicos(D, d0, d1):
         fig4 = px.bar(ag_eq, x="Qtd", y="Equipe", orientation="h",
                       title="Serviços por Equipe (Top 12)",
                       color_discrete_sequence=[COR["azul_c"]])
-        fig4.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
+        fig4.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
         st.plotly_chart(fig4, use_container_width=True)
 
     # Backlog
@@ -1680,7 +1680,7 @@ def pg_servicos(D, d0, d1):
                            "Solicitado": COR["azul"], "Executado": COR["verde"],
                            "Pendente": COR["vermelho"]
                        })
-        fig5.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
+        fig5.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
         st.plotly_chart(fig5, use_container_width=True)
 
 
@@ -1805,7 +1805,7 @@ def pg_cortes(D, d0, d1):
                       title="Cortes vs Religações (mensal)",
                       color_discrete_map={"Cortes": COR["vermelho"], "Religações": COR["verde"]},
                       category_orders={"Mês": meses_ord})
-        fig.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
+        fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
         st.plotly_chart(fig, use_container_width=True)
 
     # Distribuição por tempo de execução (sol→fim) — em faixas de horas
@@ -1831,7 +1831,7 @@ def pg_cortes(D, d0, d1):
         fig3 = px.bar(ag_b, x="Qtd", y="Bairro", orientation="h",
                       title="Top 15 Bairros — Cortes",
                       color_discrete_sequence=[COR["vermelho"]])
-        fig3.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
+        fig3.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
         st.plotly_chart(fig3, use_container_width=True)
 
     if not rel.empty and "dias_corte_religacao" in rel.columns and "id_servico_definicao" in rel.columns:
@@ -1850,7 +1850,7 @@ def pg_cortes(D, d0, d1):
                       color_discrete_map={"Normal": COR["azul_c"], "Urgente": COR["vermelho"], "Outros": COR["cinza"]},
                       category_orders={"Faixa": labels_d})
         fig4.update_traces(textposition="inside", textfont=dict(size=11, weight="bold"))
-        fig4.update_layout(margin=dict(t=35, b=0, l=0, r=0),
+        fig4.update_layout(margin=dict(t=35, b=0, l=0, r=20),
                            xaxis_title="", yaxis_title="Qtd")
         st.plotly_chart(fig4, use_container_width=True)
 
@@ -1908,7 +1908,7 @@ def pg_leituras(D, d0, d1):
     fig = px.line(ag_m, x="Mês", y="m³", color="Tipo", markers=True,
                   title="Volume Lido vs Faturado (m³ mensal)",
                   color_discrete_map={"Lido": COR["azul"], "Faturado": COR["verde"]})
-    fig.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
+    fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
     fig.update_yaxes(tickformat=",.0f")
     st.plotly_chart(fig, use_container_width=True)
 
@@ -1957,7 +1957,7 @@ def pg_leituras(D, d0, d1):
             )
 
         fig2.update_layout(
-            margin=dict(t=35, b=120, l=0, r=0),
+            margin=dict(t=35, b=120, l=0, r=20),
             xaxis_title="", yaxis_title="Quantidade de Leituras",
             legend=dict(
                 orientation="h",
@@ -2033,7 +2033,7 @@ def pg_leituras(D, d0, d1):
                    annotation_text="Meta 95%", yref="y1")
     fig3.update_layout(
         title="Eficiência de Leitura (sem erros)",
-        margin=dict(t=35, b=0, l=0, r=0), xaxis_title="",
+        margin=dict(t=35, b=0, l=0, r=20), xaxis_title="",
         yaxis=dict(title="Eficiência (%)", tickformat=".1%"),
         yaxis2=dict(title="Qtd Alterações Executadas", overlaying="y", side="right", range=[-50, 50]),
         hovermode="x unified",
@@ -2070,7 +2070,7 @@ def pg_leituras(D, d0, d1):
                 textposition="inside",
                 textfont=dict(size=11, color="white", family="Arial Black")
             )
-            fig4.update_layout(margin=dict(t=35, b=0, l=0, r=0),
+            fig4.update_layout(margin=dict(t=35, b=0, l=0, r=20),
                                xaxis_title="R$", yaxis_title="",
                                coloraxis_showscale=False)
             st.plotly_chart(fig4, use_container_width=True)
