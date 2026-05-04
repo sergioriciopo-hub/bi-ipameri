@@ -600,7 +600,7 @@ def kpi(col, label, valor, delta=None, delta_inv=False, prefixo="R$"):
         margin-bottom:4px;
         box-shadow:0 2px 8px rgba(0,0,0,0.06);
     ">
-        <div style="font-size:0.62rem;color:rgba(0,0,0,0.6);margin-bottom:3px;font-weight:500;">{label}</div>
+        <div style="font-size:0.8rem;color:rgba(0,0,0,0.6);margin-bottom:3px;font-weight:500;">{label}</div>
         <div style="font-size:1.2rem;font-weight:700;color:#0B3558;line-height:1.1;">{vstr}</div>
         {delta_html}
     </div>
