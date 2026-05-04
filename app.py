@@ -119,12 +119,12 @@ footer { display:none !important; }
     gap:0px !important; overflow:visible !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label {
-    padding:10px 14px !important; border-radius:10px !important;
-    color:white !important; font-size:.92rem !important;
-    transition: all 0.25s ease !important; min-height:38px !important;
+    padding:7px 12px !important; border-radius:8px !important;
+    color:white !important; font-size:.85rem !important;
+    transition: all 0.25s ease !important; min-height:32px !important;
     display:flex !important; align-items:center !important;
-    line-height:1.4 !important; position:relative !important;
-    overflow:visible !important; margin:0.25rem 0 !important;
+    line-height:1.2 !important; position:relative !important;
+    overflow:visible !important; margin:0.15rem 0 !important;
     font-weight: 500 !important;
     background: rgba(100, 150, 200, 0.25) !important;
     border: 1px solid rgba(100, 150, 200, 0.2) !important;
