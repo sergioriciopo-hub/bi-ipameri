@@ -954,16 +954,20 @@ def pg_cockpit(D, d0, d1):
         def _cb(v):
             return COR["vermelho"] if v > 10 else COR["amarelo"] if v > 3 else COR["azul_c"]
 
+        # Mostrar rótulos apenas para valores acima de 1%
+        texto_condicional = [val if val > 1 else "" for val in df_per["Rótulo"]]
+
         fig5 = go.Figure(go.Bar(
             x=df_per["Mês"], y=df_per["pct"],
-            text=df_per["Rótulo"], textposition="outside", textfont=dict(size=14, weight="bold"),
+            text=texto_condicional, textposition="outside", textfont=dict(size=12, weight="bold"),
             marker_color=[_cb(v) for v in df_per["pct"]],
         ))
         fig5.update_layout(
             title="Inadimplência por Período de Medição",
-            margin=dict(t=70, b=10, l=0, r=30), height=400,
+            margin=dict(t=70, b=60, l=0, r=30), height=450,
             xaxis=dict(title="", categoryorder="array",
-                       categoryarray=df_per["Mês"].tolist()),
+                       categoryarray=df_per["Mês"].tolist(),
+                       tickangle=-60),
             yaxis=dict(title="", ticksuffix="%", tickformat=".1f"),
             showlegend=False,
         )
