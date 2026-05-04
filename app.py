@@ -682,18 +682,22 @@ def pg_cockpit(D, d0, d1):
     sla_ok  = (qtd_sla - qtd_fpr) / qtd_sla     if qtd_sla else 0
     qtd_lig = int(fat["nr_economia_agua"].sum()) if not fat.empty and "nr_economia_agua" in fat.columns else 0
 
-    c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
+    c1, c2, c3 = st.columns(3)
     kpi(c1, "💰 Faturamento",   vl_fat)
     kpi(c2, "🏦 Arrecadação",   vl_arr)
     if idx_arr is not None:
         kpi(c3, "📊 Eficiência Arrec.", idx_arr, prefixo="%")
     else:
         c3.metric("📊 Eficiência Arrec.", "—")
+
+    c4, c5, c6 = st.columns(3)
     kpi(c4, "⚠️ Inadimplência", vl_inad)
     c5.metric("✂️ Cortes Executados", f"{qtd_cor:,}".replace(",", "."))
     c6.metric("⚙️ SLA Serviços", fmt_pct(sla_ok),
               delta=f"{fmt_pct(sla_ok - 0.9)} vs meta 90%",
               delta_color="normal" if sla_ok >= 0.9 else "inverse")
+
+    c7 = st.columns(1)[0]
     c7.metric("💧 Total Ligações", f"{qtd_lig:,}".replace(",", "."))
 
     st.markdown("---")
@@ -837,7 +841,7 @@ def pg_cockpit(D, d0, d1):
             ("Serviços Diversos",       agg["vl_srv_div"] / agg["nr_eco"], COR["amarelo"], "top center", 2),
         ]
 
-        for nome, vals, cor_v, textpos, width in series_fm:
+        for idx, (nome, vals, cor_v, textpos, width) in enumerate(series_fm):
             if vals.sum() > 0:
                 fig3.add_trace(go.Scatter(
                     x=meses_fm, y=vals.round(1), name=nome,
@@ -845,6 +849,7 @@ def pg_cockpit(D, d0, d1):
                     text=vals.round(1).apply(lambda v: f"{v:.1f}" if v > 0 else ""),
                     textposition=textpos, textfont=dict(size=10, weight="bold"),
                     line=dict(color=cor_v, width=width), marker=dict(size=4),
+                    visible=(idx == 0),
                 ))
 
         fig3.update_layout(
@@ -1074,10 +1079,12 @@ def pg_faturamento(D, d0, d1):
     qt_faturas     = fat["qt_fatura"].sum()          if "qt_fatura"        in fat.columns else len(fat)
 
     # ── KPIs linha 1 — totais ─────────────────────────────────────────────────
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     kpi(c1, "💰 Total Líquido Faturado", vl_liquido)
     kpi(c2, "🔻 Abatimentos / Descontos", vl_abat)
     c3.metric("📄 Qtd Faturas", f"{int(qt_faturas):,}".replace(",", "."))
+
+    c4 = st.columns(1)[0]
     c4.metric("💧 Volume (m³)", f"{vol_m3:,.0f}".replace(",", "."))
 
     st.markdown("---")
@@ -1091,9 +1098,10 @@ def pg_faturamento(D, d0, d1):
 
     # ── KPIs linha 3 — exclusões do faturamento líquido ──────────────────────
     st.caption("ℹ️ Os valores abaixo não compõem o Faturamento Líquido (conforme relatório FAT0015):")
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     kpi(c1, "⚠️ Multas / Juros / Cor.", vl_multas)
     kpi(c2, "🚫 Cancelamentos",         vl_cancel)
+    c3.empty()
 
     # Nota sobre divergência residual de leituras críticas
     qt_critica = fat["fl_critica"].sum() if "fl_critica" in fat.columns else 0
