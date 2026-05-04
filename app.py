@@ -43,6 +43,8 @@ SEQ_AZUL = ["#D0E8F8", "#9BC8EC", "#5FA8D8", "#1A6FAD", "#0D3F63"]
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 <style>
 * { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif !important; }
 
@@ -276,14 +278,22 @@ hr { border-color: rgba(26,111,173,.08) !important; margin: 1.5rem 0 !important;
 [title] { pointer-events: none !important; }
 .stTooltip { display: none !important; }
 
-/* Hide Streamlit keyboard shortcut labels in header area */
-[data-testid="stSidebar"]::before {
-    content: none !important;
-}
-/* Target the top-right expand/collapse button description */
-[data-testid="stSidebar"] > div:first-child div[class*="button"] span {
-    color: transparent !important;
-    font-size: 0 !important;
+/* Force Material Icons font to load properly on sidebar collapse button */
+[data-testid="stBaseButton-headerNoPadding"] span,
+[data-testid="stSidebarCollapseButton"] span,
+button[kind="headerNoPadding"] span,
+[data-testid="stSidebar"] [data-testid="baseButton-headerNoPadding"] span {
+    font-family: 'Material Symbols Rounded', 'Material Icons', 'Material Symbols Outlined' !important;
+    font-size: 24px !important;
+    font-weight: normal !important;
+    line-height: 1 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    white-space: nowrap !important;
+    direction: ltr !important;
+    -webkit-font-feature-settings: 'liga' !important;
+    font-feature-settings: 'liga' !important;
+    -webkit-font-smoothing: antialiased !important;
 }
 </style>
 """, unsafe_allow_html=True)
