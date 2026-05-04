@@ -341,15 +341,25 @@ def load():
     d_eqp    = rd("dim_equipe")
     d_agente   = rd("dim_agente_arrecadador")
     d_sit_lig  = rd("dim_situacao_ligacao")
+    ene        = rd("energia_consolidada_completa")
+    d_uc_ene   = rd("dim_unidade_consumo_energia")
 
     # normaliza data_pagamento em arr_d para datetime
     if not arr_d.empty and "data_pagamento" in arr_d.columns:
         arr_d["data_pagamento"] = pd.to_datetime(arr_d["data_pagamento"])
 
+    # normaliza mes_ano em ene para datetime
+    if not ene.empty and "mes_ano" in ene.columns:
+        ene["mes_ano"] = pd.to_datetime(ene["mes_ano"])
+        # Filtrar dados válidos (remover totais mensais ou outros)
+        if "uc" in ene.columns:
+            ene = ene[~ene["uc"].isna() & (ene["uc"] != "")]
+
     return dict(
         fat=fat, alt_fat=alt_fat, arr=arr, arr_d=arr_d, arr_rub=arr_rub,
         parr=parr, inad=inad,
         cor=cor, rel=rel, srv=srv, lei=lei, bkl=bkl,
+        ene=ene, d_uc_ene=d_uc_ene,
         d_bairro=d_bairro, d_cat=d_cat, d_cls=d_cls,
         d_grp=d_grp, d_seq=d_seq, d_frm=d_frm,
         d_lei=d_lei, d_eqp=d_eqp, d_agente=d_agente,
@@ -419,7 +429,7 @@ def sidebar_periodo():
         "Últimos 12 Meses", "Últimos 24 Meses",
         "Todo o Histórico", "Período Personalizado",
     ]
-    sel = st.sidebar.selectbox("", opcoes, index=10, label_visibility="collapsed")
+    sel = st.sidebar.selectbox("Periodo", opcoes, index=10, label_visibility="collapsed")
 
     hoje = date.today()
     if sel == "Hoje":
@@ -2121,6 +2131,107 @@ def pg_leituras(D, d0, d1):
             st.info("Sem perdas detectadas no período selecionado")
 
 
+# ── Energia ───────────────────────────────────────────────────────────────────
+def pg_energia(D, d0, d1):
+    page_header("Energia Elétrica",
+                f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
+
+    ene = D["ene"].copy()
+    d_uc = D["d_uc_ene"].copy()
+
+    if ene.empty:
+        st.warning("Sem dados de energia.")
+        return
+
+    # Filtra por período
+    ene_f = ene[(ene["mes_ano"] >= d0) & (ene["mes_ano"] < d1 + pd.Timedelta(days=1))]
+
+    if ene_f.empty:
+        st.warning("Sem dados no período selecionado.")
+        return
+
+    # KPIs (cartões)
+    vl_total = ene_f["valor_r"].sum()
+    vl_media = ene_f["valor_r"].mean()
+    vl_agua_total = D["fat"][
+        (D["fat"]["dt_ref"] >= d0) & (D["fat"]["dt_ref"] < d1 + pd.Timedelta(days=1))
+    ]["vl_total_faturado"].sum() if not D["fat"].empty else 0
+    pct_fat = (vl_total / vl_agua_total * 100) if vl_agua_total > 0 else 0
+
+    c1, c2, c3, c4 = st.columns(4)
+    kpi(c1, "Custo Total Energia", vl_total, prefixo="R$")
+    kpi(c2, "Custo Médio Mensal", vl_media, prefixo="R$")
+    c3.metric("% do Faturamento", f"{pct_fat:.1f}%")
+    c4.metric("UCs Ativas", len(d_uc) if not d_uc.empty else 0)
+
+    st.markdown("---")
+
+    # Gráficos: por UC e série temporal
+    col1, col2 = st.columns(2)
+
+    # Por UC
+    ene_uc = ene_f.groupby("uc")["valor_r"].sum().sort_values(ascending=False)
+    fig_uc = px.bar(
+        y=ene_uc.index, x=ene_uc.values,
+        orientation="h",
+        title="Custo por Unidade de Consumo",
+        labels={"x": "R$", "y": ""},
+        color_discrete_sequence=[COR["azul"]]
+    )
+    fig_uc.update_layout(margin=dict(t=50, b=0, l=200, r=30), height=300, showlegend=False)
+    fig_uc.update_traces(text=[f"R$ {v:,.0f}" for v in ene_uc.values], textposition="outside")
+    col1.plotly_chart(fig_uc, use_container_width=True)
+
+    # Série temporal
+    ene_ts = ene_f.groupby("mes_ano")["valor_r"].sum().reset_index()
+    ene_ts = ene_ts.sort_values("mes_ano")
+    fig_ts = px.line(
+        ene_ts, x="mes_ano", y="valor_r",
+        title="Evolução do Custo de Energia",
+        labels={"mes_ano": "", "valor_r": "R$"},
+        markers=True
+    )
+    fig_ts.update_traces(line=dict(color=COR["azul"], width=2), marker=dict(size=6))
+    fig_ts.update_layout(margin=dict(t=50, b=0, l=0, r=30), height=300, hovermode="x unified")
+    fig_ts.update_yaxes(tickformat="$,.0f")
+    col2.plotly_chart(fig_ts, use_container_width=True)
+
+    st.markdown("---")
+
+    # Tabela de detalhes
+    st.markdown("#### Tabela de Energia por Período")
+    tbl = ene_f[["uc", "mes_ano", "valor_r", "tipo_contrato", "fornecedor"]].copy()
+    tbl = tbl.sort_values("mes_ano")
+    tbl["mes_ano_str"] = tbl["mes_ano"].dt.strftime("%m/%Y")
+    tbl_view = tbl[["uc", "mes_ano_str", "valor_r", "tipo_contrato", "fornecedor"]].copy()
+    tbl_view.columns = ["UC", "Período", "Valor (R$)", "Tipo Contrato", "Fornecedor"]
+
+    # Total por período
+    total_per = tbl_view.groupby("Período")["Valor (R$)"].sum().reset_index()
+    total_row = pd.DataFrame([{
+        "UC": "TOTAL", "Período": "", "Valor (R$)": tbl_view["Valor (R$)"].sum(),
+        "Tipo Contrato": "", "Fornecedor": ""
+    }])
+    tbl_view = pd.concat([tbl_view, total_row], ignore_index=True)
+
+    st.dataframe(
+        tbl_view.style
+        .format({"Valor (R$)": lambda v: f"R$ {v:>10,.2f}" if isinstance(v, float) else v})
+        .apply(lambda row: ["font-weight:bold; background:#E8F4FD"]*len(row)
+               if row["UC"]=="TOTAL" else [""]*len(row), axis=1),
+        use_container_width=True,
+        height=400,
+    )
+
+    # Dimensão UCs
+    if not d_uc.empty:
+        st.markdown("---")
+        st.markdown("#### Unidades de Consumo")
+        d_uc_view = d_uc.copy()
+        d_uc_view.columns = ["UC", "Localização", "Tipo Contrato", "Fornecedor", "Status"]
+        st.dataframe(d_uc_view, use_container_width=True)
+
+
 # ── Navegação ─────────────────────────────────────────────────────────────────
 def main():
     D    = load()
@@ -2135,6 +2246,7 @@ def main():
         "Serviços Operacionais": pg_servicos,
         "Cortes e Religações":   pg_cortes,
         "Leituras":              pg_leituras,
+        "Energia Elétrica":      pg_energia,
     }
 
     st.sidebar.markdown("### Cockpits")
