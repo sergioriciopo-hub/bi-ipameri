@@ -2200,11 +2200,29 @@ def pg_energia(D, d0, d1):
 
     # Tabela de detalhes
     st.markdown("#### Tabela de Energia por Período")
-    tbl = ene_f[["uc", "mes_ano", "valor_r", "tipo_contrato", "fornecedor"]].copy()
+    cols_avail = ["uc", "mes_ano", "valor_r"]
+    if "tipo_contrato" in ene_f.columns:
+        cols_avail.append("tipo_contrato")
+    if "fornecedor" in ene_f.columns:
+        cols_avail.append("fornecedor")
+
+    tbl = ene_f[cols_avail].copy()
     tbl = tbl.sort_values("mes_ano")
     tbl["mes_ano_str"] = tbl["mes_ano"].dt.strftime("%m/%Y")
-    tbl_view = tbl[["uc", "mes_ano_str", "valor_r", "tipo_contrato", "fornecedor"]].copy()
-    tbl_view.columns = ["UC", "Período", "Valor (R$)", "Tipo Contrato", "Fornecedor"]
+
+    tbl_cols = ["uc", "mes_ano_str", "valor_r"]
+    if "tipo_contrato" in cols_avail:
+        tbl_cols.insert(3, "tipo_contrato")
+    if "fornecedor" in cols_avail:
+        tbl_cols.append("fornecedor")
+
+    tbl_view = tbl[tbl_cols].copy()
+    col_names = ["UC", "Período", "Valor (R$)"]
+    if "tipo_contrato" in cols_avail:
+        col_names.insert(3, "Tipo Contrato")
+    if "fornecedor" in cols_avail:
+        col_names.append("Fornecedor")
+    tbl_view.columns = col_names
 
     # Total por período
     total_per = tbl_view.groupby("Período")["Valor (R$)"].sum().reset_index()
