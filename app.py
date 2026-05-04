@@ -12,8 +12,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from pathlib import Path
-from datetime import datetime, date, timedelta, time
+from datetime import datetime, date, timedelta, time, timezone
 from dateutil.relativedelta import relativedelta
+from zoneinfo import ZoneInfo
 
 # ── Config ────────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -22,6 +23,11 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# Limpar cache para evitar timestamps desincronizados
+if "cache_cleared" not in st.session_state:
+    st.cache_data.clear()
+    st.session_state.cache_cleared = True
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -207,7 +213,7 @@ hr { border-color:#D0E8F8 !important; margin:12px 0 !important; }
 
 
 # ── Carregamento de dados ─────────────────────────────────────────────────────
-@st.cache_data(ttl=3600, show_spinner="Carregando dados...")
+@st.cache_data(ttl=60, show_spinner="Carregando dados...")
 def load():
     def rd(name):
         import pyarrow.parquet as pq
@@ -1973,7 +1979,17 @@ def main():
     pg_sel = st.sidebar.radio("", list(paginas.keys()), label_visibility="collapsed")
 
     st.sidebar.markdown("---")
-    st.sidebar.caption(f"Atualizado: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    agora_utc = datetime.now(ZoneInfo("UTC"))
+    agora_br = datetime.now(ZoneInfo("America/Sao_Paulo"))
+    agora_local = datetime.now()
+
+    # Debug: mostrar qual timezone está sendo usado
+    debug_info = (
+        f"SP: {agora_br.strftime('%H:%M')} | "
+        f"UTC: {agora_utc.strftime('%H:%M')} | "
+        f"Local: {agora_local.strftime('%H:%M')}"
+    )
+    st.sidebar.caption(f"Atualizado: {agora_br.strftime('%d/%m/%Y %H:%M')} ({debug_info})")
     if st.sidebar.button("🔄 Recarregar dados"):
         st.cache_data.clear()
         st.rerun()
