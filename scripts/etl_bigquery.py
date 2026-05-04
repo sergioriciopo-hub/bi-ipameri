@@ -81,8 +81,7 @@ QUERIES = {
              + COALESCE(vl_lixo,0) + COALESCE(vl_servico,0)
              + COALESCE(vl_abatimento,0) - COALESCE(vl_cancelamento,0)) AS vl_total_faturado,
             faixa_faturamento,
-            tipo_grupo_faturamento,
-            ch_situacao_ligacao_agua_dim AS id_situacao_ligacao
+            tipo_grupo_faturamento
         FROM {tbl('faturamento_contabil')}
         WHERE dt_ref <= DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
     """,
@@ -411,11 +410,6 @@ QUERIES = {
         FROM {tbl('dimensao_servico_definicao')}
     """,
 
-    "dim_situacao_ligacao": f"""
-        SELECT ch_situacao_ligacao_agua_dim AS id_situacao_ligacao,
-               * EXCEPT(ch_situacao_ligacao_agua_dim)
-        FROM {tbl('dimensao_situacao_ligacao_agua')}
-    """,
 }
 
 
