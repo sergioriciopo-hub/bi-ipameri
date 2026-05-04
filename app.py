@@ -145,7 +145,7 @@ footer { display:none !important; }
     margin-bottom: 1.2rem !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] {
-    margin-top:0 !important; margin-bottom:0.5rem !important;
+    margin-top:0.3rem !important; margin-bottom:0.5rem !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] > div {
     padding-top:0 !important; margin-top:0 !important;
