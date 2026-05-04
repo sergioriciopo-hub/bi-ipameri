@@ -129,15 +129,6 @@ footer { display:none !important; }
     background: rgba(100, 150, 200, 0.25) !important;
     border: 1px solid rgba(100, 150, 200, 0.2) !important;
 }
-[data-testid="stSidebar"] [data-testid="stRadio"] label:has(> span:empty),
-[data-testid="stSidebar"] [data-testid="stRadio"] label:not(:has(> span)) {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    min-height: 0 !important;
-    display: none !important;
-}
 [data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
     background: rgba(100, 150, 200, 0.35) !important;
     border-color: rgba(100, 150, 200, 0.3) !important;
