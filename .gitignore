@@ -1,0 +1,16 @@
+*.md
+*.bat
+*.txt
+__pycache__/
+*.pyc
+.DS_Store
+*.parquet
+config.toml.txt
+.streamlit/
+data/
+scripts/etl_energia*.py
+scripts/consolidar_energia*.py
+scripts/gerar_dim*.py
+scripts/monitorar_energia.py
+scripts/upload_energia*.py
+scripts/agendar_monitor*.bat
