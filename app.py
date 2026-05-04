@@ -1786,20 +1786,77 @@ def pg_leituras(D, d0, d1):
     fig.update_yaxes(tickformat=",.0f")
     st.plotly_chart(fig, use_container_width=True)
 
-    if "nm_leiturista_dim" in lei.columns:
-        ag_lr = lei.groupby("nm_leiturista_dim").agg(
-            Leituras=("qt_leitura","sum"),
-            Críticas=("fl_critica", lambda x: (x == True).sum())
+    # ════ Leituras por Referência (Mês) - Stacked por Leiturista ════════════════════
+    lei_ref = lei.copy()
+    lei_ref["_mes"] = pd.to_datetime(lei_ref["dt_ref"]).dt.to_period("M").dt.to_timestamp()
+
+    if not lei_ref.empty and "nm_leiturista_dim" in lei_ref.columns:
+        # Agregação por mês E leiturista
+        ag_ref_lr = lei_ref.groupby(["_mes", "nm_leiturista_dim"]).agg(
+            Leituras=("qt_leitura","sum")
         ).reset_index()
-        ag_lr["%Críticas"] = ag_lr["Críticas"] / ag_lr["Leituras"]
-        ag_lr = ag_lr.sort_values("Leituras", ascending=True).tail(12)
-        ag_lr.columns = ["Leiturista","Leituras","Críticas","%Críticas"]
-        fig2 = px.bar(ag_lr, x="Leituras", y="Leiturista", orientation="h",
-                      title="Leituras por Leiturista",
-                      color="%Críticas",
-                      color_continuous_scale=["#27AE60","#F39C12","#E74C3C"])
-        fig2.update_layout(margin=dict(t=35, b=0, l=0, r=0), xaxis_title="", yaxis_title="")
+
+        # Agregação por mês (para calcular %Críticas do mês)
+        ag_ref_totais = lei_ref.groupby("_mes").agg(
+            Críticas=("fl_critica", lambda x: (x == True).sum()),
+            Total_Leituras=("qt_leitura","sum")
+        ).reset_index()
+        ag_ref_totais["%Críticas"] = ag_ref_totais["Críticas"] / ag_ref_totais["Total_Leituras"]
+
+        # Mesclar para ter %Críticas em cada linha
+        ag_ref_lr = ag_ref_lr.merge(ag_ref_totais[["_mes", "%Críticas"]], on="_mes")
+
+        # Formatar mês
+        ag_ref_lr["Referência"] = ag_ref_lr["_mes"].dt.strftime("%b/%Y")
+        ag_ref_lr = ag_ref_lr.sort_values("_mes", ascending=True)
+
+        # Criar gráfico stacked por leiturista (vertical)
+        fig2 = px.bar(ag_ref_lr, x="Referência", y="Leituras", color="nm_leiturista_dim",
+                      barmode="stack",
+                      title="Leituras por Referência (Mês) - Distribuição por Leiturista",
+                      labels={"nm_leiturista_dim": "Leiturista", "Leituras": "Quantidade"})
+
+        # Atualizar cores para melhor visualização
+        fig2.update_traces(marker=dict(line=dict(width=0)))
+
+        # Adicionar %Críticas acima de cada barra
+        for idx, row in ag_ref_totais.iterrows():
+            fig2.add_annotation(
+                x=row["_mes"].strftime("%b/%Y"),
+                y=row["Total_Leituras"],
+                text=f"{row['%Críticas']:.1%}",
+                showarrow=False,
+                yshift=10,
+                font=dict(size=11, color="#E74C3C", family="Arial Black")
+            )
+
+        fig2.update_layout(
+            margin=dict(t=35, b=120, l=0, r=0),
+            xaxis_title="", yaxis_title="Quantidade de Leituras",
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.25,
+                xanchor="center",
+                x=0.5,
+                font=dict(size=10),
+                bgcolor="rgba(255,255,255,0.9)",
+                bordercolor="rgba(0,0,0,0.2)",
+                borderwidth=1
+            ),
+            hovermode="x unified"
+        )
         st.plotly_chart(fig2, use_container_width=True)
+
+        # Mostrar tabela com detalhe mensal e %Críticas
+        st.subheader("Resumo de Leituras por Mês")
+        resumo = ag_ref_totais.copy()
+        resumo["Referência"] = resumo["_mes"].dt.strftime("%b/%Y")
+        resumo.columns = ["_mes", "Críticas", "Total_Leituras", "%Críticas", "Referência"]
+        resumo["%Críticas"] = resumo["%Críticas"].apply(lambda x: f"{x:.2%}")
+        resumo = resumo[["Referência", "Total_Leituras", "Críticas", "%Críticas"]].sort_values("Referência", ascending=False)
+        resumo.columns = ["Referência", "Total de Leituras", "Leituras Críticas", "%Críticas"]
+        st.dataframe(resumo.reset_index(drop=True), use_container_width=True)
     # ════ CÁLCULO DE EFICIÊNCIA DE LEITURA ════════════════════════════════════════
     # Passo 1: Total de Leituras Realizadas por Mês (referência)
     lei_m = lei.copy()
