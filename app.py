@@ -971,16 +971,16 @@ def pg_cockpit(D, d0, d1):
         fi_g["Txt"]   = fi_g["Pct"].apply(lambda v: f"{v:.2f}%")
         fi_g = fi_g.sort_values("faixa_atraso")
         fig6 = go.Figure(go.Bar(
-            y=fi_g["Label"], x=fi_g["Pct"], orientation="h",
+            x=fi_g["Label"], y=fi_g["Pct"], orientation="v",
             text=fi_g["Txt"], textposition="outside",
-            textfont=dict(color=COR["vermelho"], size=14, family="Arial Black"),
+            textfont=dict(color=COR["vermelho"], size=12, family="Arial Black"),
             marker_color=COR["vermelho"],
         ))
         fig6.update_layout(
             title="Inadimplência Geral",
-            margin=dict(t=40, b=10, l=0, r=20), height=300,
-            xaxis=dict(title="", visible=False, range=[0, 8]),
-            yaxis=dict(title="", autorange="reversed", tickangle=0),
+            margin=dict(t=40, b=50, l=0, r=20), height=350,
+            xaxis=dict(title="", tickangle=-45),
+            yaxis=dict(title=""),
             showlegend=False,
         )
         st.plotly_chart(fig6, use_container_width=True)
