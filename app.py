@@ -1979,17 +1979,8 @@ def main():
     pg_sel = st.sidebar.radio("", list(paginas.keys()), label_visibility="collapsed")
 
     st.sidebar.markdown("---")
-    agora_utc = datetime.now(ZoneInfo("UTC"))
     agora_br = datetime.now(ZoneInfo("America/Sao_Paulo"))
-    agora_local = datetime.now()
-
-    # Debug: mostrar qual timezone está sendo usado
-    debug_info = (
-        f"SP: {agora_br.strftime('%H:%M')} | "
-        f"UTC: {agora_utc.strftime('%H:%M')} | "
-        f"Local: {agora_local.strftime('%H:%M')}"
-    )
-    st.sidebar.caption(f"Atualizado: {agora_br.strftime('%d/%m/%Y %H:%M')} ({debug_info})")
+    st.sidebar.caption(f"Atualizado: {agora_br.strftime('%d/%m/%Y %H:%M')}")
     if st.sidebar.button("🔄 Recarregar dados"):
         st.cache_data.clear()
         st.rerun()
