@@ -271,6 +271,11 @@ input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus {
 [data-baseweb="notification"] { border-radius: 12px !important; }
 hr { border-color: rgba(26,111,173,.08) !important; margin: 1.5rem 0 !important; }
 .stMarkdown { font-size: 0.95rem !important; }
+
+/* Remove tooltips and descriptions */
+[title] { pointer-events: none !important; }
+*[aria-label*="keyboard"] { display: none !important; }
+.stTooltip { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
