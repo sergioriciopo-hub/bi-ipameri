@@ -1923,9 +1923,9 @@ def pg_leituras(D, d0, d1):
         # Resetar índice para usar posição para identificar primeira e última fatura
         fat_reset = fat_filtered.reset_index(drop=True)
 
-        # Para cada cliente (economia) e referência (dt_ref), pegar primeira e última fatura
+        # Para cada cliente (economia + localização) e referência (dt_ref), pegar primeira e última fatura
         perdas_list = []
-        for (economia, dt_ref), group in fat_reset.groupby(["nr_economia", "dt_ref"]):
+        for (economia, localizacao, dt_ref), group in fat_reset.groupby(["nr_economia_agua", "id_localizacao", "dt_ref"]):
             if len(group) > 1:  # Só conta se há múltiplas faturas
                 primeira_vol = group.iloc[0]["volume_m3"]  # Primeira fatura
                 ultima_vol = group.iloc[-1]["volume_m3"]   # Última fatura
@@ -1934,10 +1934,13 @@ def pg_leituras(D, d0, d1):
                 if perda > 0:  # Só conta se houve redução (perda)
                     id_bairro = group.iloc[0]["id_bairro"]
                     nm_bairro = group.iloc[0].get("nm_bairro_dim", "")
+                    matricula = f"{economia}-{localizacao}"  # Formato: 19-1
                     perdas_list.append({
                         "id_bairro": id_bairro,
                         "nm_bairro_dim": nm_bairro,
-                        "nr_economia": economia,
+                        "matricula": matricula,
+                        "nr_economia_agua": economia,
+                        "id_localizacao": localizacao,
                         "dt_ref": dt_ref,
                         "volume_primeira": primeira_vol,
                         "volume_ultima": ultima_vol,
@@ -1949,7 +1952,7 @@ def pg_leituras(D, d0, d1):
             # Agrupar por bairro
             ag_pb = perdas_df.groupby("nm_bairro_dim").agg(
                 Perda=("perda", "sum"),
-                Qtd_Alteracoes=("nr_economia", "count")
+                Qtd_Alteracoes=("matricula", "count")
             ).reset_index().sort_values("Perda", ascending=True).tail(12)
 
             fig4 = px.bar(ag_pb, x="Perda", y="nm_bairro_dim", orientation="h",
