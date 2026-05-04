@@ -323,6 +323,28 @@ QUERIES = {
         FROM {tbl('backlog_servico')}
     """,
 
+    "alteracao_fatura_contabil": f"""
+        SELECT
+            ch_instancia,
+            ch_rsf_bairro_dim         AS ch_rsf_bairro_dim,
+            ch_rsf_categoria_dim      AS ch_rsf_categoria_dim,
+            ch_rsf_classe_consumidor_dim AS ch_rsf_classe_consumidor_dim,
+            ch_rsf_grupo_dim          AS ch_rsf_grupo_dim,
+            dt_ref,
+            id_localizacao_dim,
+            id_motivo_alteracao_fatura,
+            id_usuario,
+            nr_posicao,
+            qt_fatura_cancelada,
+            qt_fatura_reemitida,
+            vl_abatimento,
+            vl_cancelamento,
+            vl_reemitido,
+            ch_leiturista_dim,
+            hash_id_chave
+        FROM {tbl('alteracao_fatura_contabil')}
+    """,
+
     # ── Dimensões ─────────────────────────────────────────────────────────────
     "dim_bairro": f"""
         SELECT ch_rsf_bairro_dim AS id_bairro, * EXCEPT(ch_rsf_bairro_dim)
