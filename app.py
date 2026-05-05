@@ -714,18 +714,18 @@ def pg_cockpit(D, d0, d1):
     qtd_lig = int(fat["nr_economia_agua"].sum()) if not fat.empty and "nr_economia_agua" in fat.columns else 0
 
     c1, c2, c3, c4 = st.columns(4)
-    kpi(c1, "💰 Faturamento",   vl_fat)
-    kpi(c2, "🏦 Arrecadação",   vl_arr)
+    kpi(c1, "Faturamento",   vl_fat)
+    kpi(c2, "Arrecadação",   vl_arr)
     if idx_arr is not None:
-        kpi(c3, "📊 Eficiência Arrec.", idx_arr, prefixo="%")
+        kpi(c3, "Eficiência Arrec.", idx_arr, prefixo="%")
     else:
-        c3.metric("📊 Eficiência Arrec.", "—")
-    kpi(c4, "⚠️ Inadimplência", vl_inad)
+        c3.metric("Eficiência Arrec.", "—")
+    kpi(c4, "Inadimplência", vl_inad)
 
     c5, c6, c7, c8 = st.columns(4)
-    kpi(c5, "✂️ Cortes Executados", qtd_cor, prefixo="")
-    kpi(c6, "⚙️ SLA Serviços", sla_ok, delta=sla_ok - 0.9, prefixo="%")
-    kpi(c7, "💧 Total Ligações", qtd_lig, prefixo="")
+    kpi(c5, "Cortes Executados", qtd_cor, prefixo="")
+    kpi(c6, "SLA Serviços", sla_ok, delta=sla_ok - 0.9, prefixo="%")
+    kpi(c7, "Total Ligações", qtd_lig, prefixo="")
     c8.empty()
 
     st.markdown("---")
@@ -1145,8 +1145,8 @@ def pg_faturamento(D, d0, d1):
     kpi(c2, "🔻 Abatimentos / Descontos", vl_abat)
 
     c3, c4 = st.columns(2)
-    c3.metric("📄 Qtd Faturas", f"{int(qt_faturas):,}".replace(",", "."))
-    c4.metric("💧 Volume (m³)", f"{vol_m3:,.0f}".replace(",", "."))
+    kpi(c3, "Qtd Faturas", int(qt_faturas), prefixo="")
+    kpi(c4, "Volume (m³)", vol_m3, prefixo="")
 
     st.markdown("---")
 
@@ -1281,7 +1281,7 @@ def pg_arrecadacao(D, d0, d1):
         kpi(c5, "Eficiência Arrecadação", efic, prefixo="%")
         c6.empty()
     else:
-        st.metric("Eficiência Arrecadação", "—",
+        c_eff.metric("Eficiência Arrecadação", "—",
                   help="Faturamento não disponível neste período para calcular eficiência")
 
     st.markdown("---")
@@ -1431,7 +1431,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
     media_dia = vl_total / qtd_dias if qtd_dias else 0
     c1, c2, c3 = st.columns(3)
     kpi(c1, "Total Arrecadado (D+)", vl_total)
-    c2.metric("Dias Úteis", str(qtd_dias))
+    kpi(c2, "Dias Úteis", qtd_dias, prefixo="")
     kpi(c3, "Média por Dia Útil", media_dia)
 
     st.info(
@@ -1553,7 +1553,7 @@ def pg_inadimplencia(D, d0, d1):
     kpi(c2, "Índice Inadimplência", idx_inad, prefixo="%")
 
     c3, c4 = st.columns(2)
-    c3.metric("Qtd Faturas Vencidas", f"{qtd_fat:,}".replace(",", "."))
+    kpi(c3, "Qtd Faturas Vencidas", qtd_fat, prefixo="")
     kpi(c4, "Ticket Médio", tkt_med)
 
     c5, c6 = st.columns(2)
@@ -1649,7 +1649,7 @@ def pg_servicos(D, d0, d1):
     t_med = srv["qt_tempo_execucao"].mean() / 60 if "qt_tempo_execucao" in srv.columns else 0
     bkl_p = int(bkl["qt_pendente"].sum()) if not bkl.empty else 0
     c1, c2 = st.columns(2)
-    c1.metric("Total de Serviços", f"{qtd:,}".replace(",", "."))
+    kpi(c1, "Total de Serviços", qtd, prefixo="")
     kpi(c2, "% SLA no Prazo", sla, prefixo="%")
 
     c3, c4 = st.columns(2)
@@ -1802,8 +1802,8 @@ def pg_cortes(D, d0, d1):
 
     # ── KPIs principais ───────────────────────────────────────────────────────
     c1, c2 = st.columns(2)
-    c1.metric("Cortes Executados", f"{qtd_cor:,}".replace(",", "."))
-    c2.metric("Religações (cavalete)", f"{qtd_rel:,}".replace(",", "."))
+    kpi(c1, "Cortes Executados", qtd_cor, prefixo="")
+    kpi(c2, "Religações (cavalete)", qtd_rel, prefixo="")
 
     c3, c4 = st.columns(2)
     c3.metric("Tempo Médio Execução Corte", f"{t_exec_h:.1f}h",
@@ -1812,7 +1812,7 @@ def pg_cortes(D, d0, d1):
               help="Tempo cronometrado na execução em campo.")
 
     c5, c6 = st.columns(2)
-    c5.metric("Taxa Religação/Corte", fmt_pct(taxa_r))
+    kpi(c5, "Taxa Religação/Corte", taxa_r, prefixo="%")
     c6.empty()
 
     st.caption(
@@ -1823,10 +1823,10 @@ def pg_cortes(D, d0, d1):
     st.markdown("---")
     st.markdown("##### Religações — SLA e prazo")
     r1, r2, r3 = st.columns(3)
-    r1.metric("Normal (24h)", f"{qtd_rel_normal:,}".replace(",", "."))
+    kpi(r1, "Normal (24h)", qtd_rel_normal, prefixo="")
     kpi(r2, "% Normal no Prazo", sla_rel_normal, prefixo="%",
         delta_inv=False)
-    r3.metric("Urgente (6h/14h)", f"{qtd_rel_urgente:,}".replace(",", "."))
+    kpi(r3, "Urgente (6h/14h)", qtd_rel_urgente, prefixo="")
 
     r4, r5 = st.columns(2)
     kpi(r4, "% Urgente no Prazo", sla_rel_urgente, prefixo="%",
@@ -1947,12 +1947,12 @@ def pg_leituras(D, d0, d1):
     perdas   = vol_lid - vol_fat
     idx_perd = perdas / vol_lid if vol_lid else 0
     c1, c2, c3 = st.columns(3)
-    c1.metric("Leituras Realizadas", f"{qtd_lei:,}".replace(",", "."))
-    c2.metric("Volume Lido (m³)", f"{vol_lid:,}".replace(",", "."))
-    c3.metric("Volume Faturado (m³)", f"{vol_fat:,}".replace(",", "."))
+    kpi(c1, "Leituras Realizadas", qtd_lei, prefixo="")
+    kpi(c2, "Volume Lido (m³)", vol_lid, prefixo="")
+    kpi(c3, "Volume Faturado (m³)", vol_fat, prefixo="")
 
     c4, c5 = st.columns(2)
-    c4.metric("Leituras Críticas", f"{criticas:,}".replace(",", "."))
+    kpi(c4, "Leituras Críticas", criticas, prefixo="")
     kpi(c5, "Índice de Perdas", idx_perd, prefixo="%")
 
     st.markdown("---")
@@ -2161,10 +2161,10 @@ def pg_frota_combustivel(D, d0, d1):
     eff_media = vl_km_total / vl_consumo_total if vl_consumo_total > 0 else 0
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Combustível Consumido", f"{vl_consumo_total:.0f} L")
+    kpi(c1, "Combustível Consumido", vl_consumo_total, prefixo="")
     kpi(c2, "Custo Total", vl_gasto_total, prefixo="R$")
-    c3.metric("Km Rodados", f"{vl_km_total:.0f}")
-    c4.metric("Eficiência Média", f"{eff_media:.2f} km/L")
+    kpi(c3, "Km Rodados", vl_km_total, prefixo="")
+    kpi(c4, "Eficiência Média", eff_media, prefixo="")
 
     st.markdown("---")
 
@@ -2302,9 +2302,9 @@ def pg_frota_combustivel(D, d0, d1):
     st.markdown("---")
     st.markdown("#### Resumo")
     col1, col2, col3 = st.columns(3)
-    col1.metric("Total Transações", len(frota_f))
-    col2.metric("Custo Médio/Transação", f"R$ {frota_f['Valor_Total'].mean():.2f}")
-    col3.metric("Litros Médio/Transação", f"{frota_f['Quantidade'].mean():.2f}")
+    kpi(col1, "Total Transações", len(frota_f), prefixo="")
+    kpi(col2, "Custo Médio/Transação", frota_f['Valor_Total'].mean(), prefixo="R$")
+    kpi(col3, "Litros Médio/Transação", frota_f['Quantidade'].mean(), prefixo="")
 
 
 # ── Energia ───────────────────────────────────────────────────────────────────
@@ -2337,8 +2337,8 @@ def pg_energia(D, d0, d1):
     c1, c2, c3, c4 = st.columns(4)
     kpi(c1, "Custo Total Energia", vl_total, prefixo="R$")
     kpi(c2, "Custo Médio Mensal", vl_media, prefixo="R$")
-    c3.metric("% do Faturamento", f"{pct_fat:.1f}%")
-    c4.metric("UCs Ativas", len(d_uc) if not d_uc.empty else 0)
+    kpi(c3, "% do Faturamento", pct_fat, prefixo="%")
+    kpi(c4, "UCs Ativas", len(d_uc) if not d_uc.empty else 0, prefixo="")
 
     st.markdown("---")
 
@@ -2443,11 +2443,11 @@ def pg_energia(D, d0, d1):
             valor_economizado = desc_f["desconto_r"].sum()
 
             with col1:
-                st.metric("Desconto Total (R$)", f"R$ {desc_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+                kpi(col1, "Desconto Total (R$)", desc_total, prefixo="R$")
             with col2:
-                st.metric("Desconto Médio (%)", f"{desc_media_pct:.1f}%")
+                kpi(col2, "Desconto Médio (%)", desc_media_pct, prefixo="%")
             with col3:
-                st.metric("Economia Gerada", f"R$ {valor_economizado:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+                kpi(col3, "Economia Gerada", valor_economizado, prefixo="R$")
 
             st.markdown("")
 
