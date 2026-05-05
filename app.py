@@ -1477,20 +1477,29 @@ def pg_arrecadacao_diaria(D, d0, d1):
         ag_frm["Canal"] = ag_frm["Canal"].str.extract(r'^(.{0,30})')
         fig2 = px.pie(ag_frm.head(7), names="Canal", values="Valor",
                       title="Canal de Pagamento",
-                      color_discrete_sequence=px.colors.qualitative.Set3)
+                      color_discrete_sequence=px.colors.qualitative.Pastel)
+        fig2.update_traces(
+            textposition="auto",
+            textfont=dict(size=14, color="black", family="Arial Black"),
+            hovertemplate="<b>%{label}</b><br>Valor: R$ %{value:,.0f}<br>Percentual: %{percent}<extra></extra>",
+            marker=dict(line=dict(color="white", width=2))
+        )
         fig2.update_layout(
-            margin=dict(t=70, b=0, l=0, r=250),
-            height=420,
+            margin=dict(t=70, b=20, l=0, r=380),
+            height=450,
+            font=dict(size=12, family="Arial"),
+            title=dict(font=dict(size=16, color="#0B3558")),
             legend=dict(
-                font=dict(size=13),
+                font=dict(size=13, family="Arial"),
                 orientation="v",
                 xanchor="right",
                 yanchor="middle",
-                x=0.99,
+                x=1.0,
                 y=0.5,
-                bgcolor="rgba(255,255,255,0.7)",
-                bordercolor="rgba(200,200,200,0.3)",
-                borderwidth=1
+                bgcolor="rgba(255,255,255,0.85)",
+                bordercolor="rgba(59,95,127,0.4)",
+                borderwidth=2,
+                title=dict(text="<b>Canais</b>", font=dict(size=14))
             )
         )
         st.plotly_chart(fig2, use_container_width=True)
