@@ -1485,7 +1485,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
             marker=dict(line=dict(color="white", width=3))
         )
         fig2.update_layout(
-            margin=dict(t=70, b=20, l=0, r=550),
+            margin=dict(t=70, b=20, l=0, r=650),
             height=450,
             font=dict(size=12, family="Arial"),
             title=dict(font=dict(size=16, color="#0B3558")),
@@ -1494,9 +1494,9 @@ def pg_arrecadacao_diaria(D, d0, d1):
                 orientation="v",
                 xanchor="right",
                 yanchor="middle",
-                x=0.99,
+                x=1.0,
                 y=0.5,
-                bgcolor="rgba(255,255,255,0.92)",
+                bgcolor="rgba(255,255,255,0.93)",
                 bordercolor="rgba(59,95,127,0.5)",
                 borderwidth=2,
                 title=dict(text="<b>Canais</b>", font=dict(size=14)),
