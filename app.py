@@ -2161,10 +2161,10 @@ def pg_frota_combustivel(D, d0, d1):
     eff_media = vl_km_total / vl_consumo_total if vl_consumo_total > 0 else 0
 
     c1, c2, c3, c4 = st.columns(4)
-    kpi(c1, "Combustível Consumido", vl_consumo_total, sufixo=" L")
+    c1.metric("Combustível Consumido", f"{vl_consumo_total:.0f} L")
     kpi(c2, "Custo Total", vl_gasto_total, prefixo="R$")
-    kpi(c3, "Km Rodados", vl_km_total, sufixo=" km")
-    kpi(c4, "Eficiência Média", eff_media, sufixo=" km/L")
+    c3.metric("Km Rodados", f"{vl_km_total:.0f}")
+    c4.metric("Eficiência Média", f"{eff_media:.2f} km/L")
 
     st.markdown("---")
 
@@ -2177,16 +2177,24 @@ def pg_frota_combustivel(D, d0, d1):
     frota_motorista = frota_motorista.nlargest(8, "Valor_Total")
     frota_motorista = frota_motorista.sort_values("Valor_Total", ascending=True)
 
-    fig_motorista = px.barh(
-        frota_motorista,
-        x="Quantidade",
-        y="Motorista",
+    fig_motorista = go.Figure(data=[
+        go.Bar(
+            y=frota_motorista["Motorista"],
+            x=frota_motorista["Quantidade"],
+            orientation="h",
+            text=[f"{v:.0f} L" for v in frota_motorista["Quantidade"].values],
+            textposition="outside",
+            marker_color=COR["azul"],
+            showlegend=False
+        )
+    ])
+    fig_motorista.update_layout(
         title="Consumo de Combustível por Motorista (Top 8)",
-        labels={"Quantidade": "Litros", "Motorista": ""},
-        color_discrete_sequence=[COR["azul"]]
+        xaxis_title="Litros",
+        yaxis_title="",
+        margin=dict(t=50, b=0, l=250, r=30),
+        height=400
     )
-    fig_motorista.update_layout(margin=dict(t=50, b=0, l=250, r=30), height=400, showlegend=False)
-    fig_motorista.update_traces(text=[f"{v:.0f} L" for v in frota_motorista["Quantidade"].values], textposition="outside")
     st.plotly_chart(fig_motorista, use_container_width=True)
 
     st.markdown("---")
@@ -2200,16 +2208,24 @@ def pg_frota_combustivel(D, d0, d1):
     frota_veiculo = frota_veiculo.nlargest(8, "Valor_Total")
     frota_veiculo = frota_veiculo.sort_values("Valor_Total", ascending=True)
 
-    fig_veiculo = px.barh(
-        frota_veiculo,
-        x="Quantidade",
-        y="Veiculo",
+    fig_veiculo = go.Figure(data=[
+        go.Bar(
+            y=frota_veiculo["Veiculo"],
+            x=frota_veiculo["Quantidade"],
+            orientation="h",
+            text=[f"{v:.0f} L" for v in frota_veiculo["Quantidade"].values],
+            textposition="outside",
+            marker_color=COR["azul"],
+            showlegend=False
+        )
+    ])
+    fig_veiculo.update_layout(
         title="Consumo de Combustível por Veículo (Top 8)",
-        labels={"Quantidade": "Litros", "Veiculo": ""},
-        color_discrete_sequence=[COR["azul"]]
+        xaxis_title="Litros",
+        yaxis_title="",
+        margin=dict(t=50, b=0, l=150, r=30),
+        height=400
     )
-    fig_veiculo.update_layout(margin=dict(t=50, b=0, l=150, r=30), height=400, showlegend=False)
-    fig_veiculo.update_traces(text=[f"{v:.0f} L" for v in frota_veiculo["Quantidade"].values], textposition="outside")
     st.plotly_chart(fig_veiculo, use_container_width=True)
 
     st.markdown("---")
