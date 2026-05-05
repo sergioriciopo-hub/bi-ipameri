@@ -29,41 +29,52 @@ def extrair_desconto_arquivo(filepath, ano, fornecedor):
         return []
 
     ws = wb[fornecedor]
-
     dados = []
 
+    # Ler linha 2 para encontrar os meses (coluna com mês)
+    meses_cols = {}  # {mes_num: col_idx}
+    for col in range(1, 50):
+        cell_val = ws.cell(row=2, column=col).value
+        if cell_val and cell_val in MESES:
+            meses_cols[MESES[cell_val]] = col
+
+    if not meses_cols:
+        print(f"  Nenhum mês encontrado na aba {fornecedor}")
+        return []
+
     # Ler linhas (começando da linha 4, que tem os dados)
-    for row_idx, row in enumerate(ws.iter_rows(min_row=4, max_row=100, values_only=True), start=4):
-        uc = row[0] if row[0] else None
-        if not uc or uc.startswith("TOTAL"):
-            continue
+    for row_idx in range(4, 100):
+        uc_cell = ws.cell(row=row_idx, column=1).value
+        if not uc_cell or str(uc_cell).startswith("TOTAL"):
+            break
 
-        # Processar cada mês (colunas vêm em grupos de 3: Pago, Cheio, Desconto)
-        for mes_idx, (mes_nome, mes_num) in enumerate(MESES.items()):
-            col_idx = 1 + (mes_idx * 3)  # Coluna B é índice 1
+        uc = str(uc_cell).strip()
 
-            if col_idx >= len(row):
-                break
-
-            valor_pago = row[col_idx]
-            valor_cheio = row[col_idx + 1] if col_idx + 1 < len(row) else None
-            desconto = row[col_idx + 2] if col_idx + 2 < len(row) else None
+        # Processar cada mês encontrado
+        for mes_num, col_base in meses_cols.items():
+            # Colunas: col_base = Valor Pago, col_base+1 = Valor Cheio, col_base+2 = Desconto
+            valor_pago = ws.cell(row=row_idx, column=col_base).value
+            valor_cheio = ws.cell(row=row_idx, column=col_base + 1).value
+            desconto = ws.cell(row=row_idx, column=col_base + 2).value
 
             # Verificar se tem dados
-            if not valor_pago:
+            if valor_pago is None:
                 continue
 
-            # Converter valores (podem ser fórmula ou string)
+            # Converter valores
             try:
                 valor_pago = float(valor_pago) if isinstance(valor_pago, (int, float)) else 0
                 valor_cheio = float(valor_cheio) if isinstance(valor_cheio, (int, float)) else valor_pago
                 desconto = float(desconto) if isinstance(desconto, (int, float)) else 0
 
+                if valor_pago == 0:
+                    continue
+
                 # Calcular % de desconto
                 pct_desconto = (desconto / valor_cheio * 100) if valor_cheio > 0 else 0
 
                 dados.append({
-                    "uc": str(uc),
+                    "uc": uc,
                     "mes": mes_num,
                     "ano": ano,
                     "mes_ano": f"{mes_num:02d}/{ano}",
