@@ -1480,9 +1480,9 @@ def pg_arrecadacao_diaria(D, d0, d1):
                       color_discrete_sequence=px.colors.qualitative.Pastel)
         fig2.update_traces(
             textposition="auto",
-            textfont=dict(size=14, color="black", family="Arial Black"),
+            textfont=dict(size=18, color="black", family="Arial Black", weight="bold"),
             hovertemplate="<b>%{label}</b><br>Valor: R$ %{value:,.0f}<br>Percentual: %{percent}<extra></extra>",
-            marker=dict(line=dict(color="white", width=2))
+            marker=dict(line=dict(color="white", width=3))
         )
         fig2.update_layout(
             margin=dict(t=70, b=20, l=0, r=380),
