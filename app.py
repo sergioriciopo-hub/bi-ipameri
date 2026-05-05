@@ -1478,8 +1478,21 @@ def pg_arrecadacao_diaria(D, d0, d1):
         fig2 = px.pie(ag_frm.head(7), names="Canal", values="Valor",
                       title="Canal de Pagamento",
                       color_discrete_sequence=px.colors.qualitative.Set3)
-        fig2.update_layout(margin=dict(t=70, b=0, l=0, r=30), height=400,
-                           legend=dict(font=dict(size=9)))
+        fig2.update_layout(
+            margin=dict(t=70, b=0, l=0, r=250),
+            height=420,
+            legend=dict(
+                font=dict(size=13),
+                orientation="v",
+                xanchor="right",
+                yanchor="middle",
+                x=0.99,
+                y=0.5,
+                bgcolor="rgba(255,255,255,0.7)",
+                bordercolor="rgba(200,200,200,0.3)",
+                borderwidth=1
+            )
+        )
         st.plotly_chart(fig2, use_container_width=True)
 
     # Tabela detalhada — igual ao relatório do sistema
