@@ -344,6 +344,8 @@ def load():
     ene        = rd("energia_consolidada_completa")
     d_uc_ene   = rd("dim_unidade_consumo_energia")
     desc_ene   = rd("desconto_energia")
+    frota      = rd("frota_combustivel")
+    dim_vei    = rd("dim_veiculo_frota")
 
     # normaliza data_pagamento em arr_d para datetime
     if not arr_d.empty and "data_pagamento" in arr_d.columns:
@@ -361,6 +363,7 @@ def load():
         parr=parr, inad=inad,
         cor=cor, rel=rel, srv=srv, lei=lei, bkl=bkl,
         ene=ene, d_uc_ene=d_uc_ene, desc_ene=desc_ene,
+        frota=frota, dim_vei=dim_vei,
         d_bairro=d_bairro, d_cat=d_cat, d_cls=d_cls,
         d_grp=d_grp, d_seq=d_seq, d_frm=d_frm,
         d_lei=d_lei, d_eqp=d_eqp, d_agente=d_agente,
@@ -658,6 +661,7 @@ _PG_CORES = {
     "Serviços Operacionais":    ("#3E5F7F", "#5B8FB8"),
     "Cortes e Religações":      ("#3E5F7F", "#5B8FB8"),
     "Leituras e Hidrômetros":   ("#3E5F7F", "#5B8FB8"),
+    "Frota Combustível":        ("#3E5F7F", "#5B8FB8"),
 }
 
 def page_header(titulo, periodo_str=""):
@@ -2132,6 +2136,161 @@ def pg_leituras(D, d0, d1):
             st.info("Sem perdas detectadas no período selecionado")
 
 
+# ── Frota Combustível ─────────────────────────────────────────────────────────
+def pg_frota_combustivel(D, d0, d1):
+    page_header("Frota Combustível",
+                f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
+
+    frota = D["frota"].copy()
+
+    if frota.empty:
+        st.warning("Sem dados de frota.")
+        return
+
+    # Filtra por período
+    frota_f = frota[(frota["Data"] >= d0) & (frota["Data"] < d1 + pd.Timedelta(days=1))]
+
+    if frota_f.empty:
+        st.warning("Sem dados no período selecionado.")
+        return
+
+    # KPIs (cartões)
+    vl_consumo_total = frota_f["Quantidade"].sum()
+    vl_gasto_total = frota_f["Valor_Total"].sum()
+    vl_km_total = frota_f["Km_Rodados"].sum()
+    eff_media = vl_km_total / vl_consumo_total if vl_consumo_total > 0 else 0
+
+    c1, c2, c3, c4 = st.columns(4)
+    kpi(c1, "Combustível Consumido", vl_consumo_total, sufixo=" L")
+    kpi(c2, "Custo Total", vl_gasto_total, prefixo="R$")
+    kpi(c3, "Km Rodados", vl_km_total, sufixo=" km")
+    kpi(c4, "Eficiência Média", eff_media, sufixo=" km/L")
+
+    st.markdown("---")
+
+    # Gráfico 1: Consumo por Motorista (top 8)
+    frota_motorista = frota_f.groupby("Motorista").agg({
+        "Quantidade": "sum",
+        "Valor_Total": "sum",
+        "Km_Rodados": "sum"
+    }).reset_index()
+    frota_motorista = frota_motorista.nlargest(8, "Valor_Total")
+    frota_motorista = frota_motorista.sort_values("Valor_Total", ascending=True)
+
+    fig_motorista = px.barh(
+        frota_motorista,
+        x="Quantidade",
+        y="Motorista",
+        title="Consumo de Combustível por Motorista (Top 8)",
+        labels={"Quantidade": "Litros", "Motorista": ""},
+        color_discrete_sequence=[COR["azul"]]
+    )
+    fig_motorista.update_layout(margin=dict(t=50, b=0, l=250, r=30), height=400, showlegend=False)
+    fig_motorista.update_traces(text=[f"{v:.0f} L" for v in frota_motorista["Quantidade"].values], textposition="outside")
+    st.plotly_chart(fig_motorista, use_container_width=True)
+
+    st.markdown("---")
+
+    # Gráfico 2: Consumo por Veículo (top 8)
+    frota_veiculo = frota_f.groupby("Veiculo").agg({
+        "Quantidade": "sum",
+        "Valor_Total": "sum",
+        "Km_Rodados": "sum"
+    }).reset_index()
+    frota_veiculo = frota_veiculo.nlargest(8, "Valor_Total")
+    frota_veiculo = frota_veiculo.sort_values("Valor_Total", ascending=True)
+
+    fig_veiculo = px.barh(
+        frota_veiculo,
+        x="Quantidade",
+        y="Veiculo",
+        title="Consumo de Combustível por Veículo (Top 8)",
+        labels={"Quantidade": "Litros", "Veiculo": ""},
+        color_discrete_sequence=[COR["azul"]]
+    )
+    fig_veiculo.update_layout(margin=dict(t=50, b=0, l=150, r=30), height=400, showlegend=False)
+    fig_veiculo.update_traces(text=[f"{v:.0f} L" for v in frota_veiculo["Quantidade"].values], textposition="outside")
+    st.plotly_chart(fig_veiculo, use_container_width=True)
+
+    st.markdown("---")
+
+    # Gráfico 3: Evolução Temporal (diária)
+    frota_diaria = frota_f.groupby("Data").agg({
+        "Quantidade": "sum",
+        "Valor_Total": "sum",
+        "Km_Rodados": "sum"
+    }).reset_index()
+    frota_diaria = frota_diaria.sort_values("Data")
+
+    fig_temporal = px.line(
+        frota_diaria,
+        x="Data",
+        y="Quantidade",
+        title="Consumo de Combustível (Evolução Diária)",
+        labels={"Data": "", "Quantidade": "Litros"},
+        markers=True
+    )
+    fig_temporal.update_traces(line=dict(color=COR["azul"], width=2), marker=dict(size=5))
+    fig_temporal.update_layout(margin=dict(t=50, b=0, l=0, r=30), height=350, hovermode="x unified")
+    fig_temporal.update_yaxes(tickformat=".0f")
+    st.plotly_chart(fig_temporal, use_container_width=True)
+
+    st.markdown("---")
+
+    # Gráfico 4: Custo por Km
+    frota_scatter = frota_f[frota_f["Km_Rodados"] > 0].copy()
+
+    fig_scatter = px.scatter(
+        frota_scatter,
+        x="Km_Rodados",
+        y="Custo_Por_Km",
+        hover_data={"Motorista": True, "Veiculo": True, "Data": True},
+        title="Custo por Km (por Transação)",
+        labels={"Km_Rodados": "Km Rodados", "Custo_Por_Km": "R$/km"},
+        color_discrete_sequence=[COR["azul"]]
+    )
+    fig_scatter.update_layout(margin=dict(t=50, b=0, l=0, r=30), height=350)
+    fig_scatter.update_xaxes(tickformat=".0f")
+    fig_scatter.update_yaxes(tickformat="$,.2f")
+    st.plotly_chart(fig_scatter, use_container_width=True)
+
+    st.markdown("---")
+
+    # Tabela de detalhes
+    st.markdown("#### Tabela Detalhada")
+    tbl = frota_f[[
+        "Data", "Motorista", "Veiculo", "Quantidade",
+        "Valor_Total", "Km_Rodados", "Km_Por_Litro",
+        "Custo_Por_Km", "Cidade", "Estabelecimento"
+    ]].copy()
+    tbl = tbl.sort_values("Data", ascending=False)
+
+    tbl_view = tbl.copy()
+    tbl_view["Data"] = tbl_view["Data"].dt.strftime("%d/%m/%Y")
+    tbl_view.columns = [
+        "Data", "Motorista", "Veículo", "Litros",
+        "Valor (R$)", "Km", "Eficiência (km/L)",
+        "Custo/Km (R$)", "Cidade", "Estabelecimento"
+    ]
+
+    # Formatação de valores
+    tbl_view["Valor (R$)"] = tbl_view["Valor (R$)"].apply(lambda x: f"R$ {x:,.2f}")
+    tbl_view["Custo/Km (R$)"] = tbl_view["Custo/Km (R$)"].apply(lambda x: f"R$ {x:.2f}")
+    tbl_view["Litros"] = tbl_view["Litros"].apply(lambda x: f"{x:.2f}")
+    tbl_view["Km"] = tbl_view["Km"].apply(lambda x: f"{x:.0f}")
+    tbl_view["Eficiência (km/L)"] = tbl_view["Eficiência (km/L)"].apply(lambda x: f"{x:.2f}")
+
+    st.dataframe(tbl_view, use_container_width=True, hide_index=True, height=500)
+
+    # Resumo final
+    st.markdown("---")
+    st.markdown("#### Resumo")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Transações", len(frota_f))
+    col2.metric("Custo Médio/Transação", f"R$ {frota_f['Valor_Total'].mean():.2f}")
+    col3.metric("Litros Médio/Transação", f"{frota_f['Quantidade'].mean():.2f}")
+
+
 # ── Energia ───────────────────────────────────────────────────────────────────
 def pg_energia(D, d0, d1):
     page_header("Energia Elétrica",
@@ -2319,6 +2478,7 @@ def main():
         "Cortes e Religações":   pg_cortes,
         "Leituras":              pg_leituras,
         "Energia Elétrica":      pg_energia,
+        "Frota Combustível":     pg_frota_combustivel,
     }
 
     st.sidebar.markdown("### Cockpits")
