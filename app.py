@@ -762,7 +762,7 @@ def pg_cockpit(D, d0, d1):
                 line=dict(color=COR["azul"], width=2),
                 mode="lines+markers+text",
                 text=[f"{v/1000:.0f} Mil" for v in vf],
-                textposition="top center", textfont=dict(size=13, color=COR["azul_esc"], weight="bold"),
+                textposition="top center", textfont=dict(size=13, color=COR["azul_esc"]),
             ))
         if not arr_m.empty:
             va = arr_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
@@ -772,7 +772,7 @@ def pg_cockpit(D, d0, d1):
                 line=dict(color=COR["verde"], width=2),
                 mode="lines+markers+text",
                 text=[f"{v/1000:.0f} Mil" for v in va],
-                textposition="bottom center", textfont=dict(size=13, color="#1a6b3c", weight="bold"),
+                textposition="bottom center", textfont=dict(size=13, color="#1a6b3c"),
             ))
         fig1.update_layout(
             title="Faturamento e Arrecadação Mensal (R$)",
@@ -803,7 +803,7 @@ def pg_cockpit(D, d0, d1):
             x=eco_m["Mês"], y=eco_m["Agua"], name="Economias Água",
             mode="lines+markers+text",
             text=eco_m["Agua"].apply(lambda v: f"{int(v):,}".replace(",", ".")),
-            textposition="top center", textfont=dict(size=13, weight="bold"),
+            textposition="top center", textfont=dict(size=13),
             line=dict(color=COR["azul"], width=2), marker=dict(size=5),
         ))
         # Adiciona Esgoto apenas se houver dados
@@ -812,7 +812,7 @@ def pg_cockpit(D, d0, d1):
                 x=eco_m["Mês"], y=eco_m["Esgoto"], name="Economias Esgoto",
                 mode="lines+markers+text",
                 text=eco_m["Esgoto"].apply(lambda v: f"{int(v):,}".replace(",", ".")),
-                textposition="bottom center", textfont=dict(size=13, weight="bold"),
+                textposition="bottom center", textfont=dict(size=13),
                 line=dict(color=COR["amarelo"], width=2), marker=dict(size=5),
             ))
         fig2.update_layout(
@@ -875,7 +875,7 @@ def pg_cockpit(D, d0, d1):
                     x=meses_fm, y=vals.round(1), name=nome,
                     mode="lines+markers+text",
                     text=vals.round(1).apply(lambda v: f"{v:.1f}" if v > 0 else ""),
-                    textposition=textpos, textfont=dict(size=13, weight="bold"),
+                    textposition=textpos, textfont=dict(size=13),
                     line=dict(color=cor_v, width=width), marker=dict(size=4),
                     visible=(idx < 4),
                 ))
@@ -917,7 +917,7 @@ def pg_cockpit(D, d0, d1):
             x=meses_vf, y=y_agua, name="Água",
             mode="lines+markers+text",
             text=y_agua.apply(lambda v: f"{v:.1f}"),
-            textposition="top center", textfont=dict(size=13, weight="bold"),
+            textposition="top center", textfont=dict(size=13),
             line=dict(color=COR["azul"], width=2), marker=dict(size=4),
         ))
         if has_ev:
@@ -927,7 +927,7 @@ def pg_cockpit(D, d0, d1):
                 x=meses_vf, y=y_esgo, name="Esgoto",
                 mode="lines+markers+text",
                 text=y_esgo.apply(lambda v: f"{v:.1f}" if v == v else ""),
-                textposition="bottom center", textfont=dict(size=13, weight="bold"),
+                textposition="bottom center", textfont=dict(size=13),
                 line=dict(color=COR["esgoto"], width=2), marker=dict(size=4),
             ))
         fig4.update_layout(
@@ -993,7 +993,7 @@ def pg_cockpit(D, d0, d1):
         fig5 = go.Figure(go.Bar(
             x=df_per["Mês"], y=df_per["pct"],
             text=texto_condicional, textposition="outside", textangle=90,
-            textfont=dict(size=12, weight="bold", family="Arial Black", color="#0B3558"),
+            textfont=dict(size=12, family="Arial Black", color="#0B3558"),
             marker_color=[_cb(v) for v in df_per["pct"]],
             marker=dict(line=dict(width=2, color="rgba(0,0,0,0.1)")),
         ))
@@ -1480,7 +1480,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
                       color_discrete_sequence=px.colors.qualitative.Pastel)
         fig2.update_traces(
             textposition="auto",
-            textfont=dict(size=18, color="black", family="Arial Black", weight="bold"),
+            textfont=dict(size=18, color="black", family="Arial Black"),
             hovertemplate="<b>%{label}</b><br>Valor: R$ %{value:,.0f}<br>Percentual: %{percent}<extra></extra>",
             marker=dict(line=dict(color="white", width=3))
         )
@@ -1930,7 +1930,7 @@ def pg_cortes(D, d0, d1):
                       title="Tempo entre abertura e encerramento das Ordens de Corte",
                       color_discrete_map={"Normal": COR["azul_c"], "Urgente": COR["vermelho"], "Outros": COR["cinza"]},
                       category_orders={"Faixa": labels_d})
-        fig4.update_traces(textposition="inside", textfont=dict(size=13, weight="bold"))
+        fig4.update_traces(textposition="inside", textfont=dict(size=13))
         fig4.update_layout(margin=dict(t=35, b=0, l=0, r=20),
                            xaxis_title="", yaxis_title="Qtd")
         st.plotly_chart(fig4, use_container_width=True)
