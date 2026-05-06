@@ -1474,35 +1474,34 @@ def pg_arrecadacao_diaria(D, d0, d1):
         ag_frm = (af_frm.groupby("nm_tipo_forma_arrecadacao")["vl_arrecadado"]
                   .sum().sort_values(ascending=False).reset_index())
         ag_frm.columns = ["Canal","Valor"]
-        ag_frm["Canal"] = ag_frm["Canal"].str.strip().str[:55]
-        fig2 = px.pie(ag_frm.head(7), names="Canal", values="Valor",
-                      title="Canal de Pagamento",
-                      color_discrete_sequence=px.colors.qualitative.Pastel)
-        fig2.update_traces(
+        ag_frm["Canal"] = ag_frm["Canal"].str.strip()
+        cores_pie = px.colors.qualitative.Pastel
+        fig2 = go.Figure(data=[go.Pie(
+            labels=ag_frm.head(7)["Canal"],
+            values=ag_frm.head(7)["Valor"],
             textposition="auto",
-            textfont=dict(size=18, color="black", family="Arial Black"),
+            textfont=dict(size=15, color="black", family="Arial Black"),
             hovertemplate="<b>%{label}</b><br>Valor: R$ %{value:,.0f}<br>Percentual: %{percent}<extra></extra>",
-            marker=dict(line=dict(color="white", width=3))
-        )
+            marker=dict(colors=cores_pie, line=dict(color="white", width=3)),
+            domain=dict(x=[0, 0.48]),
+        )])
         fig2.update_layout(
-            margin=dict(t=50, b=20, l=0, r=20),
-            height=450,
+            margin=dict(t=50, b=20, l=0, r=0),
+            height=420,
             font=dict(size=12, family="Arial"),
-            title=dict(font=dict(size=16, color="#0B3558")),
+            title=dict(text="Canal de Pagamento", font=dict(size=16, color="#0B3558")),
             legend=dict(
                 font=dict(size=12, family="Arial"),
                 orientation="v",
                 xanchor="left",
-                yanchor="top",
-                x=1.02,
-                y=1.0,
+                yanchor="middle",
+                x=0.51,
+                y=0.5,
                 bgcolor="rgba(255,255,255,0.93)",
                 bordercolor="rgba(59,95,127,0.5)",
                 borderwidth=2,
                 title=dict(text="<b>Canais</b>", font=dict(size=13)),
-                tracegroupgap=8,
-                entrywidth=320,
-                entrywidthmode="pixels",
+                tracegroupgap=10,
             )
         )
         st.plotly_chart(fig2, use_container_width=True)
