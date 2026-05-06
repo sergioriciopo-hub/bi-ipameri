@@ -1474,7 +1474,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
         ag_frm = (af_frm.groupby("nm_tipo_forma_arrecadacao")["vl_arrecadado"]
                   .sum().sort_values(ascending=False).reset_index())
         ag_frm.columns = ["Canal","Valor"]
-        ag_frm["Canal"] = ag_frm["Canal"].str.extract(r'^(.{0,30})')
+        ag_frm["Canal"] = ag_frm["Canal"].str.strip()
         fig2 = px.pie(ag_frm.head(7), names="Canal", values="Valor",
                       title="Canal de Pagamento",
                       color_discrete_sequence=px.colors.qualitative.Pastel)
@@ -1485,22 +1485,23 @@ def pg_arrecadacao_diaria(D, d0, d1):
             marker=dict(line=dict(color="white", width=3))
         )
         fig2.update_layout(
-            margin=dict(t=70, b=20, l=0, r=650),
-            height=450,
+            margin=dict(t=70, b=20, l=0, r=20),
+            height=500,
             font=dict(size=12, family="Arial"),
             title=dict(font=dict(size=16, color="#0B3558")),
             legend=dict(
                 font=dict(size=13, family="Arial"),
                 orientation="v",
-                xanchor="right",
+                xanchor="left",
                 yanchor="middle",
-                x=1.0,
+                x=1.02,
                 y=0.5,
                 bgcolor="rgba(255,255,255,0.93)",
                 bordercolor="rgba(59,95,127,0.5)",
                 borderwidth=2,
                 title=dict(text="<b>Canais</b>", font=dict(size=14)),
-                tracegroupgap=15
+                tracegroupgap=15,
+                entrywidth=350,
             )
         )
         st.plotly_chart(fig2, use_container_width=True)
