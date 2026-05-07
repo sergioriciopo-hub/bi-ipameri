@@ -4,10 +4,12 @@
 __pycache__/
 *.pyc
 .DS_Store
-*.parquet
 config.toml.txt
 .streamlit/
-data/
+# Ignorar todos os parquets da pasta data/, exceto os de frota
+data/*.parquet
+!data/frota_combustivel.parquet
+!data/dim_veiculo_frota.parquet
 scripts/etl_energia*.py
 scripts/consolidar_energia*.py
 scripts/gerar_dim*.py
