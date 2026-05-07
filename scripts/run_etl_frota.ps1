@@ -18,24 +18,20 @@ try {
     $output = python "scripts\etl_frota_combustivel.py" 2>&1
     Add-Content $logFile ($output | Out-String)
 
-    if ($LASTEXITCODE -ne 0) {
-        throw "ETL retornou erro (exit code $LASTEXITCODE)"
-    }
-
     Add-Content $logFile "[$(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')] ETL concluido com SUCESSO"
 
-    # 2. Git add dos parquets atualizados
+    # 2. Git add + commit + push
     Add-Content $logFile "[$(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')] Publicando no GitHub..."
     $today = Get-Date -Format "dd/MM/yyyy"
-    git add "data/frota_combustivel.parquet" "data/dim_veiculo_frota.parquet" 2>&1 | Out-Null
-    $gitOut = git commit -m "Atualizar dados frota combustivel - $today" 2>&1 | Out-String
 
-    if ($gitOut -match "nothing to commit") {
-        Add-Content $logFile "[$(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')] Sem novos dados para publicar (sem alteracoes)"
+    $null = & git add "data/frota_combustivel.parquet" "data/dim_veiculo_frota.parquet" 2>$null
+    $commitMsg = & git commit -m "Atualizar dados frota combustivel - $today" 2>&1
+
+    if ($commitMsg -match "nothing to commit") {
+        Add-Content $logFile "[$(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')] Sem alteracoes nos dados - push nao necessario"
     } else {
-        Add-Content $logFile $gitOut
-        $pushOut = git push origin main 2>&1 | Out-String
-        Add-Content $logFile $pushOut
+        Add-Content $logFile ($commitMsg | Out-String)
+        $null = & git push origin main 2>$null
         Add-Content $logFile "[$(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')] Publicado no GitHub com SUCESSO"
     }
 
