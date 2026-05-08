@@ -977,34 +977,66 @@ def pg_cockpit(D, d0, d1):
         arr_m = tmp.groupby("Mês")["vl_arrecadado"].sum().reset_index()
         arr_m.columns = ["Mês", "Valor"]
 
-    todos = _sort_meses(list(
-        set((fat_m["Mês"].tolist() if not fat_m.empty else []) +
-            (arr_m["Mês"].tolist() if not arr_m.empty else []))
-    ))
+    # Carrega dados comp para os gráficos
+    _comp = _comp_periodo()
+    fat_c_m, arr_c_m = pd.DataFrame(), pd.DataFrame()
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _fat_c2 = filtrar(D["fat"], "dt_ref", _cd0, _cd1)
+        _arrd_c2 = filtrar(D["arr_d"], "data_pagamento", _cd0, _cd1)
+        if not _fat_c2.empty:
+            tmp = _fat_c2.copy(); tmp["Mês"] = pd.to_datetime(tmp["dt_ref"]).dt.strftime("%m/%Y")
+            fat_c_m = tmp.groupby("Mês")["vl_total_faturado"].sum().reset_index()
+            fat_c_m.columns = ["Mês", "Valor"]
+        if not _arrd_c2.empty:
+            tmp = _arrd_c2.copy(); tmp["Mês"] = pd.to_datetime(tmp["data_pagamento"]).dt.strftime("%m/%Y")
+            arr_c_m = tmp.groupby("Mês")["vl_arrecadado"].sum().reset_index()
+            arr_c_m.columns = ["Mês", "Valor"]
+
+    todos = _sort_meses(list(set(
+        (fat_m["Mês"].tolist() if not fat_m.empty else []) +
+        (arr_m["Mês"].tolist() if not arr_m.empty else []) +
+        (fat_c_m["Mês"].tolist() if not fat_c_m.empty else []) +
+        (arr_c_m["Mês"].tolist() if not arr_c_m.empty else [])
+    )))
     if todos:
         fig1 = go.Figure()
         if not fat_m.empty:
             vf = fat_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
             fig1.add_trace(go.Scatter(
-                x=todos, y=vf, name="Faturamento",
+                x=todos, y=vf, name=f"Faturamento {_comp['label_atual'] if _comp else ''}".strip(),
                 fill="tozeroy", fillcolor="rgba(26,111,173,0.28)",
                 line=dict(color=COR["azul"], width=2),
                 mode="lines+markers+text",
-                text=[f"{v/1000:.0f} Mil" for v in vf],
+                text=[f"{v/1000:.0f} Mil" if v > 0 else "" for v in vf],
                 textposition="top center", textfont=dict(size=13, color=COR["azul_esc"]),
             ))
         if not arr_m.empty:
             va = arr_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
             fig1.add_trace(go.Scatter(
-                x=todos, y=va, name="Arrecadação",
+                x=todos, y=va, name=f"Arrecadação {_comp['label_atual'] if _comp else ''}".strip(),
                 fill="tozeroy", fillcolor="rgba(39,174,96,0.45)",
                 line=dict(color=COR["verde"], width=2),
                 mode="lines+markers+text",
-                text=[f"{v/1000:.0f} Mil" for v in va],
+                text=[f"{v/1000:.0f} Mil" if v > 0 else "" for v in va],
                 textposition="bottom center", textfont=dict(size=13, color="#1a6b3c"),
             ))
+        if _comp and not fat_c_m.empty:
+            vfc = fat_c_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
+            fig1.add_trace(go.Scatter(
+                x=todos, y=vfc, name=f"Faturamento {_comp['label_comp']}",
+                line=dict(color=COR["azul"], width=2, dash="dot"),
+                mode="lines+markers", opacity=0.55, marker=dict(size=6, symbol="circle-open"),
+            ))
+        if _comp and not arr_c_m.empty:
+            vac = arr_c_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
+            fig1.add_trace(go.Scatter(
+                x=todos, y=vac, name=f"Arrecadação {_comp['label_comp']}",
+                line=dict(color=COR["verde"], width=2, dash="dot"),
+                mode="lines+markers", opacity=0.55, marker=dict(size=6, symbol="circle-open"),
+            ))
         fig1.update_layout(
-            title="Faturamento e Arrecadação Mensal (R$)",
+            title="Faturamento e Arrecadação Mensal (R$)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
             margin=dict(t=70, b=10, l=0, r=30), height=400,
             xaxis=dict(title="", categoryorder="array", categoryarray=todos),
             yaxis=dict(title="", tickformat=",.0f"),
@@ -1423,6 +1455,7 @@ def pg_faturamento(D, d0, d1):
     st.markdown("---")
 
     # ── Gráficos ──────────────────────────────────────────────────────────────
+    _comp = _comp_periodo()
     fat_m = fat.copy()
     fat_m["_mes"] = pd.to_datetime(fat_m["dt_ref"]).dt.to_period("M").dt.to_timestamp()
     # Componentes do Faturamento Líquido (excluindo Multas/Juros)
@@ -1432,12 +1465,25 @@ def pg_faturamento(D, d0, d1):
     ag = fat_m.groupby("_mes").agg(**agg_dict).reset_index().rename(columns={"_mes": "Mês"})
     ag_melt = ag.melt(id_vars="Mês", var_name="Componente", value_name="Valor")
     ag_melt = ag_melt[ag_melt["Valor"] > 0]
+    # Adiciona série comparativa ao gráfico de componentes
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _fat_cg = filtrar(D["fat"], "dt_ref", _cd0, _cd1)
+        if not _fat_cg.empty:
+            _fm_c = _fat_cg.copy()
+            _fm_c["_mes"] = pd.to_datetime(_fm_c["dt_ref"]).dt.to_period("M").dt.to_timestamp()
+            _agg_c = {k: (v, "sum") for k, v in agg_cols.items() if v in _fm_c.columns}
+            _ag_c  = _fm_c.groupby("_mes").agg(**_agg_c).reset_index().rename(columns={"_mes": "Mês"})
+            _ag_c_melt = _ag_c.melt(id_vars="Mês", var_name="Componente", value_name="Valor")
+            _ag_c_melt = _ag_c_melt[_ag_c_melt["Valor"] > 0]
+            _ag_c_melt["Componente"] = _ag_c_melt["Componente"] + f" ({_comp['label_comp']})"
+            ag_melt = pd.concat([ag_melt, _ag_c_melt], ignore_index=True)
     fig = px.bar(ag_melt, x="Mês", y="Valor", color="Componente",
-                 title="Faturamento Líquido por Componente (mensal)",
+                 title="Faturamento Líquido por Componente (mensal)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
                  color_discrete_map={
                      "Água": COR["agua"], "Tarifa Básica": "#8B5CF6",
                      "Serviços": COR["servico"], "Lixo": COR["lixo"],
-                 })
+                 }, barmode="group" if _comp else "stack")
     fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
     fig.update_yaxes(tickformat=",.0f")
     st.plotly_chart(fig, use_container_width=True)
@@ -1575,7 +1621,12 @@ def pg_arrecadacao(D, d0, d1):
                   title="Faturado vs Arrecadado — Histórico completo",
                   color_discrete_map={"Faturado": COR["azul"], "Arrecadado": COR["verde"]})
     fig.add_vrect(x0=d0, x1=d1, fillcolor="rgba(26,111,173,0.08)",
-                  line_width=0, annotation_text="Período sel.", annotation_position="top left")
+                  line_width=0, annotation_text="Período atual", annotation_position="top left")
+    _comp = _comp_periodo()
+    if _comp:
+        fig.add_vrect(x0=_comp["comp_d0"], x1=_comp["comp_d1"],
+                      fillcolor="rgba(220,38,38,0.06)", line_width=0,
+                      annotation_text=f"Comp. {_comp['label_comp']}", annotation_position="top right")
     fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
     fig.update_yaxes(tickformat=",.0f")
     st.plotly_chart(fig, use_container_width=True)
@@ -1730,24 +1781,40 @@ def pg_arrecadacao_diaria(D, d0, d1):
 
     st.markdown("---")
 
+    _comp = _comp_periodo()
     fig = go.Figure()
+    _lbl_a = _comp["label_atual"] if _comp else "Atual"
     fig.add_bar(x=diario["Data"], y=diario["Valor"],
-                name="Arrecadação diária",
+                name=f"Arrecadação {_lbl_a}",
                 marker_color=COR["azul"],
                 text=diario["Valor"].apply(lambda v: f"R$ {v:,.0f}"),
                 textposition="outside")
     fig.add_scatter(x=diario["Data"], y=diario["Acumulado"],
-                    name="Acumulado", mode="lines+markers",
+                    name=f"Acumulado {_lbl_a}", mode="lines+markers",
                     line=dict(color=COR["verde"], width=2),
                     yaxis="y2")
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _ad_c = ad[(ad["data_pagamento"] >= _cd0) & (ad["data_pagamento"] < _cd1 + pd.Timedelta(days=1))]
+        if not _ad_c.empty:
+            _diario_c = (_ad_c.groupby("data_pagamento")
+                         .agg(Valor=("vl_arrecadado","sum")).reset_index()
+                         .rename(columns={"data_pagamento":"Data"}).sort_values("Data"))
+            _diario_c["Acumulado"] = _diario_c["Valor"].cumsum()
+            fig.add_bar(x=_diario_c["Data"], y=_diario_c["Valor"],
+                        name=f"Arrecadação {_comp['label_comp']}",
+                        marker_color="rgba(220,38,38,0.45)", opacity=0.7)
+            fig.add_scatter(x=_diario_c["Data"], y=_diario_c["Acumulado"],
+                            name=f"Acumulado {_comp['label_comp']}", mode="lines",
+                            line=dict(color=COR["vermelho"], width=2, dash="dot"),
+                            yaxis="y2")
     fig.update_layout(
-        title="Arrecadação Diária e Acumulada (D+)",
+        title="Arrecadação Diária e Acumulada (D+)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
         xaxis_title="", yaxis_title="Valor Diário (R$)",
-        yaxis2=dict(title="Acumulado (R$)", overlaying="y", side="right",
-                    showgrid=False),
+        yaxis2=dict(title="Acumulado (R$)", overlaying="y", side="right", showgrid=False),
         legend=dict(orientation="h", y=1.1),
         margin=dict(t=70, b=0, l=0, r=30), height=400,
-        hovermode="x unified",
+        hovermode="x unified", barmode="overlay",
     )
     fig.update_yaxes(tickformat=",.0f")
     st.plotly_chart(fig, use_container_width=True)
@@ -2045,8 +2112,19 @@ def pg_servicos(D, d0, d1):
         srv_m["Status SLA"] = "No Prazo"
     ag_m = srv_m.groupby(["_mes","Status SLA"])["qt_servico"].sum().reset_index()
     ag_m.columns = ["Mês","SLA","Qtd"]
-    fig3 = px.bar(ag_m, x="Mês", y="Qtd", color="SLA", barmode="stack",
-                  title="Serviços Mensais (No Prazo vs Fora)",
+    _comp = _comp_periodo()
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _srv_cg = filtrar(D["srv"], "dt_solicitacao", _cd0, _cd1)
+        if not _srv_cg.empty:
+            _sm_c = _srv_cg.copy()
+            _sm_c["_mes"] = pd.to_datetime(_sm_c["dt_solicitacao"]).dt.to_period("M").dt.to_timestamp()
+            _sm_c["Status SLA"] = _sm_c["fl_fora_prazo"].apply(lambda x: f"Fora do Prazo ({_comp['label_comp']})" if x == True else f"No Prazo ({_comp['label_comp']})") if "fl_fora_prazo" in _sm_c.columns else f"No Prazo ({_comp['label_comp']})"
+            _ag_mc = _sm_c.groupby(["_mes","Status SLA"])["qt_servico"].sum().reset_index()
+            _ag_mc.columns = ["Mês","SLA","Qtd"]
+            ag_m = pd.concat([ag_m, _ag_mc], ignore_index=True)
+    fig3 = px.bar(ag_m, x="Mês", y="Qtd", color="SLA", barmode="group",
+                  title="Serviços Mensais (No Prazo vs Fora)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
                   color_discrete_map={"No Prazo": COR["verde"], "Fora do Prazo": COR["vermelho"]})
     fig3.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
     st.plotly_chart(fig3, use_container_width=True)
@@ -2223,11 +2301,29 @@ def pg_cortes(D, d0, d1):
             frames_cr.append(ag_r)
 
         df_cr = pd.concat(frames_cr)
-        meses_ord = sorted(df_cr["Mês"].unique())
+        _comp = _comp_periodo()
+        if _comp:
+            _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+            _cor_cg = filtrar(D["cor"], "dt_solicitacao", _cd0, _cd1)
+            _rel_cg = filtrar(D["rel"], "dt_reliagacao",  _cd0, _cd1)
+            if not _cor_cg.empty:
+                _cg_m = _cor_cg.copy(); _cg_m["_mes"] = pd.to_datetime(_cg_m["dt_solicitacao"]).dt.strftime("%m/%Y")
+                _ag_cg = _cg_m.groupby("_mes")["qt_servico"].sum().reset_index(); _ag_cg.columns = ["Mês","Qtd"]; _ag_cg["Tipo"] = f"Cortes ({_comp['label_comp']})"
+                df_cr = pd.concat([df_cr, _ag_cg])
+            if not _rel_cg.empty:
+                _rg_m = _rel_cg.copy(); _rg_m["_mes"] = pd.to_datetime(_rg_m["dt_reliagacao"]).dt.strftime("%m/%Y")
+                _ag_rg = _rg_m.groupby("_mes")["id_servico"].nunique().reset_index(); _ag_rg.columns = ["Mês","Qtd"]; _ag_rg["Tipo"] = f"Religações ({_comp['label_comp']})"
+                df_cr = pd.concat([df_cr, _ag_rg])
+        meses_ord = sorted(df_cr["Mês"].unique(), key=lambda x: pd.to_datetime(x, format="%m/%Y"))
         fig = px.line(df_cr, x="Mês", y="Qtd", color="Tipo", markers=True,
-                      title="Cortes vs Religações (mensal)",
+                      title="Cortes vs Religações (mensal)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
                       color_discrete_map={"Cortes": COR["vermelho"], "Religações": COR["verde"]},
                       category_orders={"Mês": meses_ord})
+        if _comp:
+            for trace in fig.data:
+                if _comp["label_comp"] in trace.name:
+                    trace.line = dict(dash="dot", color=trace.line.color if hasattr(trace, "line") else None)
+                    trace.opacity = 0.6
         fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
         st.plotly_chart(fig, use_container_width=True)
 
@@ -2347,9 +2443,25 @@ def pg_leituras(D, d0, d1):
         Faturado=("qt_volume_faturado","sum")
     ).reset_index().rename(columns={"_mes":"Mês"})
     ag_m = ag.melt(id_vars="Mês", var_name="Tipo", value_name="m³")
+    _comp = _comp_periodo()
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _lei_cg = filtrar(D["lei"], "dt_ref", _cd0, _cd1)
+        if not _lei_cg.empty:
+            _lc = _lei_cg.copy()
+            _lc["_mes"] = pd.to_datetime(_lc["dt_ref"]).dt.to_period("M").dt.to_timestamp()
+            _ag_c = _lc.groupby("_mes").agg(Lido=("qt_volume_lido","sum"),Faturado=("qt_volume_faturado","sum")).reset_index().rename(columns={"_mes":"Mês"})
+            _ag_c_m = _ag_c.melt(id_vars="Mês", var_name="Tipo", value_name="m³")
+            _ag_c_m["Tipo"] = _ag_c_m["Tipo"] + f" ({_comp['label_comp']})"
+            ag_m = pd.concat([ag_m, _ag_c_m], ignore_index=True)
     fig = px.line(ag_m, x="Mês", y="m³", color="Tipo", markers=True,
-                  title="Volume Lido vs Faturado (m³ mensal)",
+                  title="Volume Lido vs Faturado (m³ mensal)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
                   color_discrete_map={"Lido": COR["azul"], "Faturado": COR["verde"]})
+    if _comp:
+        for trace in fig.data:
+            if _comp["label_comp"] in trace.name:
+                trace.line = dict(dash="dot")
+                trace.opacity = 0.6
     fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
     fig.update_yaxes(tickformat=",.0f")
     st.plotly_chart(fig, use_container_width=True)
@@ -2631,24 +2743,31 @@ def pg_frota_combustivel(D, d0, d1):
 
     st.markdown("---")
 
-    # Gráfico 3: Evolução Temporal (diária)
-    frota_diaria = frota_f.groupby("Data").agg({
-        "Quantidade": "sum",
-        "Valor_Total": "sum",
-        "Km_Rodados": "sum"
-    }).reset_index()
-    frota_diaria = frota_diaria.sort_values("Data")
-
-    fig_temporal = px.line(
-        frota_diaria,
-        x="Data",
-        y="Quantidade",
-        title="Consumo de Combustível (Evolução Diária)",
-        labels={"Data": "", "Quantidade": "Litros"},
-        markers=True
+    # Gráfico 3: Evolução Temporal
+    frota_diaria = frota_f.groupby("Data").agg({"Quantidade":"sum","Valor_Total":"sum","Km_Rodados":"sum"}).reset_index().sort_values("Data")
+    _comp = _comp_periodo()
+    fig_temporal = go.Figure()
+    fig_temporal.add_trace(go.Scatter(
+        x=frota_diaria["Data"], y=frota_diaria["Quantidade"],
+        name=f"Litros {_comp['label_atual'] if _comp else 'Atual'}",
+        mode="lines+markers", line=dict(color=COR["azul"], width=2), marker=dict(size=5)
+    ))
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _fr_cg = frota[(_comp["comp_d0"] <= frota["Data"]) & (frota["Data"] < _comp["comp_d1"] + pd.Timedelta(days=1))]
+        if not _fr_cg.empty:
+            _fd_c = _fr_cg.groupby("Data").agg({"Quantidade":"sum"}).reset_index().sort_values("Data")
+            fig_temporal.add_trace(go.Scatter(
+                x=_fd_c["Data"], y=_fd_c["Quantidade"],
+                name=f"Litros {_comp['label_comp']}",
+                mode="lines+markers", line=dict(color=COR["vermelho"], width=2, dash="dot"),
+                marker=dict(size=5, symbol="circle-open"), opacity=0.7
+            ))
+    fig_temporal.update_layout(
+        title="Consumo de Combustível (Evolução)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
+        margin=dict(t=50, b=0, l=0, r=30), height=350, hovermode="x unified",
+        legend=dict(orientation="h", y=1.1)
     )
-    fig_temporal.update_traces(line=dict(color=COR["azul"], width=2), marker=dict(size=5))
-    fig_temporal.update_layout(margin=dict(t=50, b=0, l=0, r=30), height=350, hovermode="x unified")
     fig_temporal.update_yaxes(tickformat=".0f")
     st.plotly_chart(fig_temporal, use_container_width=True)
 
@@ -2778,14 +2897,29 @@ def pg_energia(D, d0, d1):
     # Série temporal
     ene_ts = ene_f.groupby("mes_ano")["valor_r"].sum().reset_index()
     ene_ts = ene_ts.sort_values("mes_ano")
-    fig_ts = px.line(
-        ene_ts, x="mes_ano", y="valor_r",
-        title="Evolução do Custo de Energia",
-        labels={"mes_ano": "", "valor_r": "R$"},
-        markers=True
+    _comp = _comp_periodo()
+    fig_ts = go.Figure()
+    fig_ts.add_trace(go.Scatter(
+        x=ene_ts["mes_ano"], y=ene_ts["valor_r"],
+        name=f"Energia {_comp['label_atual'] if _comp else 'Atual'}",
+        mode="lines+markers", line=dict(color=COR["azul"], width=2), marker=dict(size=6)
+    ))
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _ene_c = ene[(_comp["comp_d0"] <= ene["mes_ano"]) & (ene["mes_ano"] < _comp["comp_d1"] + pd.Timedelta(days=1))]
+        if not _ene_c.empty:
+            _ene_ts_c = _ene_c.groupby("mes_ano")["valor_r"].sum().reset_index().sort_values("mes_ano")
+            fig_ts.add_trace(go.Scatter(
+                x=_ene_ts_c["mes_ano"], y=_ene_ts_c["valor_r"],
+                name=f"Energia {_comp['label_comp']}",
+                mode="lines+markers", line=dict(color=COR["vermelho"], width=2, dash="dot"),
+                marker=dict(size=6, symbol="circle-open"), opacity=0.7
+            ))
+    fig_ts.update_layout(
+        title="Evolução do Custo de Energia" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
+        margin=dict(t=50, b=0, l=0, r=30), height=400, hovermode="x unified",
+        legend=dict(orientation="h", y=1.1)
     )
-    fig_ts.update_traces(line=dict(color=COR["azul"], width=2), marker=dict(size=6))
-    fig_ts.update_layout(margin=dict(t=50, b=0, l=0, r=30), height=400, hovermode="x unified")
     fig_ts.update_yaxes(tickformat="$,.0f")
     st.plotly_chart(fig_ts, use_container_width=True)
 
