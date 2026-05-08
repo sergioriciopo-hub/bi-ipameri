@@ -3072,10 +3072,10 @@ def pg_tratamento(D, d0, d1):
         pct_dom = (vol_dom / vol_tot * 100) if vol_tot > 0 else 0
 
         c1, c2, c3, c4 = st.columns(4)
-        kpi(c1, "Volume Ipameri",   vol_ip,  sufixo=" m³")
-        kpi(c2, "Volume Domiciano", vol_dom, sufixo=" m³")
-        kpi(c3, "Volume Total",     vol_tot, sufixo=" m³")
-        kpi(c4, "% Domiciano",      pct_dom, prefixo="%")
+        kpi(c1, "Volume Ipameri (m³)",   vol_ip,  prefixo="")
+        kpi(c2, "Volume Domiciano (m³)", vol_dom, prefixo="")
+        kpi(c3, "Volume Total (m³)",     vol_tot, prefixo="")
+        kpi(c4, "% Domiciano",           pct_dom, prefixo="%")
 
         # Comparativo
         _comp = _comp_periodo()
@@ -3185,11 +3185,11 @@ def pg_tratamento(D, d0, d1):
         # KPIs insumos do período
         if not insumos_f.empty:
             c1, c2, c3, c4, c5 = st.columns(5)
-            kpi(c1, "CAL (kg)",   insumos_f["cal_kg"].sum(),   sufixo=" kg")
-            kpi(c2, "Cloro (kg)", insumos_f["cloro_kg"].sum(), sufixo=" kg")
-            kpi(c3, "Flúor (kg)", insumos_f["fluor_kg"].sum(), sufixo=" kg")
-            kpi(c4, "PAC (kg)",   insumos_f["pac_kg"].sum(),   sufixo=" kg")
-            kpi(c5, "NaClO (kg)", insumos_f["naclo_kg"].sum(), sufixo=" kg")
+            kpi(c1, "CAL (kg)",   insumos_f["cal_kg"].sum(),   prefixo="")
+            kpi(c2, "Cloro (kg)", insumos_f["cloro_kg"].sum(), prefixo="")
+            kpi(c3, "Flúor (kg)", insumos_f["fluor_kg"].sum(), prefixo="")
+            kpi(c4, "PAC (kg)",   insumos_f["pac_kg"].sum(),   prefixo="")
+            kpi(c5, "NaClO (kg)", insumos_f["naclo_kg"].sum(), prefixo="")
 
         # Tabela resumo
         st.markdown("#### Tabela de Produção Mensal")
