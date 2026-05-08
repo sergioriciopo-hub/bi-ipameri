@@ -118,58 +118,99 @@ footer { display:none !important; }
     background:rgba(255,255,255,.15) !important;
     box-shadow: 0 4px 12px rgba(0,0,0,.1) !important;
 }
-[data-testid="stSidebar"] [data-testid="stRadio"] > div {
-    gap:0px !important; overflow:visible !important;
-}
-[data-testid="stSidebar"] [data-testid="stRadio"] label {
-    padding:7px 12px !important; border-radius:8px !important;
-    color:white !important; font-size:.85rem !important;
-    transition: all 0.25s ease !important; min-height:32px !important;
-    display:flex !important; align-items:center !important;
-    line-height:1.2 !important; position:relative !important;
-    overflow:visible !important; margin:0.15rem 0 !important;
-    font-weight: 500 !important;
-    background: rgba(100, 150, 200, 0.25) !important;
-    border: 1px solid rgba(100, 150, 200, 0.2) !important;
-}
-[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
-    background: rgba(100, 150, 200, 0.35) !important;
-    border-color: rgba(100, 150, 200, 0.3) !important;
-}
-[data-testid="stSidebar"] [data-testid="stRadio"] label p,
-[data-testid="stSidebar"] [data-testid="stRadio"] label span,
-[data-testid="stSidebar"] [data-testid="stRadio"] label div {
-    color:white !important;
-}
-[data-testid="stSidebar"] h3 {
-    margin:0.5rem 0 0.75rem 0 !important; padding:0 !important; font-size:1.0rem !important; font-weight: 600 !important;
-}
-[data-testid="stSidebar"] [data-baseweb="select"] {
-    margin-bottom: 1.2rem !important;
-}
+/* ═══ RADIO — BOTÕES DE NAVEGAÇÃO ════════════════════════════════════════════ */
 [data-testid="stSidebar"] [data-testid="stRadio"] {
-    margin-top:0.3rem !important; margin-bottom:0.5rem !important;
+    margin-top: 0.3rem !important;
+    margin-bottom: 0.5rem !important;
+    width: 100% !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] > div {
-    padding-top:0 !important; margin-top:0 !important;
-}
-[data-testid="stSidebar"] [data-testid="stRadio"] label:empty {
-    display:none !important; height:0 !important; margin:0 !important; padding:0 !important;
-}
-[data-testid="stSidebar"] [data-testid="stRadio"] > div {
-    gap: 0 !important;
-    margin: 0 !important;
+    gap: 4px !important;
+    overflow: visible !important;
     padding: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] > div > div {
     margin: 0 !important;
     padding: 0 !important;
+    width: 100% !important;
 }
-[data-testid="stSidebar"] [data-testid="stRadio"] label:nth-child(1):empty {
+/* Esconder o input radio nativo (círculo/dot) */
+[data-testid="stSidebar"] [data-testid="stRadio"] input[type="radio"] {
     display: none !important;
+    width: 0 !important;
     height: 0 !important;
+    opacity: 0 !important;
+    position: absolute !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 9px 16px !important;
+    border-radius: 10px !important;
+    color: rgba(255,255,255,.88) !important;
+    font-size: .875rem !important;
+    font-weight: 500 !important;
+    line-height: 1.3 !important;
+    min-height: 38px !important;
     margin: 0 !important;
+    cursor: pointer !important;
+    transition: background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease !important;
+    background: rgba(255,255,255,.08) !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.08) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
+    background: rgba(255,255,255,.15) !important;
+    border-color: rgba(255,255,255,.20) !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,.16), 0 4px 12px rgba(0,0,0,.10) !important;
+    color: white !important;
+}
+/* Item selecionado — destaque azul vibrante */
+[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {
+    background: rgba(255,255,255,.22) !important;
+    border-color: rgba(255,255,255,.35) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.18), 0 4px 14px rgba(0,0,0,.12) !important;
+    color: white !important;
+    font-weight: 700 !important;
+}
+/* Linha colorida à esquerda no item ativo */
+[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked)::before {
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 20% !important;
+    height: 60% !important;
+    width: 3px !important;
+    background: rgba(255,255,255,.85) !important;
+    border-radius: 0 3px 3px 0 !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label p,
+[data-testid="stSidebar"] [data-testid="stRadio"] label span,
+[data-testid="stSidebar"] [data-testid="stRadio"] label div {
+    color: inherit !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:empty {
+    display: none !important;
+}
+[data-testid="stSidebar"] h3 {
+    margin: 0.5rem 0 0.75rem 0 !important;
     padding: 0 !important;
+    font-size: 1.0rem !important;
+    font-weight: 600 !important;
+}
+[data-testid="stSidebar"] [data-baseweb="select"] {
+    margin-bottom: 1.2rem !important;
 }
 
 /* ═══ MAIN BACKGROUND ═══════════════════════════════════════════════════════ */
