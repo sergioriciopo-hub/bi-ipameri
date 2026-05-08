@@ -1281,8 +1281,10 @@ def pg_arrecadacao(D, d0, d1):
         kpi(c5, "Eficiência Arrecadação", efic, prefixo="%")
         c6.empty()
     else:
-        c_eff.metric("Eficiência Arrecadação", "—",
+        c5, c6 = st.columns(2)
+        c5.metric("Eficiência Arrecadação", "—",
                   help="Faturamento não disponível neste período para calcular eficiência")
+        c6.empty()
 
     st.markdown("---")
     # Arrecadação mensal (usa arr — tabela mensal, cobertura completa)
