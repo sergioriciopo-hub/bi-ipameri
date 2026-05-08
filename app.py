@@ -466,17 +466,31 @@ def sidebar_periodo():
         unsafe_allow_html=True,
     )
 
+    MESES_PT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"]
+
     opcoes = [
         "Hoje", "Esta Semana", "Este Mês", "Mês Anterior",
         "Este Trimestre", "Trimestre Anterior",
         "Este Semestre", "Semestre Anterior",
         "Este Ano", "Ano Anterior",
         "Últimos 12 Meses", "Últimos 24 Meses",
-        "Todo o Histórico", "Período Personalizado",
+        "Todo o Histórico",
+        "── Comparativos ──",
+        "📊 Mês vs Mesmo Mês Ano Anterior",
+        "📊 Trimestre vs Trimestre Anterior",
+        "Período Personalizado",
     ]
     sel = st.sidebar.selectbox("Periodo", opcoes, index=10, label_visibility="collapsed")
 
     hoje = date.today()
+
+    # Limpa comparativo por padrão
+    st.session_state["comp_periodo"] = {"ativo": False}
+
+    # ── separador não selecionável ────────────────────────────────────────────
+    if sel == "── Comparativos ──":
+        sel = "Últimos 12 Meses"   # fallback
+
     if sel == "Hoje":
         d0, d1 = hoje, hoje
     elif sel == "Esta Semana":
@@ -523,7 +537,93 @@ def sidebar_periodo():
     elif sel == "Todo o Histórico":
         d0 = date(2023, 1, 1)
         d1 = hoje
-    else:
+
+    elif sel == "📊 Mês vs Mesmo Mês Ano Anterior":
+        # Gera lista dos últimos 24 meses para o usuário escolher
+        _meses_disp = [(hoje.replace(day=1) - relativedelta(months=i)) for i in range(24)]
+        _labels = [f"{MESES_PT[m.month-1]}/{m.year}" for m in _meses_disp]
+        _idx_default = 1  # mês anterior como padrão
+        _sel_label = st.sidebar.selectbox(
+            "Mês de referência", _labels, index=_idx_default, label_visibility="visible"
+        )
+        _mes_ref = _meses_disp[_labels.index(_sel_label)]
+        # Período principal: mês escolhido
+        d0 = _mes_ref
+        import calendar
+        d1 = _mes_ref.replace(day=calendar.monthrange(_mes_ref.year, _mes_ref.month)[1])
+        # Período comparativo: mesmo mês, ano anterior
+        _comp_d0 = d0.replace(year=d0.year - 1)
+        _comp_d1 = d1.replace(year=d1.year - 1)
+        _lbl_atual = f"{MESES_PT[d0.month-1]}/{d0.year}"
+        _lbl_comp  = f"{MESES_PT[_comp_d0.month-1]}/{_comp_d0.year}"
+        st.session_state["comp_periodo"] = {
+            "ativo": True,
+            "tipo": "mes",
+            "d0": pd.Timestamp(d0),
+            "d1": pd.Timestamp(d1),
+            "comp_d0": pd.Timestamp(_comp_d0),
+            "comp_d1": pd.Timestamp(_comp_d1),
+            "label_atual": _lbl_atual,
+            "label_comp":  _lbl_comp,
+        }
+        # Badge visual no sidebar
+        st.sidebar.markdown(
+            f"""<div style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);
+            border-radius:10px;padding:8px 12px;margin-top:4px;font-size:.78rem;line-height:1.5;">
+            <span style="color:rgba(255,255,255,.6);">Comparando</span><br>
+            <b style="color:#7dd3fc;">◉ {_lbl_atual}</b><br>
+            <b style="color:#fca5a5;">◉ {_lbl_comp}</b>
+            </div>""",
+            unsafe_allow_html=True
+        )
+
+    elif sel == "📊 Trimestre vs Trimestre Anterior":
+        # Gera lista dos últimos 8 trimestres
+        _trim_list = []
+        for i in range(8):
+            _ref = hoje.replace(day=1) - relativedelta(months=i * 3)
+            _q   = (_ref.month - 1) // 3 + 1
+            _trim_list.append((_ref.year, _q))
+        _trim_labels = [f"Q{q}/{ano}" for ano, q in _trim_list]
+        _sel_trim = st.sidebar.selectbox(
+            "Trimestre de referência", _trim_labels, index=1, label_visibility="visible"
+        )
+        _ano_sel, _q_sel = _trim_list[_trim_labels.index(_sel_trim)]
+        # Período principal: trimestre escolhido
+        _m_ini = (_q_sel - 1) * 3 + 1
+        d0 = date(_ano_sel, _m_ini, 1)
+        _m_fim = _m_ini + 2
+        import calendar
+        d1 = date(_ano_sel, _m_fim, calendar.monthrange(_ano_sel, _m_fim)[1])
+        # Período comparativo: trimestre anterior
+        _comp_d0 = d0 - relativedelta(months=3)
+        _comp_m_fim = _comp_d0.month + 2
+        _comp_d1 = date(_comp_d0.year, _comp_m_fim,
+                        calendar.monthrange(_comp_d0.year, _comp_m_fim)[1])
+        _lbl_atual = f"Q{_q_sel}/{_ano_sel}"
+        _q_comp = (_comp_d0.month - 1) // 3 + 1
+        _lbl_comp  = f"Q{_q_comp}/{_comp_d0.year}"
+        st.session_state["comp_periodo"] = {
+            "ativo": True,
+            "tipo": "trimestre",
+            "d0": pd.Timestamp(d0),
+            "d1": pd.Timestamp(d1),
+            "comp_d0": pd.Timestamp(_comp_d0),
+            "comp_d1": pd.Timestamp(_comp_d1),
+            "label_atual": _lbl_atual,
+            "label_comp":  _lbl_comp,
+        }
+        st.sidebar.markdown(
+            f"""<div style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);
+            border-radius:10px;padding:8px 12px;margin-top:4px;font-size:.78rem;line-height:1.5;">
+            <span style="color:rgba(255,255,255,.6);">Comparando</span><br>
+            <b style="color:#7dd3fc;">◉ {_lbl_atual}</b><br>
+            <b style="color:#fca5a5;">◉ {_lbl_comp}</b>
+            </div>""",
+            unsafe_allow_html=True
+        )
+
+    else:  # Período Personalizado
         c1, c2 = st.sidebar.columns(2)
         d0 = c1.date_input("De", value=hoje.replace(day=1))
         d1 = c2.date_input("Até", value=hoje)
@@ -768,6 +868,95 @@ def pg_cockpit(D, d0, d1):
     kpi(c6, "SLA Serviços", sla_ok, delta=sla_ok - 0.9, prefixo="%")
     kpi(c7, "Total Ligações", qtd_lig, prefixo="")
     c8.empty()
+
+    # ── Bloco comparativo (quando modo comparação está ativo) ─────────────────
+    _comp = st.session_state.get("comp_periodo", {})
+    if _comp.get("ativo"):
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _lbl_a, _lbl_c = _comp["label_atual"], _comp["label_comp"]
+
+        # Calcula KPIs do período de comparação
+        _fat_c   = filtrar(D["fat"], "dt_ref", _cd0, _cd1)
+        _arr_c   = arr_d_por_credito(D, _cd0, _cd1) if True else pd.DataFrame()
+        # override arr para comparação
+        _arr_c2  = D["arr_d"].copy()
+        if not _arr_c2.empty:
+            _arr_c2["data_pagamento"] = pd.to_datetime(_arr_c2["data_pagamento"])
+            _arr_c2 = _arr_c2[(_arr_c2["data_pagamento"] >= _cd0) & (_arr_c2["data_pagamento"] < _cd1 + pd.Timedelta(days=1))]
+        _srv_c   = filtrar(D["srv"], "dt_solicitacao", _cd0, _cd1)
+        _cor_c   = filtrar(D["cor"], "dt_fim_execucao", _cd0, _cd1)
+        if not _cor_c.empty and "id_servico_definicao" in _cor_c.columns:
+            _cor_c = _cor_c[_cor_c["id_servico_definicao"] == 30]
+
+        _vf_c  = _fat_c["vl_total_faturado"].sum() if not _fat_c.empty else 0
+        _va_c  = _arr_c2["vl_arrecadado"].sum()    if not _arr_c2.empty else 0
+        _ei_c  = _va_c / _vf_c if _vf_c else None
+        _co_c  = int(_cor_c["id_servico"].nunique()) if not _cor_c.empty and "id_servico" in _cor_c.columns else 0
+
+        def _delta_pct(atual, anterior):
+            if not anterior:
+                return None
+            return (atual - anterior) / abs(anterior)
+
+        def _fmt_pct(v):
+            if v is None: return "—"
+            sinal = "▲" if v > 0 else "▼"
+            cor   = "#16a34a" if v > 0 else "#dc2626"
+            return f'<span style="color:{cor};font-weight:600;">{sinal} {abs(v):.1%}</span>'
+
+        def _fmt_brl(v):
+            return f"R$ {v:,.0f}".replace(",","X").replace(".",",").replace("X",".")
+
+        st.markdown("---")
+        st.markdown(
+            f'<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:.8px;color:#1A6FAD;margin-bottom:8px;">📊 Comparativo de Período</div>',
+            unsafe_allow_html=True
+        )
+
+        _metricas = [
+            ("Faturamento",       vl_fat,  _vf_c,  _fmt_brl),
+            ("Arrecadação",       vl_arr,  _va_c,  _fmt_brl),
+            ("Efic. Arrecadação", idx_arr, _ei_c,  lambda v: f"{v:.1%}" if v else "—"),
+            ("Cortes Exec.",      qtd_cor, _co_c,  lambda v: str(v)),
+        ]
+
+        _html_rows = ""
+        for _nome, _val_a, _val_c, _fmt in _metricas:
+            _txt_a = _fmt(_val_a) if _val_a is not None else "—"
+            _txt_c = _fmt(_val_c) if _val_c is not None else "—"
+            _d     = _delta_pct(_val_a if _val_a else 0, _val_c if _val_c else 0)
+            _html_rows += (
+                f'<tr>'
+                f'<td style="padding:6px 10px;color:#374151;font-size:.83rem;">{_nome}</td>'
+                f'<td style="padding:6px 10px;text-align:right;font-weight:700;color:#1A6FAD;font-size:.85rem;">{_txt_a}</td>'
+                f'<td style="padding:6px 10px;text-align:right;color:#6b7280;font-size:.83rem;">{_txt_c}</td>'
+                f'<td style="padding:6px 10px;text-align:right;font-size:.8rem;">{_fmt_pct(_d)}</td>'
+                f'</tr>'
+            )
+
+        st.markdown(f"""
+<div style="background:white;border-radius:14px;border:1px solid rgba(26,111,173,.1);
+     box-shadow:0 2px 8px rgba(0,0,0,.05);overflow:hidden;margin-bottom:8px;">
+  <table style="width:100%;border-collapse:collapse;">
+    <thead>
+      <tr style="background:linear-gradient(135deg,#f0f6fb,#e8f3fb);">
+        <th style="padding:8px 10px;text-align:left;font-size:.75rem;font-weight:700;
+                   text-transform:uppercase;letter-spacing:.6px;color:#4b6484;">Indicador</th>
+        <th style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:700;
+                   text-transform:uppercase;letter-spacing:.6px;color:#1A6FAD;">◉ {_lbl_a}</th>
+        <th style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:700;
+                   text-transform:uppercase;letter-spacing:.6px;color:#dc2626;">◉ {_lbl_c}</th>
+        <th style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:700;
+                   text-transform:uppercase;letter-spacing:.6px;color:#6b7280;">Δ</th>
+      </tr>
+    </thead>
+    <tbody>
+      {_html_rows}
+    </tbody>
+  </table>
+</div>
+""", unsafe_allow_html=True)
 
     st.markdown("---")
 
