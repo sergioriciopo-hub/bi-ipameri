@@ -387,6 +387,8 @@ def load():
     desc_ene   = rd("desconto_energia")
     frota      = rd("frota_combustivel")
     dim_vei    = rd("dim_veiculo_frota")
+    prod_agua  = rd("producao_agua")
+    qual_agua  = rd("qualidade_agua")
 
     # normaliza data_pagamento em arr_d para datetime
     if not arr_d.empty and "data_pagamento" in arr_d.columns:
@@ -405,6 +407,7 @@ def load():
         cor=cor, rel=rel, srv=srv, lei=lei, bkl=bkl,
         ene=ene, d_uc_ene=d_uc_ene, desc_ene=desc_ene,
         frota=frota, dim_vei=dim_vei,
+        prod_agua=prod_agua, qual_agua=qual_agua,
         d_bairro=d_bairro, d_cat=d_cat, d_cls=d_cls,
         d_grp=d_grp, d_seq=d_seq, d_frm=d_frm,
         d_lei=d_lei, d_eqp=d_eqp, d_agente=d_agente,
@@ -870,6 +873,7 @@ _PG_CORES = {
     "Cortes e Religações":      ("#3E5F7F", "#5B8FB8"),
     "Leituras e Hidrômetros":   ("#3E5F7F", "#5B8FB8"),
     "Frota Combustível":        ("#3E5F7F", "#5B8FB8"),
+    "Tratamento":               ("#0E6655", "#1A9278"),
 }
 
 def page_header(titulo, periodo_str=""):
@@ -3031,6 +3035,307 @@ def pg_energia(D, d0, d1):
             st.info("Sem dados de desconto no período selecionado.")
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# COCKPIT — TRATAMENTO
+# ══════════════════════════════════════════════════════════════════════════════
+def pg_tratamento(D, d0, d1):
+    page_header("Tratamento",
+                f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
+
+    prod = D["prod_agua"].copy()
+    qual = D["qual_agua"].copy()
+
+    # ── Tabs principais ────────────────────────────────────────────────────────
+    tab_prod, tab_qual = st.tabs(["💧 Produção de Água", "🔬 Qualidade da Água"])
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # TAB 1 — PRODUÇÃO
+    # ══════════════════════════════════════════════════════════════════════════
+    with tab_prod:
+        if prod.empty:
+            st.warning("Sem dados de produção. Execute scripts/etl_tratamento.py.")
+            return
+
+        prod["data"] = pd.to_datetime(prod["data"])
+
+        # Filtra pelo período selecionado
+        prod_f = prod[(prod["data"] >= d0) & (prod["data"] <= d1)]
+
+        if prod_f.empty:
+            st.info("Sem dados de produção no período. Exibindo histórico completo.")
+            prod_f = prod.copy()
+
+        # ── KPIs ──────────────────────────────────────────────────────────────
+        vol_ip  = prod_f["vol_ipameri"].sum()
+        vol_dom = prod_f["vol_domiciano"].sum()
+        vol_tot = prod_f["vol_total"].sum()
+        pct_dom = (vol_dom / vol_tot * 100) if vol_tot > 0 else 0
+
+        c1, c2, c3, c4 = st.columns(4)
+        kpi(c1, "Volume Ipameri",   vol_ip,  sufixo=" m³")
+        kpi(c2, "Volume Domiciano", vol_dom, sufixo=" m³")
+        kpi(c3, "Volume Total",     vol_tot, sufixo=" m³")
+        kpi(c4, "% Domiciano",      pct_dom, prefixo="%")
+
+        # Comparativo
+        _comp = _comp_periodo()
+        if _comp:
+            _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+            prod_c = prod[(prod["data"] >= _cd0) & (prod["data"] <= _cd1)]
+            _ip_c  = prod_c["vol_ipameri"].sum()
+            _dom_c = prod_c["vol_domiciano"].sum()
+            _tot_c = prod_c["vol_total"].sum()
+            _brl   = lambda v: f"{v:,.0f} m³"
+            render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
+                ("Volume Ipameri",   vol_ip,  _ip_c,  _brl, True),
+                ("Volume Domiciano", vol_dom, _dom_c, _brl, True),
+                ("Volume Total",     vol_tot, _tot_c, _brl, True),
+            ])
+
+        st.markdown("---")
+
+        # ── Gráfico 1 — Volume histórico por sistema ───────────────────────────
+        prod_hist = prod.copy()
+        prod_hist["Mes"] = prod_hist["data"].dt.strftime("%m/%Y")
+
+        fig1 = go.Figure()
+        fig1.add_trace(go.Scatter(
+            x=prod_hist["data"], y=prod_hist["vol_ipameri"],
+            name="Ipameri", mode="lines+markers",
+            line=dict(color=COR["azul"], width=2),
+            fill="tozeroy", fillcolor="rgba(26,111,173,0.12)",
+        ))
+        fig1.add_trace(go.Scatter(
+            x=prod_hist["data"], y=prod_hist["vol_domiciano"],
+            name="Domiciano Ribeiro", mode="lines+markers",
+            line=dict(color=COR["verde"], width=2),
+            fill="tozeroy", fillcolor="rgba(39,174,96,0.12)",
+        ))
+        fig1.add_trace(go.Scatter(
+            x=prod_hist["data"], y=prod_hist["vol_total"],
+            name="Total", mode="lines",
+            line=dict(color="#7C3AED", width=2, dash="dot"),
+        ))
+        # Destaca período selecionado
+        fig1.add_vrect(x0=d0, x1=d1, fillcolor="rgba(26,111,173,0.07)",
+                       line_width=0, annotation_text="Período", annotation_position="top left")
+        fig1.update_layout(
+            title="Volume Produzido Mensal (m³) — Histórico",
+            margin=dict(t=40, b=0, l=0, r=20), height=350,
+            legend=dict(orientation="h", y=1.12),
+        )
+        fig1.update_yaxes(tickformat=",.0f")
+        st.plotly_chart(fig1, use_container_width=True)
+
+        # ── Gráfico 2 — Composição % Ipameri vs Domiciano (barras empilhadas) ──
+        fig2 = go.Figure()
+        fig2.add_trace(go.Bar(
+            x=prod_hist["data"], y=prod_hist["vol_ipameri"],
+            name="Ipameri", marker_color=COR["azul"],
+        ))
+        fig2.add_trace(go.Bar(
+            x=prod_hist["data"], y=prod_hist["vol_domiciano"],
+            name="Domiciano Ribeiro", marker_color=COR["verde"],
+        ))
+        fig2.update_layout(
+            title="Composição do Volume Total (m³)",
+            barmode="stack", margin=dict(t=40, b=0, l=0, r=20), height=320,
+            legend=dict(orientation="h", y=1.12),
+        )
+        fig2.update_yaxes(tickformat=",.0f")
+        st.plotly_chart(fig2, use_container_width=True)
+
+        st.markdown("---")
+        st.markdown("#### Gasto de Insumos (kg/mês)")
+
+        # ── Gráfico 3 — Insumos ────────────────────────────────────────────────
+        insumos_hist = prod[prod[["cal_kg","cloro_kg","fluor_kg","pac_kg","naclo_kg"]].notna().any(axis=1)].copy()
+        insumos_hist["data"] = pd.to_datetime(insumos_hist["data"])
+
+        insumos_map = {
+            "cal_kg":   ("CAL",   "#F59E0B"),
+            "cloro_kg": ("Cloro", "#3B82F6"),
+            "fluor_kg": ("Flúor", "#10B981"),
+            "pac_kg":   ("PAC",   "#8B5CF6"),
+            "naclo_kg": ("NaClO", "#EF4444"),
+        }
+
+        fig3 = go.Figure()
+        for col, (label, cor_) in insumos_map.items():
+            if col in insumos_hist.columns:
+                vals = insumos_hist[col].fillna(0)
+                if vals.sum() > 0:
+                    fig3.add_trace(go.Bar(
+                        x=insumos_hist["data"], y=vals,
+                        name=label, marker_color=cor_,
+                    ))
+
+        # Período filtrado
+        insumos_f = insumos_hist[(insumos_hist["data"] >= d0) & (insumos_hist["data"] <= d1)]
+        fig3.add_vrect(x0=d0, x1=d1, fillcolor="rgba(26,111,173,0.07)",
+                       line_width=0, annotation_text="Período", annotation_position="top left")
+        fig3.update_layout(
+            title="Insumos de Tratamento — Histórico Mensal (kg)",
+            barmode="stack", margin=dict(t=40, b=0, l=0, r=20), height=340,
+            legend=dict(orientation="h", y=1.12),
+        )
+        fig3.update_yaxes(tickformat=",.0f")
+        st.plotly_chart(fig3, use_container_width=True)
+
+        # KPIs insumos do período
+        if not insumos_f.empty:
+            c1, c2, c3, c4, c5 = st.columns(5)
+            kpi(c1, "CAL (kg)",   insumos_f["cal_kg"].sum(),   sufixo=" kg")
+            kpi(c2, "Cloro (kg)", insumos_f["cloro_kg"].sum(), sufixo=" kg")
+            kpi(c3, "Flúor (kg)", insumos_f["fluor_kg"].sum(), sufixo=" kg")
+            kpi(c4, "PAC (kg)",   insumos_f["pac_kg"].sum(),   sufixo=" kg")
+            kpi(c5, "NaClO (kg)", insumos_f["naclo_kg"].sum(), sufixo=" kg")
+
+        # Tabela resumo
+        st.markdown("#### Tabela de Produção Mensal")
+        tbl = prod_f[["data","vol_ipameri","vol_domiciano","vol_total"]].copy()
+        tbl.columns = ["Mês", "Ipameri (m³)", "Domiciano (m³)", "Total (m³)"]
+        tbl["Mês"] = tbl["Mês"].dt.strftime("%m/%Y")
+        tbl = tbl.sort_values("Mês", ascending=False)
+        st.dataframe(
+            tbl.style.format({"Ipameri (m³)": "{:,.0f}", "Domiciano (m³)": "{:,.0f}", "Total (m³)": "{:,.0f}"}),
+            use_container_width=True, hide_index=True,
+        )
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # TAB 2 — QUALIDADE
+    # ══════════════════════════════════════════════════════════════════════════
+    with tab_qual:
+        if qual.empty:
+            st.warning("Sem dados de qualidade. Execute scripts/etl_tratamento.py.")
+            return
+
+        qual["mes_ref"] = pd.to_datetime(qual["mes_ref"])
+
+        # Seletor de mês (relatório disponível)
+        meses_disp = sorted(qual["mes_ref"].dt.strftime("%m/%Y").unique(), reverse=True)
+        mes_sel = st.selectbox("Relatório Aqualit", meses_disp, key="qual_mes")
+        mes_ts  = pd.to_datetime(mes_sel, format="%m/%Y")
+        qual_m  = qual[qual["mes_ref"] == mes_ts].copy()
+
+        # Seletor de sistema
+        sistemas = sorted(qual_m["sistema"].unique())
+        sis_sel  = st.radio("Sistema", sistemas, horizontal=True, key="qual_sis")
+        qual_s   = qual_m[qual_m["sistema"] == sis_sel].copy()
+
+        if qual_s.empty:
+            st.info("Sem pontos para o sistema selecionado.")
+            return
+
+        # ── Padrões de conformidade (Portaria GM/MS 888/2021) ─────────────────
+        PADROES = {
+            "fluor":    (0.6,  0.9,  "mg/L"),
+            "cor":      (None, 15.0, "uH"),
+            "turbidez": (None, 5.0,  "NTU"),
+            "crl":      (0.2,  2.0,  "mg/L"),
+            "ph":       (6.0,  9.5,  ""),
+        }
+
+        def semaforo(param, val):
+            if val is None or (isinstance(val, float) and pd.isna(val)):
+                return "⚪"
+            lo, hi, _ = PADROES.get(param, (None, None, ""))
+            if lo is not None and val < lo:
+                return "🔴"
+            if hi is not None and val > hi:
+                return "🔴"
+            return "🟢"
+
+        def semaforo_micro(val):
+            if val is None:
+                return "⚪"
+            v = str(val).upper().strip()
+            return "🔴" if v == "PRESENTE" else ("🟢" if v == "AUSENTE" else "⚪")
+
+        # ── KPIs de conformidade ───────────────────────────────────────────────
+        params_num = [p for p in ["fluor", "cor", "turbidez", "crl", "ph"]
+                      if p in qual_s.columns and qual_s[p].notna().any()]
+
+        cols_kpi = st.columns(len(params_num) + 2)
+        for i, p in enumerate(params_num):
+            vals = qual_s[p].dropna()
+            conforme = sum(1 for v in vals if semaforo(p, v) == "🟢")
+            total_v  = len(vals)
+            pct = conforme / total_v * 100 if total_v else 0
+            label = {"fluor": "Flúor", "cor": "Cor", "turbidez": "Turbidez",
+                     "crl": "Cloro Res.", "ph": "pH"}.get(p, p)
+            cols_kpi[i].metric(label, f"{conforme}/{total_v}", f"{pct:.0f}% ✓")
+
+        # E.Coli
+        if "ecoli" in qual_s.columns:
+            ec_vals = qual_s["ecoli"].dropna()
+            ec_ok   = sum(1 for v in ec_vals if str(v).upper() == "AUSENTE")
+            cols_kpi[-2].metric("E.Coli", f"{ec_ok}/{len(ec_vals)}", f"{ec_ok/len(ec_vals)*100:.0f}% ✓" if len(ec_vals) else "")
+        # Coli Totais
+        if "coli_tot" in qual_s.columns:
+            ct_vals = qual_s["coli_tot"].dropna()
+            ct_ok   = sum(1 for v in ct_vals if str(v).upper() == "AUSENTE")
+            cols_kpi[-1].metric("Col. Totais", f"{ct_ok}/{len(ct_vals)}", f"{ct_ok/len(ct_vals)*100:.0f}% ✓" if len(ct_vals) else "")
+
+        st.markdown("---")
+
+        # ── Tabela semáforo por ponto ──────────────────────────────────────────
+        st.markdown(f"#### Pontos de Coleta — {sis_sel} | {mes_sel}")
+
+        rows_tbl = []
+        for _, r in qual_s.iterrows():
+            row = {"Nº": r.get("numero", ""), "Ponto": r.get("ponto", "")}
+
+            if sis_sel == "Ipameri":
+                row["Flúor"]  = f"{semaforo('fluor', r.get('fluor'))} {r.get('fluor','')}" if pd.notna(r.get("fluor")) else "—"
+                row["E.B.A."] = f"{r.get('eba','')}" if pd.notna(r.get("eba")) else "—"
+
+            row["Cor"]      = f"{semaforo('cor',      r.get('cor'))}      {r.get('cor','')}"      if pd.notna(r.get("cor"))      else "—"
+            row["Turbidez"] = f"{semaforo('turbidez', r.get('turbidez'))} {r.get('turbidez','')}" if pd.notna(r.get("turbidez")) else "—"
+            row["E.Coli"]   = f"{semaforo_micro(r.get('ecoli'))} {r.get('ecoli','')}"             if r.get("ecoli") else "—"
+            row["C.Totais"] = f"{semaforo_micro(r.get('coli_tot'))} {r.get('coli_tot','')}"       if r.get("coli_tot") else "—"
+            row["CRL"]      = f"{semaforo('crl', r.get('crl'))} {r.get('crl','')}"               if pd.notna(r.get("crl"))      else "—"
+            row["pH"]       = f"{semaforo('ph',  r.get('ph'))}  {r.get('ph','')}"                if pd.notna(r.get("ph"))       else "—"
+
+            rows_tbl.append(row)
+
+        df_tbl = pd.DataFrame(rows_tbl)
+        st.dataframe(df_tbl, use_container_width=True, hide_index=True, height=600)
+
+        # ── Gráfico radar médias ───────────────────────────────────────────────
+        st.markdown("#### Médias dos Parâmetros Numéricos")
+        med_data = []
+        param_labels = {"fluor": "Flúor (mg/L)", "cor": "Cor (uH)", "turbidez": "Turbidez (NTU)",
+                        "crl": "CRL (mg/L)", "ph": "pH"}
+        for p, lbl in param_labels.items():
+            if p in qual_s.columns and qual_s[p].notna().any():
+                media = qual_s[p].mean()
+                lo, hi, _ = PADROES.get(p, (None, None, ""))
+                med_data.append({"Parâmetro": lbl, "Média": round(media, 3),
+                                 "Limite Mín": lo, "Limite Máx": hi})
+
+        if med_data:
+            df_med = pd.DataFrame(med_data)
+            fig_med = go.Figure()
+            fig_med.add_trace(go.Bar(
+                x=df_med["Parâmetro"], y=df_med["Média"],
+                marker_color=[
+                    "#16a34a" if (
+                        (row["Limite Mín"] is None or row["Média"] >= row["Limite Mín"]) and
+                        (row["Limite Máx"] is None or row["Média"] <= row["Limite Máx"])
+                    ) else "#dc2626"
+                    for _, row in df_med.iterrows()
+                ],
+                text=[str(v) for v in df_med["Média"]],
+                textposition="outside",
+            ))
+            fig_med.update_layout(
+                title=f"Médias dos Parâmetros — {sis_sel} | {mes_sel}",
+                margin=dict(t=40, b=0, l=0, r=20), height=320, showlegend=False,
+            )
+            st.plotly_chart(fig_med, use_container_width=True)
+
+
 # ── Navegação ─────────────────────────────────────────────────────────────────
 def main():
     D    = load()
@@ -3047,6 +3352,7 @@ def main():
         "Leituras":              pg_leituras,
         "Energia Elétrica":      pg_energia,
         "Frota Combustível":     pg_frota_combustivel,
+        "Tratamento":            pg_tratamento,
     }
 
     st.sidebar.markdown("### Cockpits")
