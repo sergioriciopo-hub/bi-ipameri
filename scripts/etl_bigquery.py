@@ -413,35 +413,175 @@ QUERIES = {
 }
 
 
-def run_etl():
+# ── Configuração incremental ──────────────────────────────────────────────────
+# mode:
+#   "full"    → sempre recarga total (dimensões + snapshots sem data fixa)
+#   "monthly" → recarrega os últimos N meses (overlap_n=2 captura correções retroativas)
+#   "daily"   → recarrega os últimos N dias (overlap_n cobre chegada tardia de dados)
+#
+# date_col: coluna de data usada para filtrar no BigQuery e descartar do parquet existente
+# bq_date_col: nome da coluna no SQL do BigQuery (pode diferir do nome no parquet após alias)
+
+INCREMENTAL = {
+    # ── Fatos mensais ─────────────────────────────────────────────────────────
+    "faturamento":               {"mode": "monthly", "overlap_n": 2, "date_col": "dt_ref",        "bq_date_col": "dt_ref"},
+    "arrecadacao":               {"mode": "monthly", "overlap_n": 2, "date_col": "dt_ref",        "bq_date_col": "dt_ref"},
+    "arrecadacao_rubricas":      {"mode": "monthly", "overlap_n": 2, "date_col": "dt_ref",        "bq_date_col": "dt_ref"},
+    "leituras":                  {"mode": "monthly", "overlap_n": 2, "date_col": "dt_ref",        "bq_date_col": "dt_ref"},
+    "alteracao_fatura_contabil": {"mode": "monthly", "overlap_n": 2, "date_col": "dt_ref",        "bq_date_col": "dt_ref"},
+    # ── Fatos diários ─────────────────────────────────────────────────────────
+    "painel_arrecadacao":        {"mode": "daily",   "overlap_n": 14, "date_col": "dt_pagamento", "bq_date_col": "dt_pagamento"},
+    "arrecadacao_diaria":        {"mode": "daily",   "overlap_n": 14, "date_col": "data_pagamento","bq_date_col": "data_pagamento"},
+    "cortes":                    {"mode": "daily",   "overlap_n": 30, "date_col": "dt_fim_execucao","bq_date_col": "dt_fim_execucao"},
+    "religacoes":                {"mode": "daily",   "overlap_n": 30, "date_col": "dt_reliagacao", "bq_date_col": "dt_reliagacao"},
+    "servicos":                  {"mode": "daily",   "overlap_n": 14, "date_col": "dt_solicitacao","bq_date_col": "dt_solicitacao"},
+    "backlog_servicos":          {"mode": "daily",   "overlap_n": 14, "date_col": "dt_ref",        "bq_date_col": "dt_ref"},
+    # ── Snapshot (sempre full — posição atual, sem histórico acumulativo) ─────
+    "pendencia_atual":           {"mode": "full"},
+    # ── Dimensões (sempre full — tabelas pequenas, < 15KB cada) ──────────────
+    "dim_bairro":                {"mode": "full"},
+    "dim_grupo":                 {"mode": "full"},
+    "dim_categoria":             {"mode": "full"},
+    "dim_classe":                {"mode": "full"},
+    "dim_situacao_fatura":       {"mode": "full"},
+    "dim_situacao_servico":      {"mode": "full"},
+    "dim_agente_arrecadador":    {"mode": "full"},
+    "dim_forma_arrecadacao":     {"mode": "full"},
+    "dim_leiturista":            {"mode": "full"},
+    "dim_equipe":                {"mode": "full"},
+    "dim_setor_operacional":     {"mode": "full"},
+    "dim_ocorrencia":            {"mode": "full"},
+    "dim_servico_definicao":     {"mode": "full"},
+}
+
+
+def _cutoff_date(cfg, out_path):
+    """
+    Retorna a data de corte para carga incremental.
+    Monthly: primeiro dia do mês (hoje - overlap_n meses).
+    Daily  : hoje - overlap_n dias.
+    Retorna None se o parquet não existir (força carga completa).
+    """
+    if not out_path.exists():
+        return None
+    try:
+        existing = pd.read_parquet(out_path, columns=[cfg["date_col"]])
+        if existing.empty:
+            return None
+        max_date = pd.to_datetime(existing[cfg["date_col"]]).max()
+        if pd.isna(max_date):
+            return None
+        if cfg["mode"] == "monthly":
+            cutoff = (max_date - pd.DateOffset(months=cfg["overlap_n"])).replace(day=1)
+        else:  # daily
+            cutoff = max_date - pd.Timedelta(days=cfg["overlap_n"])
+        return cutoff
+    except Exception:
+        return None
+
+
+def _wrap_incremental(query, bq_date_col, cutoff):
+    """Envolve a query em subquery adicionando filtro de data."""
+    cutoff_str = cutoff.strftime("%Y-%m-%d")
+    return f"SELECT * FROM ({query}\n) _t WHERE CAST({bq_date_col} AS DATE) >= '{cutoff_str}'"
+
+
+def _merge_incremental(existing_path, new_df, date_col, cutoff):
+    """
+    Combina parquet existente com novos dados:
+    1. Remove linhas >= cutoff do parquet atual (serão substituídas).
+    2. Concat com new_df.
+    3. Ordena por date_col.
+    """
+    existing = pd.read_parquet(existing_path)
+    existing[date_col] = pd.to_datetime(existing[date_col], errors="coerce")
+    mask = existing[date_col] < pd.Timestamp(cutoff)
+    kept = existing[mask]
+    merged = pd.concat([kept, new_df], ignore_index=True)
+    try:
+        merged = merged.sort_values(date_col).reset_index(drop=True)
+    except Exception:
+        pass
+    return merged
+
+
+def run_etl(force_full=False):
     log.info("=" * 60)
     log.info(f"ETL iniciado: {datetime.now():%Y-%m-%d %H:%M:%S}")
+    log.info(f"Modo: {'CARGA COMPLETA FORÇADA' if force_full else 'INCREMENTAL (full para dims/snapshots)'}")
     client = get_client()
-    erros = []
+    erros  = []
+    stats  = {"full": 0, "incremental": 0, "linhas_novas": 0, "linhas_total": 0}
 
     for name, query in QUERIES.items():
-        out_path = DATA_DIR / f"{name}.parquet"
+        out_path = out_path = DATA_DIR / f"{name}.parquet"
+        cfg      = INCREMENTAL.get(name, {"mode": "full"})
+
         try:
-            log.info(f"Extraindo: {name} ...")
-            df = client.query(query).to_dataframe()
+            if force_full or cfg["mode"] == "full" or not out_path.exists():
+                # ── Carga completa ────────────────────────────────────────────
+                log.info(f"[FULL] {name} ...")
+                df = client.query(query).to_dataframe()
+                _normalize_tz(df)
+                df.to_parquet(out_path, index=False, engine="pyarrow")
+                log.info(f"  OK {name}: {len(df):,} linhas (full) -> {out_path.name}")
+                stats["full"] += 1
+                stats["linhas_total"] += len(df)
 
-            # Converte datetime BigQuery → pandas datetime sem tz
-            for col in df.select_dtypes(include=["datetimetz"]).columns:
-                df[col] = df[col].dt.tz_localize(None)
+            else:
+                # ── Carga incremental ─────────────────────────────────────────
+                cutoff = _cutoff_date(cfg, out_path)
+                if cutoff is None:
+                    # parquet existe mas sem data válida → full
+                    log.info(f"[FULL*] {name} (sem data válida no parquet) ...")
+                    df = client.query(query).to_dataframe()
+                    _normalize_tz(df)
+                    df.to_parquet(out_path, index=False, engine="pyarrow")
+                    log.info(f"  OK {name}: {len(df):,} linhas -> {out_path.name}")
+                    stats["full"] += 1
+                    stats["linhas_total"] += len(df)
+                else:
+                    bq_col = cfg["bq_date_col"]
+                    inc_query = _wrap_incremental(query, bq_col, cutoff)
+                    log.info(f"[INC]  {name} (a partir de {cutoff.date()}) ...")
+                    new_df = client.query(inc_query).to_dataframe()
+                    _normalize_tz(new_df)
 
-            df.to_parquet(out_path, index=False, engine="pyarrow")
-            log.info(f"  OK {name}: {len(df):,} linhas -> {out_path.name}")
+                    if new_df.empty:
+                        log.info(f"  OK {name}: sem dados novos")
+                    else:
+                        merged = _merge_incremental(out_path, new_df, cfg["date_col"], cutoff)
+                        merged.to_parquet(out_path, index=False, engine="pyarrow")
+                        log.info(f"  OK {name}: +{len(new_df):,} novas | {len(merged):,} total -> {out_path.name}")
+                        stats["linhas_novas"] += len(new_df)
+                        stats["linhas_total"]  += len(merged)
+                    stats["incremental"] += 1
+
         except Exception as e:
-            log.error(f"  ✗ {name}: {e}")
+            log.error(f"  ERRO {name}: {e}")
             erros.append(name)
 
-    # Resumo
-    log.info(f"\nETL concluído: {datetime.now():%Y-%m-%d %H:%M:%S}")
+    # ── Resumo ────────────────────────────────────────────────────────────────
+    log.info("")
+    log.info(f"ETL concluído: {datetime.now():%Y-%m-%d %H:%M:%S}")
+    log.info(f"  Tabelas full      : {stats['full']}")
+    log.info(f"  Tabelas incrementais: {stats['incremental']}")
+    log.info(f"  Linhas novas/atualizadas: {stats['linhas_novas']:,}")
     if erros:
-        log.warning(f"Falhas: {', '.join(erros)}")
+        log.warning(f"  Falhas: {', '.join(erros)}")
     else:
-        log.info("Todas as tabelas extraídas com sucesso.")
+        log.info("  Todas as tabelas concluídas com sucesso.")
+
+
+def _normalize_tz(df):
+    """Remove timezone de colunas datetime para compatibilidade com parquet."""
+    for col in df.select_dtypes(include=["datetimetz"]).columns:
+        df[col] = df[col].dt.tz_localize(None)
 
 
 if __name__ == "__main__":
-    run_etl()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--full", action="store_true", help="Forcar carga completa de todas as tabelas")
+    args = parser.parse_args()
+    run_etl(force_full=args.full)

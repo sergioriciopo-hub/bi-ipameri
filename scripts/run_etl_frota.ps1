@@ -1,7 +1,7 @@
 ﻿# ETL Frota Combustivel - Execucao Diaria + Publicacao GitHub
 # Agendado para: todos os dias as 06:00
 
-$projectDir = "C:\Users\SérgioRiciopo\AGUAS DE IPAMERI\03 COMERCIAL - Documentos\01 - Projetos e Propostas\Claude\BI_Ipameri"
+$projectDir = "C:\BI_Ipameri"
 $logDir = Join-Path $projectDir "scripts\logs"
 $logFile = Join-Path $logDir ("etl_frota_" + (Get-Date -Format "yyyyMMdd_HHmm") + ".log")
 
