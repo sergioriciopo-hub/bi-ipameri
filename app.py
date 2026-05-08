@@ -640,6 +640,73 @@ def filtrar(df, col, d0, d1):
     return df[(s >= d0) & (s < d1 + pd.Timedelta(days=1))]
 
 
+def _comp_periodo():
+    """Retorna dict do período comparativo se ativo, ou None."""
+    c = st.session_state.get("comp_periodo", {})
+    return c if c.get("ativo") else None
+
+
+def render_comp_bloco(lbl_atual, lbl_comp, rows):
+    """
+    Renderiza tabela comparativa entre dois períodos.
+    rows = lista de (nome, val_atual, val_comp, fmt_fn, maior_melhor)
+      fmt_fn(v) → str  |  maior_melhor: True=▲verde, False=▲vermelho, None=neutro
+    """
+    def _dp(v_a, v_c):
+        if v_c is None or v_c == 0:
+            return None
+        return (v_a - v_c) / abs(v_c)
+
+    def _fmt_delta(d, maior_melhor):
+        if d is None:
+            return "—"
+        positivo = d > 0
+        bom = (positivo and maior_melhor) or (not positivo and maior_melhor is False)
+        cor = "#16a34a" if bom else ("#dc2626" if maior_melhor is not None else "#6b7280")
+        sinal = "▲" if positivo else "▼"
+        return f'<span style="color:{cor};font-weight:600;">{sinal} {abs(d):.1%}</span>'
+
+    _html_rows = ""
+    for nome, va, vc, fmt_fn, melhor in rows:
+        _ta = fmt_fn(va) if va is not None else "—"
+        _tc = fmt_fn(vc) if vc is not None else "—"
+        _d  = _fmt_delta(_dp(va if va else 0, vc if vc else 0), melhor)
+        _html_rows += (
+            f'<tr style="border-top:1px solid rgba(26,111,173,.06);">'
+            f'<td style="padding:7px 12px;color:#374151;font-size:.83rem;">{nome}</td>'
+            f'<td style="padding:7px 12px;text-align:right;font-weight:700;color:#1A6FAD;font-size:.85rem;">{_ta}</td>'
+            f'<td style="padding:7px 12px;text-align:right;color:#6b7280;font-size:.83rem;">{_tc}</td>'
+            f'<td style="padding:7px 12px;text-align:right;font-size:.8rem;min-width:70px;">{_d}</td>'
+            f'</tr>'
+        )
+
+    st.markdown(f"""
+<div style="background:white;border-radius:14px;border:1px solid rgba(26,111,173,.10);
+     box-shadow:0 2px 8px rgba(0,0,0,.05);overflow:hidden;margin:4px 0 12px;">
+  <div style="background:linear-gradient(135deg,#f0f6fb,#e8f3fb);padding:8px 12px;
+       display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(26,111,173,.08);">
+    <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;
+          letter-spacing:.7px;color:#1A6FAD;">📊 Comparativo de Período</span>
+  </div>
+  <table style="width:100%;border-collapse:collapse;">
+    <thead>
+      <tr style="background:#fafcff;">
+        <th style="padding:7px 12px;text-align:left;font-size:.72rem;font-weight:700;
+                   text-transform:uppercase;letter-spacing:.5px;color:#64748b;">Indicador</th>
+        <th style="padding:7px 12px;text-align:right;font-size:.72rem;font-weight:700;
+                   text-transform:uppercase;letter-spacing:.5px;color:#1A6FAD;">◉ {lbl_atual}</th>
+        <th style="padding:7px 12px;text-align:right;font-size:.72rem;font-weight:700;
+                   text-transform:uppercase;letter-spacing:.5px;color:#dc2626;">◉ {lbl_comp}</th>
+        <th style="padding:7px 12px;text-align:right;font-size:.72rem;font-weight:700;
+                   text-transform:uppercase;letter-spacing:.5px;color:#64748b;">Δ Var.</th>
+      </tr>
+    </thead>
+    <tbody>{_html_rows}</tbody>
+  </table>
+</div>
+""", unsafe_allow_html=True)
+
+
 def arr_d_por_credito(D, d0, d1):
     """Retorna arr_d filtrado pelo data_pagamento em [d0, d1] com data_credito D+ calculada.
     Sábado → crédito segunda (+2 dias), domingo → crédito segunda (+1 dia).
@@ -869,94 +936,26 @@ def pg_cockpit(D, d0, d1):
     kpi(c7, "Total Ligações", qtd_lig, prefixo="")
     c8.empty()
 
-    # ── Bloco comparativo (quando modo comparação está ativo) ─────────────────
-    _comp = st.session_state.get("comp_periodo", {})
-    if _comp.get("ativo"):
+    # ── Bloco comparativo ─────────────────────────────────────────────────────
+    _comp = _comp_periodo()
+    if _comp:
         _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
-        _lbl_a, _lbl_c = _comp["label_atual"], _comp["label_comp"]
-
-        # Calcula KPIs do período de comparação
-        _fat_c   = filtrar(D["fat"], "dt_ref", _cd0, _cd1)
-        _arr_c   = arr_d_por_credito(D, _cd0, _cd1) if True else pd.DataFrame()
-        # override arr para comparação
-        _arr_c2  = D["arr_d"].copy()
-        if not _arr_c2.empty:
-            _arr_c2["data_pagamento"] = pd.to_datetime(_arr_c2["data_pagamento"])
-            _arr_c2 = _arr_c2[(_arr_c2["data_pagamento"] >= _cd0) & (_arr_c2["data_pagamento"] < _cd1 + pd.Timedelta(days=1))]
-        _srv_c   = filtrar(D["srv"], "dt_solicitacao", _cd0, _cd1)
-        _cor_c   = filtrar(D["cor"], "dt_fim_execucao", _cd0, _cd1)
+        _fat_c  = filtrar(D["fat"], "dt_ref", _cd0, _cd1)
+        _arr_c2 = filtrar(D["arr_d"], "data_pagamento", _cd0, _cd1)
+        _cor_c  = filtrar(D["cor"], "dt_fim_execucao", _cd0, _cd1)
         if not _cor_c.empty and "id_servico_definicao" in _cor_c.columns:
             _cor_c = _cor_c[_cor_c["id_servico_definicao"] == 30]
-
-        _vf_c  = _fat_c["vl_total_faturado"].sum() if not _fat_c.empty else 0
-        _va_c  = _arr_c2["vl_arrecadado"].sum()    if not _arr_c2.empty else 0
-        _ei_c  = _va_c / _vf_c if _vf_c else None
-        _co_c  = int(_cor_c["id_servico"].nunique()) if not _cor_c.empty and "id_servico" in _cor_c.columns else 0
-
-        def _delta_pct(atual, anterior):
-            if not anterior:
-                return None
-            return (atual - anterior) / abs(anterior)
-
-        def _fmt_pct(v):
-            if v is None: return "—"
-            sinal = "▲" if v > 0 else "▼"
-            cor   = "#16a34a" if v > 0 else "#dc2626"
-            return f'<span style="color:{cor};font-weight:600;">{sinal} {abs(v):.1%}</span>'
-
-        def _fmt_brl(v):
-            return f"R$ {v:,.0f}".replace(",","X").replace(".",",").replace("X",".")
-
-        st.markdown("---")
-        st.markdown(
-            f'<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:.8px;color:#1A6FAD;margin-bottom:8px;">📊 Comparativo de Período</div>',
-            unsafe_allow_html=True
-        )
-
-        _metricas = [
-            ("Faturamento",       vl_fat,  _vf_c,  _fmt_brl),
-            ("Arrecadação",       vl_arr,  _va_c,  _fmt_brl),
-            ("Efic. Arrecadação", idx_arr, _ei_c,  lambda v: f"{v:.1%}" if v else "—"),
-            ("Cortes Exec.",      qtd_cor, _co_c,  lambda v: str(v)),
-        ]
-
-        _html_rows = ""
-        for _nome, _val_a, _val_c, _fmt in _metricas:
-            _txt_a = _fmt(_val_a) if _val_a is not None else "—"
-            _txt_c = _fmt(_val_c) if _val_c is not None else "—"
-            _d     = _delta_pct(_val_a if _val_a else 0, _val_c if _val_c else 0)
-            _html_rows += (
-                f'<tr>'
-                f'<td style="padding:6px 10px;color:#374151;font-size:.83rem;">{_nome}</td>'
-                f'<td style="padding:6px 10px;text-align:right;font-weight:700;color:#1A6FAD;font-size:.85rem;">{_txt_a}</td>'
-                f'<td style="padding:6px 10px;text-align:right;color:#6b7280;font-size:.83rem;">{_txt_c}</td>'
-                f'<td style="padding:6px 10px;text-align:right;font-size:.8rem;">{_fmt_pct(_d)}</td>'
-                f'</tr>'
-            )
-
-        st.markdown(f"""
-<div style="background:white;border-radius:14px;border:1px solid rgba(26,111,173,.1);
-     box-shadow:0 2px 8px rgba(0,0,0,.05);overflow:hidden;margin-bottom:8px;">
-  <table style="width:100%;border-collapse:collapse;">
-    <thead>
-      <tr style="background:linear-gradient(135deg,#f0f6fb,#e8f3fb);">
-        <th style="padding:8px 10px;text-align:left;font-size:.75rem;font-weight:700;
-                   text-transform:uppercase;letter-spacing:.6px;color:#4b6484;">Indicador</th>
-        <th style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:700;
-                   text-transform:uppercase;letter-spacing:.6px;color:#1A6FAD;">◉ {_lbl_a}</th>
-        <th style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:700;
-                   text-transform:uppercase;letter-spacing:.6px;color:#dc2626;">◉ {_lbl_c}</th>
-        <th style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:700;
-                   text-transform:uppercase;letter-spacing:.6px;color:#6b7280;">Δ</th>
-      </tr>
-    </thead>
-    <tbody>
-      {_html_rows}
-    </tbody>
-  </table>
-</div>
-""", unsafe_allow_html=True)
+        _vf_c = _fat_c["vl_total_faturado"].sum() if not _fat_c.empty else 0
+        _va_c = _arr_c2["vl_arrecadado"].sum()    if not _arr_c2.empty else 0
+        _ei_c = _va_c / _vf_c if _vf_c else None
+        _co_c = int(_cor_c["id_servico"].nunique()) if not _cor_c.empty and "id_servico" in _cor_c.columns else 0
+        _brl  = lambda v: f"R$ {v:,.0f}".replace(",","X").replace(".",",").replace("X",".")
+        render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
+            ("Faturamento",       vl_fat,  _vf_c, _brl,                    True),
+            ("Arrecadação",       vl_arr,  _va_c, _brl,                    True),
+            ("Efic. Arrecadação", idx_arr, _ei_c, lambda v: f"{v:.1%}" if v else "—", True),
+            ("Cortes Exec.",      qtd_cor, _co_c, lambda v: str(int(v)),   False),
+        ])
 
     st.markdown("---")
 
@@ -1404,6 +1403,23 @@ def pg_faturamento(D, d0, d1):
             f"este painel e o FAT0015 é estrutural nessa fonte de dados — não é erro de fórmula."
         )
 
+    # ── Bloco comparativo ─────────────────────────────────────────────────────
+    _comp = _comp_periodo()
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _fat_c   = filtrar(D["fat"], "dt_ref", _cd0, _cd1)
+        _vl_liq_c = _fat_c["vl_total_faturado"].sum() if not _fat_c.empty else 0
+        _vl_ag_c  = _fat_c["vl_agua"].sum()           if not _fat_c.empty else 0
+        _vol_c    = _fat_c["volume_m3"].sum()          if not _fat_c.empty and "volume_m3" in _fat_c.columns else 0
+        _qt_c     = _fat_c["qt_fatura"].sum()          if not _fat_c.empty and "qt_fatura" in _fat_c.columns else 0
+        _brl = lambda v: f"R$ {v:,.0f}".replace(",","X").replace(".",",").replace("X",".")
+        render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
+            ("Total Líquido Faturado", vl_liquido, _vl_liq_c, _brl,                       True),
+            ("Água",                  vl_agua,    _vl_ag_c,  _brl,                       True),
+            ("Volume (m³)",           vol_m3,     _vol_c,    lambda v: f"{v:,.0f} m³",   True),
+            ("Qtd Faturas",           qt_faturas, _qt_c,     lambda v: f"{int(v):,}",    True),
+        ])
+
     st.markdown("---")
 
     # ── Gráficos ──────────────────────────────────────────────────────────────
@@ -1515,6 +1531,28 @@ def pg_arrecadacao(D, d0, d1):
         c5.metric("Eficiência Arrecadação", "—",
                   help="Faturamento não disponível neste período para calcular eficiência")
         c6.empty()
+
+    # ── Bloco comparativo ─────────────────────────────────────────────────────
+    _comp = _comp_periodo()
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _fat_c  = filtrar(D["fat"],   "dt_ref",        _cd0, _cd1)
+        _arrd_c = filtrar(D["arr_d"], "data_pagamento", _cd0, _cd1)
+        _arr_c  = filtrar(D["arr"],   "dt_ref",        _cd0, _cd1)
+        _va_c   = (_arrd_c["vl_arrecadado"].sum() if not _arrd_c.empty
+                   else _arr_c["vl_total_arrecadado"].sum() if not _arr_c.empty else 0)
+        _vf_c   = _fat_c["vl_total_faturado"].sum() if not _fat_c.empty else 0
+        _ei_c   = _va_c / _vf_c if _vf_c else None
+        _ag_c   = _arr_c["vl_agua"].sum()   if not _arr_c.empty and "vl_agua"   in _arr_c.columns else 0
+        _eg_c   = _arr_c["vl_esgoto"].sum() if not _arr_c.empty and "vl_esgoto" in _arr_c.columns else 0
+        _brl    = lambda v: f"R$ {v:,.0f}".replace(",","X").replace(".",",").replace("X",".")
+        render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
+            ("Total Arrecadado",       vl_arr,      _va_c, _brl,                              True),
+            ("Faturado no Período",    vl_fat,      _vf_c, _brl,                              True),
+            ("Eficiência Arrecadação", efic,        _ei_c, lambda v: f"{v:.1%}" if v else "—", True),
+            ("Água Arrecadada",        vl_agua_arr, _ag_c, _brl,                              True),
+            ("Esgoto Arrecadado",      vl_esg_arr,  _eg_c, _brl,                              True),
+        ])
 
     st.markdown("---")
     # Arrecadação mensal (usa arr — tabela mensal, cobertura completa)
@@ -1665,6 +1703,21 @@ def pg_arrecadacao_diaria(D, d0, d1):
     kpi(c1, "Total Arrecadado (D+)", vl_total)
     kpi(c2, "Dias Úteis", qtd_dias, prefixo="")
     kpi(c3, "Média por Dia Útil", media_dia)
+
+    # ── Bloco comparativo ─────────────────────────────────────────────────────
+    _comp = _comp_periodo()
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _ad_c  = ad[(ad["data_pagamento"] >= _cd0) & (ad["data_pagamento"] < _cd1 + pd.Timedelta(days=1))]
+        _vt_c  = _ad_c["vl_arrecadado"].sum() if not _ad_c.empty else 0
+        _qd_c  = _ad_c["data_pagamento"].nunique() if not _ad_c.empty else 0
+        _md_c  = _vt_c / _qd_c if _qd_c else 0
+        _brl   = lambda v: f"R$ {v:,.0f}".replace(",","X").replace(".",",").replace("X",".")
+        render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
+            ("Total Arrecadado (D+)",  vl_total,  _vt_c, _brl,                    True),
+            ("Dias Úteis",             qtd_dias,  _qd_c, lambda v: f"{int(v)}",   None),
+            ("Média por Dia Útil",     media_dia, _md_c, _brl,                    True),
+        ])
 
     st.info(
         "ℹ️ **Lógica D+**: sábado → crédito segunda (+2 dias), domingo → crédito segunda (+1 dia). "
@@ -1817,6 +1870,23 @@ def pg_inadimplencia(D, d0, d1):
               delta="aguardando corte", delta_color="off")
     c6.empty()
 
+    # ── Bloco comparativo — usa faturamento como proxy (inad é snapshot) ──────
+    _comp = _comp_periodo()
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _fat_c  = filtrar(D["fat"], "dt_ref", _cd0, _cd1)
+        _vf_c   = _fat_c["vl_total_faturado"].sum() if not _fat_c.empty else 0
+        _ii_c   = vl_inad / _vf_c if _vf_c else None
+        _brl    = lambda v: f"R$ {v:,.0f}".replace(",","X").replace(".",",").replace("X",".")
+        render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
+            ("Total Inadimplência (atual)", vl_inad,   None,  _brl,                              False),
+            ("Faturado (referência)",       vl_fat,    _vf_c, _brl,                              True),
+            ("Índice Inadimplência",        idx_inad,  _ii_c, lambda v: f"{v:.1%}" if v else "—", False),
+            ("Qtd Faturas Vencidas",        qtd_fat,   None,  lambda v: f"{int(v):,}",            False),
+            ("Ticket Médio",                tkt_med,   None,  _brl,                              None),
+        ])
+        st.caption("⚠️ Inadimplência é um snapshot atual — os valores da coluna de comparação refletem o faturamento do período anterior como referência.")
+
     st.markdown("---")
     st.info("ℹ️ Inadimplência exibe o **saldo atual** (snapshot mais recente), independente do período selecionado.")
     fi = inad.groupby("faixa_atraso")["vl_divida"].sum().reset_index()
@@ -1912,6 +1982,21 @@ def pg_servicos(D, d0, d1):
     c3.metric("Tempo Médio Exec.", f"{t_med:.1f}h")
     c4.metric("Backlog Pendente", f"{bkl_p:,}".replace(",", "."),
               delta_color="inverse")
+
+    # ── Bloco comparativo ─────────────────────────────────────────────────────
+    _comp = _comp_periodo()
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _srv_c = filtrar(D["srv"], "dt_solicitacao", _cd0, _cd1)
+        _qtd_c = int(_srv_c["qt_servico"].sum()) if not _srv_c.empty else 0
+        _fpr_c = int(_srv_c[_srv_c["fl_fora_prazo"] == True]["qt_servico"].sum()) if not _srv_c.empty and "fl_fora_prazo" in _srv_c.columns else 0
+        _sla_c = (_qtd_c - _fpr_c) / _qtd_c if _qtd_c else 0
+        _tm_c  = _srv_c["qt_tempo_execucao"].mean() / 60 if not _srv_c.empty and "qt_tempo_execucao" in _srv_c.columns else 0
+        render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
+            ("Total de Serviços",  qtd,   _qtd_c, lambda v: f"{int(v):,}",  True),
+            ("% SLA no Prazo",     sla,   _sla_c, lambda v: f"{v:.1%}",     True),
+            ("Tempo Médio Exec.",  t_med, _tm_c,  lambda v: f"{v:.1f}h",    False),
+        ])
 
     st.markdown("---")
     # Por canal de atendimento — agrupa Interno (3) + Automático-Sistema (4) como "Ações Internas"
@@ -2076,6 +2161,30 @@ def pg_cortes(D, d0, d1):
         f"{d_med:.0f} dias  —  Normal: {d_med_normal:.0f}d  |  Urgente: {d_med_urgente:.0f}d"
     )
 
+    # ── Bloco comparativo ─────────────────────────────────────────────────────
+    _comp = _comp_periodo()
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _cor_c = filtrar(D["cor"], "dt_fim_execucao", _cd0, _cd1)
+        if not _cor_c.empty and "id_servico_definicao" in _cor_c.columns:
+            _cor_c = _cor_c[_cor_c["id_servico_definicao"] == 30]
+        _rel_c = filtrar(D["rel"], "dt_reliagacao", _cd0, _cd1)
+        _rel_c = calcular_sla_religacao(_rel_c)
+        if not _rel_c.empty and "id_servico_definicao" in _rel_c.columns:
+            _rel_cav_c = _rel_c[_rel_c["id_servico_definicao"].isin([56, 329])]
+        else:
+            _rel_cav_c = _rel_c
+        _co_c  = int(_cor_c["id_servico"].nunique()) if not _cor_c.empty and "id_servico" in _cor_c.columns else 0
+        _re_c  = int(_rel_cav_c["id_servico"].nunique()) if not _rel_cav_c.empty and "id_servico" in _rel_cav_c.columns else 0
+        _tx_c  = _re_c / _co_c if _co_c else 0
+        _sn_c  = _sla(_rel_c[_rel_c["id_servico_definicao"] == 56]) if not _rel_c.empty and "id_servico_definicao" in _rel_c.columns else 0
+        render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
+            ("Cortes Executados",      qtd_cor, _co_c, lambda v: f"{int(v):,}",  False),
+            ("Religações (cavalete)",  qtd_rel, _re_c, lambda v: f"{int(v):,}",  None),
+            ("Taxa Religação/Corte",   taxa_r,  _tx_c, lambda v: f"{v:.1%}",     True),
+            ("SLA Religação Normal",   sla_rel_normal, _sn_c, lambda v: f"{v:.1%}", True),
+        ])
+
     st.markdown("---")
     st.markdown("##### Religações — SLA e prazo")
     r1, r2, r3 = st.columns(3)
@@ -2210,6 +2319,25 @@ def pg_leituras(D, d0, d1):
     c4, c5 = st.columns(2)
     kpi(c4, "Leituras Críticas", criticas, prefixo="")
     kpi(c5, "Índice de Perdas", idx_perd, prefixo="%")
+
+    # ── Bloco comparativo ─────────────────────────────────────────────────────
+    _comp = _comp_periodo()
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _lei_c   = filtrar(D["lei"], "dt_ref", _cd0, _cd1)
+        _qtd_c   = int(_lei_c["qt_leitura"].sum())        if not _lei_c.empty else 0
+        _vlid_c  = int(_lei_c["qt_volume_lido"].sum())    if not _lei_c.empty else 0
+        _vfat_c  = int(_lei_c["qt_volume_faturado"].sum()) if not _lei_c.empty else 0
+        _perd_c  = _vlid_c - _vfat_c
+        _iperd_c = _perd_c / _vlid_c if _vlid_c else 0
+        _crit_c  = int((_lei_c["fl_critica"] == True).sum()) if not _lei_c.empty and "fl_critica" in _lei_c.columns else 0
+        render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
+            ("Leituras Realizadas",  qtd_lei,  _qtd_c,  lambda v: f"{int(v):,}",    True),
+            ("Volume Lido (m³)",     vol_lid,  _vlid_c, lambda v: f"{int(v):,} m³", None),
+            ("Volume Faturado (m³)", vol_fat,  _vfat_c, lambda v: f"{int(v):,} m³", True),
+            ("Leituras Críticas",    criticas, _crit_c, lambda v: f"{int(v):,}",    False),
+            ("Índice de Perdas",     idx_perd, _iperd_c,lambda v: f"{v:.1%}",       False),
+        ])
 
     st.markdown("---")
     lei_m = lei.copy()
@@ -2422,6 +2550,23 @@ def pg_frota_combustivel(D, d0, d1):
     kpi(c3, "Km Rodados", vl_km_total, prefixo="")
     kpi(c4, "Eficiência Média", eff_media, prefixo="")
 
+    # ── Bloco comparativo ─────────────────────────────────────────────────────
+    _comp = _comp_periodo()
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _fr_c   = frota[(frota["Data"] >= _cd0) & (frota["Data"] < _cd1 + pd.Timedelta(days=1))]
+        _cons_c = _fr_c["Quantidade"].sum()   if not _fr_c.empty else 0
+        _gast_c = _fr_c["Valor_Total"].sum()  if not _fr_c.empty else 0
+        _km_c   = _fr_c["Km_Rodados"].sum()   if not _fr_c.empty else 0
+        _eff_c  = _km_c / _cons_c             if _cons_c else 0
+        _brl    = lambda v: f"R$ {v:,.0f}".replace(",","X").replace(".",",").replace("X",".")
+        render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
+            ("Combustível Consumido (L)", vl_consumo_total, _cons_c, lambda v: f"{v:,.0f} L", None),
+            ("Custo Total",              vl_gasto_total,   _gast_c, _brl,                    None),
+            ("Km Rodados",               vl_km_total,      _km_c,   lambda v: f"{v:,.0f} km", True),
+            ("Eficiência Média (km/L)",  eff_media,        _eff_c,  lambda v: f"{v:.2f}",     True),
+        ])
+
     st.markdown("---")
 
     # Gráfico 1: Consumo por Motorista (top 8)
@@ -2595,6 +2740,23 @@ def pg_energia(D, d0, d1):
     kpi(c2, "Custo Médio Mensal", vl_media, prefixo="R$")
     kpi(c3, "% do Faturamento", pct_fat, prefixo="%")
     kpi(c4, "UCs Ativas", len(d_uc) if not d_uc.empty else 0, prefixo="")
+
+    # ── Bloco comparativo ─────────────────────────────────────────────────────
+    _comp = _comp_periodo()
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _ene_c  = ene[(ene["mes_ano"] >= _cd0) & (ene["mes_ano"] < _cd1 + pd.Timedelta(days=1))]
+        _fat_c  = filtrar(D["fat"], "dt_ref", _cd0, _cd1)
+        _vt_c   = _ene_c["valor_r"].sum()  if not _ene_c.empty else 0
+        _vm_c   = _ene_c["valor_r"].mean() if not _ene_c.empty else 0
+        _vf_c   = _fat_c["vl_total_faturado"].sum() if not _fat_c.empty else 0
+        _pf_c   = (_vt_c / _vf_c * 100) if _vf_c else 0
+        _brl    = lambda v: f"R$ {v:,.0f}".replace(",","X").replace(".",",").replace("X",".")
+        render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
+            ("Custo Total Energia",  vl_total, _vt_c, _brl,                  False),
+            ("Custo Médio Mensal",   vl_media, _vm_c, _brl,                  False),
+            ("% do Faturamento",     pct_fat,  _pf_c, lambda v: f"{v:.1f}%", False),
+        ])
 
     st.markdown("---")
 
