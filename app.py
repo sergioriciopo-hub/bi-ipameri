@@ -2255,10 +2255,13 @@ def pg_servicos(D, d0, d1):
     st.markdown("---")
     # Por canal de atendimento — agrupa Interno (3) + Automático-Sistema (4) como "Ações Internas"
     srv_can = srv.copy()
-    srv_can["nm_tipo_atendimento"] = srv_can.apply(
-        lambda r: "Ações Internas" if r.get("ch_tipo_atendimento") in (3, 4) else r["nm_tipo_atendimento"],
-        axis=1,
-    )
+    _rename_canal = {
+        "Automático - Sistema": "Solicitações Internas",
+        "Interno": "Solicitações Internas",
+    }
+    srv_can["nm_tipo_atendimento"] = srv_can["nm_tipo_atendimento"].replace(_rename_canal)
+    # Remove canais irrelevantes antes de qualquer agregação
+    srv_can = srv_can[~srv_can["nm_tipo_atendimento"].str.upper().str.contains("RESERVADO", na=False)]
 
     # ── Evolução mensal por canal ──────────────────────────────────────────────
     srv_can["_mes"] = pd.to_datetime(srv_can["dt_solicitacao"]).dt.strftime("%m/%Y")
@@ -2307,25 +2310,39 @@ def pg_servicos(D, d0, d1):
     )
     st.plotly_chart(fig_can, use_container_width=True)
 
-    # SLA por canal
-    if "fl_fora_prazo" in srv.columns:
-        ag_sla = srv_can.groupby("nm_tipo_atendimento").agg(
+    # SLA por canal — evolução mensal
+    if "fl_fora_prazo" in srv_can.columns:
+        srv_sla = srv_can.copy()
+        srv_sla["_mes"] = pd.to_datetime(srv_sla["dt_solicitacao"]).dt.strftime("%m/%Y")
+        ag_sla_m = srv_sla.groupby(["_mes","nm_tipo_atendimento"]).agg(
             Total=("qt_servico","sum"),
             ForaPrazo=("fl_fora_prazo", lambda x: (x == True).sum())
         ).reset_index()
-        ag_sla["No Prazo"] = ag_sla["Total"] - ag_sla["ForaPrazo"]
-        ag_sla["%SLA"] = ag_sla["No Prazo"] / ag_sla["Total"]
-        ag_sla = ag_sla.sort_values("%SLA")
-        fig2 = px.bar(ag_sla, x="%SLA", y="nm_tipo_atendimento", orientation="h",
-                      title="% SLA por Canal",
-                      color="%SLA",
-                      color_continuous_scale=["#E74C3C","#F39C12","#27AE60"])
-        fig2.add_vline(x=0.90, line_dash="dash", line_color="gray",
-                       annotation_text="Meta 90%")
-        fig2.update_layout(margin=dict(t=35, b=0, l=0, r=20),
-                           xaxis_title="", yaxis_title="",
-                           coloraxis_showscale=False)
-        fig2.update_xaxes(tickformat=".0%")
+        ag_sla_m["%SLA"] = (ag_sla_m["Total"] - ag_sla_m["ForaPrazo"]) / ag_sla_m["Total"] * 100
+        ag_sla_m.rename(columns={"_mes":"Mês","nm_tipo_atendimento":"Canal"}, inplace=True)
+        meses_sla = sorted(ag_sla_m["Mês"].unique().tolist(),
+                           key=lambda x: pd.to_datetime(x, format="%m/%Y"))
+        fig2 = px.bar(ag_sla_m, x="Mês", y="%SLA", color="Canal",
+                      barmode="group",
+                      title="% SLA no Prazo por Canal (mensal)",
+                      color_discrete_sequence=px.colors.qualitative.Set2,
+                      category_orders={"Mês": meses_sla},
+                      text=ag_sla_m["%SLA"].apply(lambda v: f"<b>{v:.0f}%</b>"))
+        fig2.update_traces(textposition="inside", textangle=-90,
+                           textfont=dict(size=12, color="white", family="Arial Black"),
+                           insidetextanchor="middle")
+        fig2.add_hline(y=90, line_dash="dash", line_color="gray", line_width=1.5,
+                       annotation_text="<b>Meta 90%</b>", annotation_position="top left",
+                       annotation_font=dict(size=11, color="gray"))
+        fig2.update_layout(
+            margin=dict(t=50, b=50, l=0, r=20), height=420,
+            xaxis=dict(title="", categoryorder="array", categoryarray=meses_sla),
+            yaxis=dict(title="", ticksuffix="%", range=[0, 110]),
+            legend=dict(orientation="h", yanchor="top", y=-0.12, xanchor="center", x=0.5,
+                        font=dict(size=12)),
+            hovermode="x unified",
+            uniformtext_minsize=8, uniformtext_mode="hide",
+        )
         st.plotly_chart(fig2, use_container_width=True)
     # Evolução mensal
     srv_m = srv.copy()
