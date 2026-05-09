@@ -1614,7 +1614,7 @@ def pg_faturamento(D, d0, d1):
                           on="id_categoria", how="left")
         ag_cat = f_cat.groupby("nm_rsf_categoria_dim")["vl_total_faturado"].sum().reset_index()
         ag_cat.columns = ["Categoria", "Valor"]
-        _cores_cat = px.colors.qualitative.Set2[:len(ag_cat)]
+        _cores_cat = ["#AED6F1","#5DADE2","#2E86C1","#1A5276","#85C1E9","#21618C","#7FB3D3","#154360"][:len(ag_cat)]
         fig4 = go.Figure(data=[go.Pie(
             labels=ag_cat["Categoria"],
             values=ag_cat["Valor"],
