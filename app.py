@@ -2231,14 +2231,11 @@ def pg_servicos(D, d0, d1):
     sla  = (qtd - fpr) / qtd if qtd else 0
     t_med = srv["qt_tempo_execucao"].mean() / 60 if "qt_tempo_execucao" in srv.columns else 0
     bkl_p = int(bkl["qt_pendente"].sum()) if not bkl.empty else 0
-    c1, c2 = st.columns(2)
-    kpi(c1, "Total de Serviços", qtd, prefixo="")
-    kpi(c2, "% SLA no Prazo", sla, prefixo="%")
-
-    c3, c4 = st.columns(2)
-    c3.metric("Tempo Médio Exec.", f"{t_med:.1f}h")
-    c4.metric("Backlog Pendente", f"{bkl_p:,}".replace(",", "."),
-              delta_color="inverse")
+    c1, c2, c3, c4 = st.columns(4)
+    kpi(c1, "Total de Serviços",  qtd,   prefixo="")
+    kpi(c2, "% SLA no Prazo",     sla,   prefixo="%")
+    kpi(c3, "Tempo Médio Exec. (h)", t_med, prefixo="")
+    kpi(c4, "Backlog Pendente",   bkl_p, prefixo="")
 
     # ── Bloco comparativo ─────────────────────────────────────────────────────
     _comp = _comp_periodo()
