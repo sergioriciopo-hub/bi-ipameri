@@ -1818,10 +1818,15 @@ def pg_arrecadacao_diaria(D, d0, d1):
     _comp = _comp_periodo()
     if _comp:
         _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
-        _ad_c  = ad[(ad["data_pagamento"] >= _cd0) & (ad["data_pagamento"] < _cd1 + pd.Timedelta(days=1))]
+        _ad_c  = ad[(ad["data_pagamento"] >= _cd0) & (ad["data_pagamento"] < _cd1 + pd.Timedelta(days=1))].copy()
         _vt_c  = _ad_c["vl_arrecadado"].sum() if not _ad_c.empty else 0
-        _qd_c  = _ad_c["data_pagamento"].nunique() if not _ad_c.empty else 0
-        _md_c  = _vt_c / _qd_c if _qd_c else 0
+        # Aplica mesma lógica D+ do período atual: agrupa por data_credito
+        if not _ad_c.empty:
+            _ad_c["data_credito"] = _ad_c.apply(data_credito, axis=1)
+            _qd_c = _ad_c.groupby("data_credito")["vl_arrecadado"].sum().shape[0]
+            _md_c = _vt_c / _qd_c if _qd_c else 0
+        else:
+            _qd_c, _md_c = 0, 0
         _brl   = lambda v: f"R$ {v:,.0f}".replace(",","X").replace(".",",").replace("X",".")
         render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
             ("Total Arrecadado (D+)",  vl_total,  _vt_c, _brl,                    True),
