@@ -2123,23 +2123,48 @@ def pg_inadimplencia(D, d0, d1):
     st.plotly_chart(fig, use_container_width=True)
 
     fi_q = inad.groupby("faixa_atraso").size().reset_index(name="Qtd")
-    fig2 = px.pie(fi_q, names="faixa_atraso", values="Qtd",
-                  title="Distribuição por Qtd de Faturas",
-                  color_discrete_sequence=px.colors.qualitative.Set3)
-    fig2.update_layout(margin=dict(t=35, b=0, l=0, r=20))
+    _cores_inad = ["#E74C3C","#E67E22","#F1C40F","#8E44AD","#2E86C1","#17A589"][:len(fi_q)]
+    fig2 = go.Figure(data=[go.Pie(
+        labels=fi_q["faixa_atraso"], values=fi_q["Qtd"],
+        pull=[0.04] * len(fi_q),
+        marker=dict(colors=_cores_inad, line=dict(color="white", width=2.5)),
+        textposition="auto",
+        texttemplate="<b>%{label}</b><br>%{percent:.1%}",
+        textfont=dict(size=13, color="white", family="Arial Black"),
+        outsidetextfont=dict(size=13, color="#1a1a1a", family="Arial Black"),
+        hovertemplate="<b>%{label}</b><br>%{value} faturas<br>%{percent:.2%}<extra></extra>",
+        insidetextorientation="radial", hole=0.08,
+    )])
+    fig2.update_layout(
+        title=dict(text="Distribuição por Qtd de Faturas", font=dict(size=15)),
+        margin=dict(t=50, b=20, l=20, r=20), height=420,
+        legend=dict(orientation="v", xanchor="left", x=1.02, yanchor="middle", y=0.5,
+                    font=dict(size=13, family="Arial"),
+                    bgcolor="rgba(255,255,255,0.85)", bordercolor="rgba(180,180,180,0.4)", borderwidth=1),
+        paper_bgcolor="rgba(0,0,0,0)",
+    )
     st.plotly_chart(fig2, use_container_width=True)
     if "nm_bairro_dim" in inad.columns:
         ag_b = inad.groupby("nm_bairro_dim")["vl_divida"].sum()\
                    .sort_values(ascending=True).tail(15).reset_index()
         ag_b.columns = ["Bairro", "Valor"]
-        fig3 = px.bar(ag_b, x="Valor", y="Bairro", orientation="h",
-                      title="Top 15 Bairros — Inadimplência",
-                      color="Valor",
-                      color_continuous_scale=["#FFF3CD", "#E74C3C"])
-        fig3.update_layout(margin=dict(t=35, b=0, l=0, r=20),
-                           xaxis_title="", yaxis_title="",
-                           coloraxis_showscale=False)
-        fig3.update_xaxes(tickformat=",.0f")
+        n_b = len(ag_b)
+        cores_b = [f"rgb({int(255+i*(158-255)/(max(n_b-1,1)))},{int(204+i*(34-204)/(max(n_b-1,1)))},{int(204+i*(34-204)/(max(n_b-1,1)))})" for i in range(n_b)]
+        # degradê vermelho suave → vermelho escuro
+        cores_b = [f"rgb({int(252-i*94/(max(n_b-1,1)))},{int(196-i*162/(max(n_b-1,1)))},{int(196-i*162/(max(n_b-1,1)))})" for i in range(n_b)]
+        fig3 = go.Figure(go.Bar(
+            x=ag_b["Valor"], y=ag_b["Bairro"], orientation="h",
+            marker_color=cores_b, marker=dict(line=dict(width=0)),
+            text=ag_b["Valor"].apply(lambda v: f"<b>R$ {v:,.0f}</b>".replace(",",".")),
+            textposition="inside", textfont=dict(size=13, color="white", family="Arial Black"),
+            insidetextanchor="end",
+        ))
+        fig3.update_layout(
+            title="Top 15 Bairros — Inadimplência",
+            margin=dict(t=40, b=0, l=0, r=20), height=480,
+            xaxis=dict(title="", tickformat=",.0f"), yaxis=dict(title=""),
+            uniformtext_minsize=9, uniformtext_mode="hide",
+        )
         st.plotly_chart(fig3, use_container_width=True)
 
     # Corte pendente vs não pendente
@@ -2149,13 +2174,27 @@ def pg_inadimplencia(D, d0, d1):
             {True: "Corte Pendente", False: "Sem Corte"})
         ag_cp = cp.groupby("Status Corte")["vl_divida"].sum().reset_index()
         ag_cp.columns = ["Status", "Valor"]
-        fig4 = px.pie(ag_cp, names="Status", values="Valor",
-                      title="Inadimplência: Corte Pendente vs Sem Corte",
-                      color_discrete_map={
-                          "Corte Pendente": COR["vermelho"],
-                          "Sem Corte": COR["amarelo"]
-                      })
-        fig4.update_layout(margin=dict(t=35, b=0, l=0, r=20))
+        _map_cp = {"Corte Pendente": COR["vermelho"], "Sem Corte": COR["amarelo"]}
+        fig4 = go.Figure(data=[go.Pie(
+            labels=ag_cp["Status"], values=ag_cp["Valor"],
+            pull=[0.04] * len(ag_cp),
+            marker=dict(colors=[_map_cp.get(s, COR["azul"]) for s in ag_cp["Status"]],
+                        line=dict(color="white", width=2.5)),
+            textposition="auto",
+            texttemplate="<b>%{label}</b><br>%{percent:.1%}",
+            textfont=dict(size=13, color="white", family="Arial Black"),
+            outsidetextfont=dict(size=13, color="#1a1a1a", family="Arial Black"),
+            hovertemplate="<b>%{label}</b><br>R$ %{value:,.0f}<br>%{percent:.2%}<extra></extra>",
+            insidetextorientation="radial", hole=0.08,
+        )])
+        fig4.update_layout(
+            title=dict(text="Inadimplência: Corte Pendente vs Sem Corte", font=dict(size=15)),
+            margin=dict(t=50, b=20, l=20, r=20), height=380,
+            legend=dict(orientation="v", xanchor="left", x=1.02, yanchor="middle", y=0.5,
+                        font=dict(size=13, family="Arial"),
+                        bgcolor="rgba(255,255,255,0.85)", bordercolor="rgba(180,180,180,0.4)", borderwidth=1),
+            paper_bgcolor="rgba(0,0,0,0)",
+        )
         st.plotly_chart(fig4, use_container_width=True)
 
     # Tabela detalhada
