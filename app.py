@@ -1614,10 +1614,32 @@ def pg_faturamento(D, d0, d1):
                           on="id_categoria", how="left")
         ag_cat = f_cat.groupby("nm_rsf_categoria_dim")["vl_total_faturado"].sum().reset_index()
         ag_cat.columns = ["Categoria", "Valor"]
-        fig4 = px.pie(ag_cat, names="Categoria", values="Valor",
-                      title="Faturamento por Categoria",
-                      color_discrete_sequence=px.colors.qualitative.Set2)
-        fig4.update_layout(margin=dict(t=35, b=0, l=0, r=20))
+        _cores_cat = px.colors.qualitative.Set2[:len(ag_cat)]
+        fig4 = go.Figure(data=[go.Pie(
+            labels=ag_cat["Categoria"],
+            values=ag_cat["Valor"],
+            pull=[0.04] * len(ag_cat),
+            marker=dict(colors=_cores_cat, line=dict(color="white", width=2.5)),
+            textposition="auto",
+            texttemplate="<b>%{label}</b><br>%{percent:.1%}",
+            textfont=dict(size=13, color="white", family="Arial Black"),
+            outsidetextfont=dict(size=13, color="#1a1a1a", family="Arial Black"),
+            hovertemplate="<b>%{label}</b><br>R$ %{value:,.0f}<br>%{percent:.2%}<extra></extra>",
+            insidetextorientation="radial",
+            hole=0.08,
+        )])
+        fig4.update_layout(
+            title=dict(text="Faturamento por Categoria", font=dict(size=15)),
+            margin=dict(t=50, b=20, l=20, r=20), height=420,
+            legend=dict(
+                orientation="v", xanchor="left", x=1.02,
+                yanchor="middle", y=0.5,
+                font=dict(size=13, family="Arial"),
+                bgcolor="rgba(255,255,255,0.85)",
+                bordercolor="rgba(180,180,180,0.4)", borderwidth=1,
+            ),
+            paper_bgcolor="rgba(0,0,0,0)",
+        )
         st.plotly_chart(fig4, use_container_width=True)
 
     # Por bairro (top 15)
