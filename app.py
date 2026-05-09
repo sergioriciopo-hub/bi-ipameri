@@ -2255,13 +2255,12 @@ def pg_servicos(D, d0, d1):
     st.markdown("---")
     # Por canal de atendimento — agrupa Interno (3) + Automático-Sistema (4) como "Ações Internas"
     srv_can = srv.copy()
-    _rename_canal = {
-        "Automático - Sistema": "Solicitações Internas",
-        "Interno": "Solicitações Internas",
-    }
-    srv_can["nm_tipo_atendimento"] = srv_can["nm_tipo_atendimento"].replace(_rename_canal)
-    # Remove canais irrelevantes antes de qualquer agregação
-    srv_can = srv_can[~srv_can["nm_tipo_atendimento"].str.upper().str.contains("RESERVADO", na=False)]
+    # Remove canais irrelevantes
+    _canais_excluir = ["Automático - Sistema", "Interno"]
+    srv_can = srv_can[
+        ~srv_can["nm_tipo_atendimento"].str.upper().str.contains("RESERVADO", na=False) &
+        ~srv_can["nm_tipo_atendimento"].isin(_canais_excluir)
+    ]
 
     # ── Evolução mensal por canal ──────────────────────────────────────────────
     srv_can["_mes"] = pd.to_datetime(srv_can["dt_solicitacao"]).dt.strftime("%m/%Y")
