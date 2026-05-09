@@ -1,0 +1,37 @@
+[07/05/2026 08:49:44] Iniciando ETL de Frota...
+Iniciando ETL de Consumo de Frota Combust?vel...
+
+[OK] Arquivo encontrado: RelatorioParametrizado 01-04-26 A 30-04-26.xls
+Processando: RelatorioParametrizado 01-04-26 A 30-04-26.xls
+  [OK] 41 registros processados
+
+============================================================
+RESUMO DA EXTRACAO
+============================================================
+Total de registros: 41
+Data minima: 01/04/2026
+Data maxima: 30/04/2026
+
+Motorisas unicos: 9
+Veiculos unicos: 14
+Modelos unicos: 8
+
+Totalizacoes:
+  Combustivel consumido: 2204.10 L
+  Valor gasto: R$ 14951.30
+  Km rodados: 15035
+  Eficiencia media: 6.82 km/L
+
+Top 5 motoristas (por valor):
+  JOAO REIS DA SILVA CARNEIRO: R$ 7686.10
+  PAULO VICTOR DE OLIVEIRA CARNEIRO: R$ 2083.91
+  ODELIO FERNANDES JUNIOR: R$ 1575.37
+  SERGIO HENRIQUE DE OLIVEIRA RICIOPO: R$ 1559.05
+  CARLOS ANDRE DE CASTRO SILVA: R$ 906.08
+
+[OK] Exportado: frota_combustivel.parquet
+[OK] Exportado: dim_veiculo_frota.parquet
+
+ETL concluido com sucesso em 07/05/2026 08:49:47
+
+[07/05/2026 08:49:47] ETL concluido com SUCESSO

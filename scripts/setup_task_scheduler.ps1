@@ -1,11 +1,11 @@
-# ═══════════════════════════════════════════════════════════════════════════
+﻿# ═══════════════════════════════════════════════════════════════════════════
 # Setup Task Scheduler - ETL Águas de Ipameri
 # Executar como Administrador
 # ═══════════════════════════════════════════════════════════════════════════
 
 $taskName = "ETL-BigQuery-Ipameri"
 $taskFolder = "Águas de Ipameri"
-$scriptPath = "C:\Users\SérgioRiciopo\AGUAS DE IPAMERI\03 COMERCIAL - Documentos\01 - Projetos e Propostas\Claude\BI_Ipameri\scripts\run_etl.bat"
+$scriptPath = "C:\BI_Ipameri\scripts\run_etl.bat"
 $time = "06:00"
 
 Write-Host "═════════════════════════════════════════════════════════════"

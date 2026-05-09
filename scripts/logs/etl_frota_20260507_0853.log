@@ -1,0 +1,65 @@
+[07/05/2026 08:53:20] Iniciando ETL de Frota...
+Iniciando ETL de Consumo de Frota Combust?vel...
+
+[OK] Arquivo encontrado: RelatorioParametrizado 01-04-26 A 30-04-26.xls
+Processando: RelatorioParametrizado 01-04-26 A 30-04-26.xls
+  [OK] 41 registros processados
+
+============================================================
+RESUMO DA EXTRACAO
+============================================================
+Total de registros: 41
+Data minima: 01/04/2026
+Data maxima: 30/04/2026
+
+Motorisas unicos: 9
+Veiculos unicos: 14
+Modelos unicos: 8
+
+Totalizacoes:
+  Combustivel consumido: 2204.10 L
+  Valor gasto: R$ 14951.30
+  Km rodados: 15035
+  Eficiencia media: 6.82 km/L
+
+Top 5 motoristas (por valor):
+  JOAO REIS DA SILVA CARNEIRO: R$ 7686.10
+  PAULO VICTOR DE OLIVEIRA CARNEIRO: R$ 2083.91
+  ODELIO FERNANDES JUNIOR: R$ 1575.37
+  SERGIO HENRIQUE DE OLIVEIRA RICIOPO: R$ 1559.05
+  CARLOS ANDRE DE CASTRO SILVA: R$ 906.08
+
+[OK] Exportado: frota_combustivel.parquet
+[OK] Exportado: dim_veiculo_frota.parquet
+
+ETL concluido com sucesso em 07/05/2026 08:53:21
+
+[07/05/2026 08:53:21] ETL concluido com SUCESSO
+[07/05/2026 08:53:21] Publicando no GitHub...
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	deleted:    __pycache__/app.cpython-314.pyc
+	deleted:    scripts/__pycache__/etl_bigquery.cpython-314.pyc
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	Planilhas/
+	scripts/gerar_amostra_bigquery.py
+	scripts/logs/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+git : Everything up-to-date
+No C:\Users\SérgioRiciopo\AGUAS DE IPAMERI\03 COMERCIAL - Documentos\01 - Projetos e 
+Propostas\Claude\BI_Ipameri\scripts\run_etl_frota.ps1:37 caractere:20
++         $pushOut = git push origin main 2>&1 | Out-String
++                    ~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Everything up-to-date:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+[07/05/2026 08:53:23] Publicado no GitHub com SUCESSO
