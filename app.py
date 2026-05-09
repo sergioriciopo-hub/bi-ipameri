@@ -1055,26 +1055,30 @@ def pg_cockpit(D, d0, d1):
         # Texto das médias posicionado logo abaixo do título (yref=paper, topo do plot)
         if media_fat is not None:
             annotations_medias.append(dict(
-                xref="paper", yref="paper", x=0, y=1.07,
-                text=f"<b style='color:{COR['azul']}'>── Média Fat.: R$ {media_fat/1000:.0f}k</b>",
+                xref="paper", yref="paper", x=0.0, y=1.06,
+                text=f"<b>── Média Fat.: R$ {media_fat/1000:.0f}k</b>",
                 showarrow=False, xanchor="left", yanchor="top",
                 font=dict(size=12, color=COR["azul"]),
             ))
         if media_arr is not None:
             annotations_medias.append(dict(
-                xref="paper", yref="paper", x=0.35, y=1.07,
-                text=f"<b style='color:#1a6b3c'>── Média Arrec.: R$ {media_arr/1000:.0f}k</b>",
-                showarrow=False, xanchor="left", yanchor="top",
+                xref="paper", yref="paper", x=0.5, y=1.06,
+                text=f"<b>── Média Arrec.: R$ {media_arr/1000:.0f}k</b>",
+                showarrow=False, xanchor="center", yanchor="top",
                 font=dict(size=12, color="#1a6b3c"),
             ))
         fig1.update_layout(
             title="Faturamento × Arrecadação (R$)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
             barmode="group",
-            margin=dict(t=85, b=10, l=0, r=30), height=430,
+            margin=dict(t=70, b=60, l=0, r=30), height=450,
             annotations=annotations_medias,
             xaxis=dict(title="", categoryorder="array", categoryarray=todos),
             yaxis=dict(title="", tickformat=",.0f"),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            legend=dict(
+                orientation="h", yanchor="top", y=-0.12,
+                xanchor="center", x=0.5,
+                font=dict(size=12),
+            ),
             hovermode="x unified",
         )
         st.plotly_chart(fig1, use_container_width=True)
