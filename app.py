@@ -842,7 +842,7 @@ def bar_mensal(df, col_data, col_val, title, cor=None, agrupamento="M"):
     ag.columns = ["Mês", "Valor"]
     fig = px.bar(ag, x="Mês", y="Valor", title=title,
                  color_discrete_sequence=[cor or COR["azul"]],
-                 text=ag["Valor"].apply(lambda v: f"<b>{v/1000:.0f}k</b>" if v >= 1000 else f"<b>{v:.0f}</b>"))
+                 text=ag["Valor"].apply(lambda v: f"<b>{v:,.0f} m³</b>".replace(",", ".")))
     fig.update_traces(textposition="inside", textangle=-90,
                       textfont=dict(size=14, color="white", family="Arial Black"),
                       insidetextanchor="middle")
