@@ -841,9 +841,14 @@ def bar_mensal(df, col_data, col_val, title, cor=None, agrupamento="M"):
     ag = tmp.groupby("_mes")[col_val].sum().reset_index()
     ag.columns = ["Mês", "Valor"]
     fig = px.bar(ag, x="Mês", y="Valor", title=title,
-                 color_discrete_sequence=[cor or COR["azul"]])
+                 color_discrete_sequence=[cor or COR["azul"]],
+                 text=ag["Valor"].apply(lambda v: f"<b>{v/1000:.0f}k</b>" if v >= 1000 else f"<b>{v:.0f}</b>"))
+    fig.update_traces(textposition="inside", textangle=-90,
+                      textfont=dict(size=14, color="white", family="Arial Black"),
+                      insidetextanchor="middle")
     fig.update_layout(xaxis_title="", yaxis_title="", showlegend=False,
-                      margin=dict(t=35, b=0, l=0, r=20))
+                      margin=dict(t=35, b=0, l=0, r=20),
+                      uniformtext_minsize=9, uniformtext_mode="hide")
     fig.update_yaxes(tickformat=",.0f")
     return fig
 
