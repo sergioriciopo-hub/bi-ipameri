@@ -1859,11 +1859,13 @@ def pg_arrecadacao_diaria(D, d0, d1):
                     yaxis="y2")
     if _comp:
         _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
-        _ad_c = ad[(ad["data_pagamento"] >= _cd0) & (ad["data_pagamento"] < _cd1 + pd.Timedelta(days=1))]
+        _ad_c = ad[(ad["data_pagamento"] >= _cd0) & (ad["data_pagamento"] < _cd1 + pd.Timedelta(days=1))].copy()
         if not _ad_c.empty:
-            _diario_c = (_ad_c.groupby("data_pagamento")
+            # Aplica mesma lógica D+ do período atual
+            _ad_c["data_credito"] = _ad_c.apply(data_credito, axis=1)
+            _diario_c = (_ad_c.groupby("data_credito")
                          .agg(Valor=("vl_arrecadado","sum")).reset_index()
-                         .rename(columns={"data_pagamento":"Data"}).sort_values("Data"))
+                         .rename(columns={"data_credito":"Data"}).sort_values("Data"))
             _diario_c["Acumulado"] = _diario_c["Valor"].cumsum()
             fig.add_bar(x=_diario_c["Data"], y=_diario_c["Valor"],
                         name=f"Arrecadação {_comp['label_comp']}",
