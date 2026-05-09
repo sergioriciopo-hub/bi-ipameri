@@ -1581,12 +1581,13 @@ def pg_faturamento(D, d0, d1):
                 colors=[_cores_pie.get(c, COR["azul"]) for c in df_comp["Componente"]],
                 line=dict(color="white", width=2.5),  # borda branca suave
             ),
-            textposition="inside",
+            textposition="auto",
             texttemplate="<b>%{label}</b><br>%{percent:.1%}",
-            textfont=dict(size=14, color="white", family="Arial Black"),
+            textfont=dict(size=13, color="white", family="Arial Black"),
             hovertemplate="<b>%{label}</b><br>R$ %{value:,.0f}<br>%{percent:.2%}<extra></extra>",
             insidetextorientation="radial",
-            hole=0.08,                             # furo mínimo para suavizar centro
+            outsidetextfont=dict(size=13, color="#1a1a1a", family="Arial Black"),
+            hole=0.08,
         )])
         fig2.update_layout(
             title=dict(text="Composição do Faturamento Líquido", font=dict(size=15)),
