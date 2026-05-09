@@ -1014,14 +1014,18 @@ def pg_cockpit(D, d0, d1):
                 x=todos, y=vf, name=label_fat,
                 marker_color=COR["azul"], opacity=0.85,
                 text=[f"{v/1000:.0f}k" if v > 0 else "" for v in vf],
-                textposition="outside", textfont=dict(size=11, color=COR["azul_esc"]),
+                textposition="inside", textangle=-90,
+                textfont=dict(size=12, color="white"),
+                insidetextanchor="middle",
             ))
         if not arr_m.empty:
             fig1.add_trace(go.Bar(
                 x=todos, y=va, name=label_arr,
                 marker_color=COR["verde"], opacity=0.85,
                 text=[f"{v/1000:.0f}k" if v > 0 else "" for v in va],
-                textposition="outside", textfont=dict(size=11, color="#1a6b3c"),
+                textposition="inside", textangle=-90,
+                textfont=dict(size=12, color="white"),
+                insidetextanchor="middle",
             ))
         if _comp and not fat_c_m.empty:
             vfc = fat_c_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
