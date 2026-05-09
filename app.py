@@ -1012,34 +1012,42 @@ def pg_cockpit(D, d0, d1):
         if not fat_m.empty:
             fig1.add_trace(go.Bar(
                 x=todos, y=vf, name=label_fat,
-                marker_color=COR["azul"], opacity=0.85,
-                text=[f"{v/1000:.0f}k" if v > 0 else "" for v in vf],
+                marker_color=COR["azul"], opacity=0.9,
+                text=[f"<b>{v/1000:.0f}k</b>" if v > 0 else "" for v in vf],
                 textposition="inside", textangle=-90,
-                textfont=dict(size=12, color="white"),
+                textfont=dict(size=14, color="white"),
                 insidetextanchor="middle",
             ))
         if not arr_m.empty:
             fig1.add_trace(go.Bar(
                 x=todos, y=va, name=label_arr,
-                marker_color=COR["verde"], opacity=0.85,
-                text=[f"{v/1000:.0f}k" if v > 0 else "" for v in va],
+                marker_color=COR["verde"], opacity=0.9,
+                text=[f"<b>{v/1000:.0f}k</b>" if v > 0 else "" for v in va],
                 textposition="inside", textangle=-90,
-                textfont=dict(size=12, color="white"),
+                textfont=dict(size=14, color="white"),
                 insidetextanchor="middle",
             ))
         if _comp and not fat_c_m.empty:
             vfc = fat_c_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
             fig1.add_trace(go.Bar(
                 x=todos, y=vfc, name=f"Faturamento {_comp['label_comp']}",
-                marker_color=COR["azul"], opacity=0.35,
+                marker_color=COR["azul"], opacity=0.40,
                 marker_pattern_shape="/",
+                text=[f"{v/1000:.0f}k" if v > 0 else "" for v in vfc],
+                textposition="inside", textangle=-90,
+                textfont=dict(size=13, color="#0d2e50"),
+                insidetextanchor="middle",
             ))
         if _comp and not arr_c_m.empty:
             vac = arr_c_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
             fig1.add_trace(go.Bar(
                 x=todos, y=vac, name=f"Arrecadação {_comp['label_comp']}",
-                marker_color=COR["verde"], opacity=0.35,
+                marker_color=COR["verde"], opacity=0.40,
                 marker_pattern_shape="/",
+                text=[f"{v/1000:.0f}k" if v > 0 else "" for v in vac],
+                textposition="inside", textangle=-90,
+                textfont=dict(size=13, color="#0d3320"),
+                insidetextanchor="middle",
             ))
         # Linhas de média
         vf_nonzero = vf[vf > 0]
@@ -1521,8 +1529,13 @@ def pg_faturamento(D, d0, d1):
                  color_discrete_map={
                      "Água": COR["agua"], "Tarifa Básica": "#8B5CF6",
                      "Serviços": COR["servico"], "Lixo": COR["lixo"],
-                 }, barmode="group" if _comp else "stack")
-    fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
+                 }, barmode="group" if _comp else "stack",
+                 text=ag_melt["Valor"].apply(lambda v: f"{v/1000:.0f}k" if v >= 1000 else f"{v:.0f}"))
+    fig.update_traces(textposition="inside", textangle=-90,
+                      textfont=dict(size=12, color="white"),
+                      insidetextanchor="middle")
+    fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="",
+                      uniformtext_minsize=8, uniformtext_mode="hide")
     fig.update_yaxes(tickformat=",.0f")
     st.plotly_chart(fig, use_container_width=True)
 
