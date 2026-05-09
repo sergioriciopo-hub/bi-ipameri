@@ -1068,7 +1068,7 @@ def pg_cockpit(D, d0, d1):
                 font=dict(size=12, color="#1a6b3c"),
             ))
         fig1.update_layout(
-            title="Faturamento e Arrecadação Mensal (R$)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
+            title="Faturamento × Arrecadação (R$)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
             barmode="group",
             margin=dict(t=85, b=10, l=0, r=30), height=430,
             annotations=annotations_medias,
