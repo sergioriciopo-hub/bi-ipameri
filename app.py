@@ -846,6 +846,17 @@ def bar_mensal(df, col_data, col_val, title, cor=None, agrupamento="M"):
     fig.update_traces(textposition="inside", textangle=-90,
                       textfont=dict(size=14, color="white", family="Arial Black"),
                       insidetextanchor="middle")
+    # Linha de média
+    media = ag["Valor"].mean()
+    cor_linha = cor or COR["azul"]
+    fig.add_hline(y=media, line_dash="dash", line_color=cor_linha, line_width=1.8)
+    fig.add_annotation(
+        xref="paper", yref="y", x=0, y=media,
+        text=f"<b>Média: {media:,.0f}".replace(",", ".") + "</b>",
+        showarrow=False, xanchor="left", yanchor="bottom",
+        font=dict(size=12, color=cor_linha, family="Arial Black"),
+        bgcolor="rgba(255,255,255,0.75)", borderpad=2,
+    )
     fig.update_layout(xaxis_title="", yaxis_title="", showlegend=False,
                       margin=dict(t=35, b=0, l=0, r=20),
                       uniformtext_minsize=9, uniformtext_mode="hide")
