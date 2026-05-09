@@ -628,8 +628,8 @@ def sidebar_periodo():
 
     else:  # Período Personalizado
         c1, c2 = st.sidebar.columns(2)
-        d0 = c1.date_input("De", value=hoje.replace(day=1))
-        d1 = c2.date_input("Até", value=hoje)
+        d0 = c1.date_input("De", value=hoje.replace(day=1), format="DD/MM/YYYY")
+        d1 = c2.date_input("Até", value=hoje, format="DD/MM/YYYY")
 
     return pd.Timestamp(d0), pd.Timestamp(d1)
 
