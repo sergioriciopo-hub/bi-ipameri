@@ -2262,14 +2262,49 @@ def pg_servicos(D, d0, d1):
         lambda r: "Ações Internas" if r.get("ch_tipo_atendimento") in (3, 4) else r["nm_tipo_atendimento"],
         axis=1,
     )
-    ag_can = srv_can.groupby("nm_tipo_atendimento")["qt_servico"].sum()\
-                    .sort_values(ascending=True).reset_index()
-    ag_can.columns = ["Canal", "Qtd"]
-    fig = px.bar(ag_can, x="Qtd", y="Canal", orientation="h",
-                 title="Serviços por Canal de Atendimento",
-                 color_discrete_sequence=[COR["azul"]])
-    fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
-    st.plotly_chart(fig, use_container_width=True)
+
+    # ── Evolução mensal por canal ──────────────────────────────────────────────
+    srv_can["_mes"] = pd.to_datetime(srv_can["dt_solicitacao"]).dt.strftime("%m/%Y")
+    ag_can_m = srv_can.groupby(["_mes", "nm_tipo_atendimento"])["qt_servico"].sum().reset_index()
+    ag_can_m.columns = ["Mês", "Canal", "Qtd"]
+    meses_ord_can = _sort_meses(ag_can_m["Mês"].unique().tolist())
+
+    # Exclui canais com volume irrisório (< 1% do total)
+    total_can = ag_can_m["Qtd"].sum()
+    canais_rel = ag_can_m.groupby("Canal")["Qtd"].sum()
+    canais_rel = canais_rel[canais_rel / total_can >= 0.01].index.tolist()
+    ag_can_m = ag_can_m[ag_can_m["Canal"].isin(canais_rel)]
+
+    _cores_can = px.colors.qualitative.Set2
+    fig_can = px.bar(ag_can_m, x="Mês", y="Qtd", color="Canal",
+                     barmode="group",
+                     title="Serviços por Canal de Atendimento (mensal)",
+                     color_discrete_sequence=_cores_can,
+                     category_orders={"Mês": meses_ord_can},
+                     text="Qtd")
+    fig_can.update_traces(textposition="inside", textangle=-90,
+                          textfont=dict(size=12, color="white", family="Arial Black"),
+                          insidetextanchor="middle")
+    # Linha de média por canal
+    for i, canal in enumerate(ag_can_m["Canal"].unique()):
+        media_c = ag_can_m[ag_can_m["Canal"] == canal]["Qtd"].mean()
+        fig_can.add_hline(
+            y=media_c, line_dash="dot",
+            line_color=_cores_can[i % len(_cores_can)], line_width=1.5,
+            annotation_text=f"<b>Méd. {canal}: {media_c:.0f}</b>",
+            annotation_position="top right",
+            annotation_font=dict(size=11, color=_cores_can[i % len(_cores_can)]),
+        )
+    fig_can.update_layout(
+        margin=dict(t=50, b=50, l=0, r=20), height=450,
+        xaxis=dict(title="", categoryorder="array", categoryarray=meses_ord_can),
+        yaxis=dict(title=""),
+        legend=dict(orientation="h", yanchor="top", y=-0.12, xanchor="center", x=0.5,
+                    font=dict(size=12)),
+        hovermode="x unified",
+        uniformtext_minsize=8, uniformtext_mode="hide",
+    )
+    st.plotly_chart(fig_can, use_container_width=True)
 
     # SLA por canal
     if "fl_fora_prazo" in srv.columns:
