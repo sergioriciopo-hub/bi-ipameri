@@ -1005,43 +1005,61 @@ def pg_cockpit(D, d0, d1):
     )))
     if todos:
         fig1 = go.Figure()
+        vf = fat_m.set_index("Mês").reindex(todos)["Valor"].fillna(0) if not fat_m.empty else pd.Series([0]*len(todos), index=todos)
+        va = arr_m.set_index("Mês").reindex(todos)["Valor"].fillna(0) if not arr_m.empty else pd.Series([0]*len(todos), index=todos)
+        label_fat = f"Faturamento {_comp['label_atual'] if _comp else ''}".strip()
+        label_arr = f"Arrecadação {_comp['label_atual'] if _comp else ''}".strip()
         if not fat_m.empty:
-            vf = fat_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
-            fig1.add_trace(go.Scatter(
-                x=todos, y=vf, name=f"Faturamento {_comp['label_atual'] if _comp else ''}".strip(),
-                fill="tozeroy", fillcolor="rgba(26,111,173,0.28)",
-                line=dict(color=COR["azul"], width=2),
-                mode="lines+markers+text",
-                text=[f"{v/1000:.0f} Mil" if v > 0 else "" for v in vf],
-                textposition="top center", textfont=dict(size=13, color=COR["azul_esc"]),
+            fig1.add_trace(go.Bar(
+                x=todos, y=vf, name=label_fat,
+                marker_color=COR["azul"], opacity=0.85,
+                text=[f"{v/1000:.0f}k" if v > 0 else "" for v in vf],
+                textposition="outside", textfont=dict(size=11, color=COR["azul_esc"]),
             ))
         if not arr_m.empty:
-            va = arr_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
-            fig1.add_trace(go.Scatter(
-                x=todos, y=va, name=f"Arrecadação {_comp['label_atual'] if _comp else ''}".strip(),
-                fill="tozeroy", fillcolor="rgba(39,174,96,0.45)",
-                line=dict(color=COR["verde"], width=2),
-                mode="lines+markers+text",
-                text=[f"{v/1000:.0f} Mil" if v > 0 else "" for v in va],
-                textposition="bottom center", textfont=dict(size=13, color="#1a6b3c"),
+            fig1.add_trace(go.Bar(
+                x=todos, y=va, name=label_arr,
+                marker_color=COR["verde"], opacity=0.85,
+                text=[f"{v/1000:.0f}k" if v > 0 else "" for v in va],
+                textposition="outside", textfont=dict(size=11, color="#1a6b3c"),
             ))
         if _comp and not fat_c_m.empty:
             vfc = fat_c_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
-            fig1.add_trace(go.Scatter(
+            fig1.add_trace(go.Bar(
                 x=todos, y=vfc, name=f"Faturamento {_comp['label_comp']}",
-                line=dict(color=COR["azul"], width=2, dash="dot"),
-                mode="lines+markers", opacity=0.55, marker=dict(size=6, symbol="circle-open"),
+                marker_color=COR["azul"], opacity=0.35,
+                marker_pattern_shape="/",
             ))
         if _comp and not arr_c_m.empty:
             vac = arr_c_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
-            fig1.add_trace(go.Scatter(
+            fig1.add_trace(go.Bar(
                 x=todos, y=vac, name=f"Arrecadação {_comp['label_comp']}",
-                line=dict(color=COR["verde"], width=2, dash="dot"),
-                mode="lines+markers", opacity=0.55, marker=dict(size=6, symbol="circle-open"),
+                marker_color=COR["verde"], opacity=0.35,
+                marker_pattern_shape="/",
             ))
+        # Linhas de média
+        vf_nonzero = vf[vf > 0]
+        va_nonzero = va[va > 0]
+        if len(vf_nonzero) > 0:
+            media_fat = vf_nonzero.mean()
+            fig1.add_hline(
+                y=media_fat, line_dash="dash", line_color=COR["azul"], line_width=1.5,
+                annotation_text=f"Média Fat.: R$ {media_fat/1000:.0f}k",
+                annotation_position="top left",
+                annotation_font=dict(color=COR["azul"], size=12),
+            )
+        if len(va_nonzero) > 0:
+            media_arr = va_nonzero.mean()
+            fig1.add_hline(
+                y=media_arr, line_dash="dash", line_color=COR["verde"], line_width=1.5,
+                annotation_text=f"Média Arrec.: R$ {media_arr/1000:.0f}k",
+                annotation_position="bottom left",
+                annotation_font=dict(color="#1a6b3c", size=12),
+            )
         fig1.update_layout(
             title="Faturamento e Arrecadação Mensal (R$)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
-            margin=dict(t=70, b=10, l=0, r=30), height=400,
+            barmode="group",
+            margin=dict(t=70, b=10, l=0, r=30), height=420,
             xaxis=dict(title="", categoryorder="array", categoryarray=todos),
             yaxis=dict(title="", tickformat=",.0f"),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
