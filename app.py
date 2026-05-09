@@ -1647,11 +1647,33 @@ def pg_faturamento(D, d0, d1):
         ag_b = fat.groupby("nm_bairro_dim")["vl_total_faturado"].sum()\
                   .sort_values(ascending=True).tail(15).reset_index()
         ag_b.columns = ["Bairro", "Valor"]
-        fig5 = px.bar(ag_b, x="Valor", y="Bairro", orientation="h",
-                      title="Top 15 Bairros — Faturamento",
-                      color_discrete_sequence=[COR["azul"]])
-        fig5.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
-        fig5.update_xaxes(tickformat=",.0f")
+        # Degradê: bairro com menor valor → azul claro; maior → azul escuro
+        n = len(ag_b)
+        import colorsys
+        def _grad_azul(i, total):
+            # interpola de #AED6F1 (claro) a #1A5276 (escuro) conforme posição
+            t = i / max(total - 1, 1)
+            r = int(174 + t * (26  - 174))
+            g = int(214 + t * (82  - 214))
+            b = int(241 + t * (118 - 241))
+            return f"rgb({r},{g},{b})"
+        cores_grad = [_grad_azul(i, n) for i in range(n)]
+        fig5 = go.Figure(go.Bar(
+            x=ag_b["Valor"], y=ag_b["Bairro"], orientation="h",
+            marker_color=cores_grad,
+            marker=dict(line=dict(width=0)),
+            text=ag_b["Valor"].apply(lambda v: f"<b>R$ {v:,.0f}</b>".replace(",", ".")),
+            textposition="inside",
+            textfont=dict(size=13, color="white", family="Arial Black"),
+            insidetextanchor="end",
+        ))
+        fig5.update_layout(
+            title="Top 15 Bairros — Faturamento",
+            margin=dict(t=40, b=0, l=0, r=20), height=480,
+            xaxis=dict(title="", tickformat=",.0f"),
+            yaxis=dict(title=""),
+            uniformtext_minsize=9, uniformtext_mode="hide",
+        )
         st.plotly_chart(fig5, use_container_width=True)
 
     # Aviso de cobertura
