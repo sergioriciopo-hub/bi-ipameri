@@ -1569,13 +1569,37 @@ def pg_faturamento(D, d0, d1):
     comp_data = {k: v for k, v in comp_data.items() if v > 0}
     if comp_data:
         df_comp = pd.DataFrame(list(comp_data.items()), columns=["Componente", "Valor"])
-        fig2 = px.pie(df_comp, names="Componente", values="Valor",
-                      title="Composição do Faturamento Líquido",
-                      color_discrete_map={
-                          "Água": COR["agua"], "Tarifa Básica": "#8B5CF6",
-                          "Serviços": COR["servico"], "Lixo": COR["lixo"],
-                      })
-        fig2.update_layout(margin=dict(t=35, b=0, l=0, r=20))
+        _cores_pie = {
+            "Água": COR["agua"], "Tarifa Básica": "#8B5CF6",
+            "Serviços": COR["servico"], "Lixo": COR["lixo"],
+        }
+        fig2 = go.Figure(data=[go.Pie(
+            labels=df_comp["Componente"],
+            values=df_comp["Valor"],
+            pull=[0.04] * len(df_comp),           # leve separação suave
+            marker=dict(
+                colors=[_cores_pie.get(c, COR["azul"]) for c in df_comp["Componente"]],
+                line=dict(color="white", width=2.5),  # borda branca suave
+            ),
+            textposition="inside",
+            texttemplate="<b>%{label}</b><br>%{percent:.1%}",
+            textfont=dict(size=14, color="white", family="Arial Black"),
+            hovertemplate="<b>%{label}</b><br>R$ %{value:,.0f}<br>%{percent:.2%}<extra></extra>",
+            insidetextorientation="radial",
+            hole=0.08,                             # furo mínimo para suavizar centro
+        )])
+        fig2.update_layout(
+            title=dict(text="Composição do Faturamento Líquido", font=dict(size=15)),
+            margin=dict(t=50, b=20, l=20, r=20), height=420,
+            legend=dict(
+                orientation="v", xanchor="left", x=1.02,
+                yanchor="middle", y=0.5,
+                font=dict(size=13, family="Arial"),
+                bgcolor="rgba(255,255,255,0.85)",
+                bordercolor="rgba(180,180,180,0.4)", borderwidth=1,
+            ),
+            paper_bgcolor="rgba(0,0,0,0)",
+        )
         st.plotly_chart(fig2, use_container_width=True)
     # Volume m³ mensal
     fig3 = bar_mensal(fat, "dt_ref", "volume_m3",
