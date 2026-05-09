@@ -2267,12 +2267,16 @@ def pg_servicos(D, d0, d1):
     srv_can["_mes"] = pd.to_datetime(srv_can["dt_solicitacao"]).dt.strftime("%m/%Y")
     ag_can_m = srv_can.groupby(["_mes", "nm_tipo_atendimento"])["qt_servico"].sum().reset_index()
     ag_can_m.columns = ["Mês", "Canal", "Qtd"]
-    meses_ord_can = _sort_meses(ag_can_m["Mês"].unique().tolist())
+    meses_ord_can = sorted(ag_can_m["Mês"].unique().tolist(),
+                           key=lambda x: pd.to_datetime(x, format="%m/%Y"))
 
-    # Exclui canais com volume irrisório (< 1% do total)
+    # Exclui canais irrelevantes: < 1% do total e "RESERVADO PARA O FUTURO"
     total_can = ag_can_m["Qtd"].sum()
     canais_rel = ag_can_m.groupby("Canal")["Qtd"].sum()
-    canais_rel = canais_rel[canais_rel / total_can >= 0.01].index.tolist()
+    canais_rel = canais_rel[
+        (canais_rel / total_can >= 0.01) &
+        (~canais_rel.index.str.upper().str.contains("RESERVADO"))
+    ].index.tolist()
     ag_can_m = ag_can_m[ag_can_m["Canal"].isin(canais_rel)]
 
     _cores_can = px.colors.qualitative.Set2
