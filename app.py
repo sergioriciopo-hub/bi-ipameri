@@ -2137,7 +2137,7 @@ def pg_inadimplencia(D, d0, d1):
     )])
     fig2.update_layout(
         title=dict(text="Distribuição por Qtd de Faturas", font=dict(size=15)),
-        margin=dict(t=50, b=20, l=20, r=20), height=420,
+        margin=dict(t=60, b=80, l=80, r=160), height=500,
         legend=dict(orientation="v", xanchor="left", x=1.02, yanchor="middle", y=0.5,
                     font=dict(size=13, family="Arial"),
                     bgcolor="rgba(255,255,255,0.85)", bordercolor="rgba(180,180,180,0.4)", borderwidth=1),
