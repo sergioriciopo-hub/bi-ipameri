@@ -926,6 +926,7 @@ _PG_CORES = {
     "Frota Combustível":                 ("#3E5F7F", "#5B8FB8"),
     "Energia Elétrica":                  ("#3E5F7F", "#5B8FB8"),
     "Setores Operacionais":              ("#3E5F7F", "#5B8FB8"),
+    "Perdas":                            ("#7B241C", "#C0392B"),
     "Tratamento":                        ("#0E6655", "#1A9278"),
 }
 
@@ -3580,6 +3581,167 @@ def pg_setores(D, d0, d1, _sub=False):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# COCKPIT — PERDAS
+# ══════════════════════════════════════════════════════════════════════════════
+_META_PERDA = 25.0   # % máximo contratual de perda
+
+def pg_perdas(D, d0, d1):
+    page_header("Perdas", f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
+
+    prod = D.get("prod_agua")
+    fat  = D.get("fat")
+
+    if prod is None or prod.empty or fat is None or fat.empty:
+        st.warning("Dados de produção ou faturamento não disponíveis.")
+        return
+
+    prod = prod.copy()
+    fat  = fat.copy()
+    prod["data"]   = pd.to_datetime(prod["data"])
+    fat["dt_ref"]  = pd.to_datetime(fat["dt_ref"])
+
+    # ── Agrega produção e faturamento por mês ────────────────────────────────
+    fat["_mes"] = fat["dt_ref"].dt.to_period("M")
+    prod["_mes"] = prod["data"].dt.to_period("M")
+
+    fat_m  = fat.groupby("_mes")["volume_m3"].sum().reset_index()
+    fat_m.columns = ["mes", "vol_fat"]
+    prod_m = prod.groupby("_mes")[["vol_total", "vol_ipameri", "vol_domiciano"]].sum().reset_index()
+    prod_m.columns = ["mes", "vol_tratado", "vol_ip", "vol_dom"]
+
+    df = prod_m.merge(fat_m, on="mes", how="inner")
+    df = df[df["vol_tratado"] > 0].copy()
+    df["pct_perda"]  = (df["vol_tratado"] - df["vol_fat"]) / df["vol_tratado"] * 100
+    df["vol_perda"]  = df["vol_tratado"] - df["vol_fat"]
+    df["mes_label"]  = df["mes"].dt.strftime("%m/%Y")
+    df = df.sort_values("mes")
+
+    # ── KPIs do período filtrado ──────────────────────────────────────────────
+    # Usa apenas meses cujo início cai dentro de [d0, d1]
+    df["mes_dt"] = df["mes"].dt.to_timestamp()
+    df_f = df[(df["mes_dt"] >= pd.Timestamp(d0)) & (df["mes_dt"] <= pd.Timestamp(d1))]
+
+    if df_f.empty:
+        st.warning("Sem dados de produção no período selecionado.")
+        return
+
+    _vt   = df_f["vol_tratado"].sum()
+    _vfa  = df_f["vol_fat"].sum()
+    _vpe  = df_f["vol_perda"].sum()
+    _pct  = (_vpe / _vt * 100) if _vt else 0
+    _med  = df_f["pct_perda"].mean()
+    _meses_ok = int((df_f["pct_perda"] <= _META_PERDA).sum())
+    _meses_tot = len(df_f)
+
+    k1, k2, k3, k4, k5 = st.columns(5)
+    kpi_str(k1, "Volume Tratado (m³)",  f"{_vt:,.0f}".replace(",", "."))
+    kpi_str(k2, "Volume Faturado (m³)", f"{_vfa:,.0f}".replace(",", "."))
+    kpi_str(k3, "Volume Perdido (m³)",  f"{_vpe:,.0f}".replace(",", "."))
+    kpi_str(k4, "% Perda no Período",   f"{_pct:.1f}%",
+            help="(Tratado − Faturado) / Tratado × 100")
+    kpi_str(k5, "Meses dentro da Meta", f"{_meses_ok}/{_meses_tot}",
+            help=f"Meta contratual: máx {_META_PERDA:.0f}% de perda")
+
+    st.markdown("---")
+    st.markdown("#### Perdas de Distribuição — % mensal")
+
+    # ── Gráfico de barras mensais com meta ────────────────────────────────────
+    _cores = [COR["verde"] if v <= _META_PERDA else COR["vermelho"]
+              for v in df["pct_perda"]]
+
+    fig = go.Figure()
+    fig.add_bar(
+        x=df["mes_label"],
+        y=df["pct_perda"].round(1),
+        marker_color=_cores,
+        text=[f"{v:.1f}%" for v in df["pct_perda"]],
+        textposition="inside",
+        insidetextanchor="middle",
+        textangle=-90,
+        textfont=dict(family="Arial Black", color="white", size=13),
+        name="% Perda",
+        hovertemplate=(
+            "<b>%{x}</b><br>"
+            "Perda: %{y:.1f}%<br>"
+            "<extra></extra>"
+        ),
+    )
+    # Linha de meta contratual
+    fig.add_hline(
+        y=_META_PERDA,
+        line_dash="dash",
+        line_color=COR["amarelo"],
+        line_width=2,
+    )
+    fig.add_annotation(
+        xref="paper", yref="y",
+        x=0, y=_META_PERDA,
+        text=f"<b>Meta: {_META_PERDA:.0f}%</b>",
+        showarrow=False, xanchor="left", yanchor="bottom",
+        font=dict(size=12, color=COR["amarelo"], family="Arial Black"),
+        bgcolor="rgba(255,255,255,0.8)", borderpad=2,
+    )
+    # Média do período completo
+    _media_total = df["pct_perda"].mean()
+    fig.add_hline(
+        y=_media_total,
+        line_dash="dot",
+        line_color=COR["cinza"],
+        line_width=1.5,
+    )
+    fig.add_annotation(
+        xref="paper", yref="y",
+        x=1, y=_media_total,
+        text=f"<b>Média: {_media_total:.1f}%</b>",
+        showarrow=False, xanchor="right", yanchor="bottom",
+        font=dict(size=11, color=COR["cinza"], family="Arial Black"),
+        bgcolor="rgba(255,255,255,0.8)", borderpad=2,
+    )
+    fig.update_layout(
+        margin=dict(t=10, b=0, l=0, r=0),
+        xaxis_title="", yaxis_title="% Perda",
+        yaxis=dict(ticksuffix="%", range=[0, max(df["pct_perda"].max() * 1.15, _META_PERDA * 1.3)]),
+        showlegend=False,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ── Gráfico volumes: tratado vs faturado ─────────────────────────────────
+    st.markdown("#### Volume Tratado vs Faturado (m³/mês)")
+    fig2 = go.Figure()
+    fig2.add_bar(
+        x=df["mes_label"], y=df["vol_tratado"],
+        name="Tratado", marker_color=COR["azul"],
+        text=(df["vol_tratado"] / 1000).round(1).apply(lambda v: f"{v:.1f}k"),
+        textposition="inside", textangle=-90, insidetextanchor="middle",
+        textfont=dict(family="Arial Black", color="white", size=12),
+    )
+    fig2.add_bar(
+        x=df["mes_label"], y=df["vol_fat"],
+        name="Faturado", marker_color=COR["verde"],
+        text=(df["vol_fat"] / 1000).round(1).apply(lambda v: f"{v:.1f}k"),
+        textposition="inside", textangle=-90, insidetextanchor="middle",
+        textfont=dict(family="Arial Black", color="white", size=12),
+    )
+    fig2.update_layout(
+        barmode="group",
+        margin=dict(t=10, b=0, l=0, r=0),
+        xaxis_title="", yaxis_title="m³",
+        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0),
+    )
+    st.plotly_chart(fig2, use_container_width=True)
+
+    # ── Tabela resumo ─────────────────────────────────────────────────────────
+    st.markdown("#### Tabela Mensal de Perdas")
+    tbl = df[["mes_label","vol_tratado","vol_fat","vol_perda","pct_perda"]].copy()
+    tbl.columns = ["Mês","Tratado (m³)","Faturado (m³)","Perdido (m³)","% Perda"]
+    tbl["Tratado (m³)"]  = tbl["Tratado (m³)"].apply(lambda v: f"{v:,.0f}".replace(",","."))
+    tbl["Faturado (m³)"] = tbl["Faturado (m³)"].apply(lambda v: f"{v:,.0f}".replace(",","."))
+    tbl["Perdido (m³)"]  = tbl["Perdido (m³)"].apply(lambda v: f"{v:,.0f}".replace(",","."))
+    tbl["% Perda"]       = tbl["% Perda"].apply(lambda v: f"{v:.1f}%")
+    st.dataframe(tbl.sort_values("Mês", ascending=False).reset_index(drop=True),
+                 use_container_width=True, hide_index=True)
+
+
 # COCKPIT — TRATAMENTO
 # ══════════════════════════════════════════════════════════════════════════════
 def pg_tratamento(D, d0, d1):
@@ -3895,6 +4057,7 @@ def main():
         "Cobrança e Recuperação de Receita":  pg_cortes,
         "Energia Elétrica":      pg_energia,
         "Frota Combustível":     pg_frota_combustivel,
+        "Perdas":                pg_perdas,
         "Tratamento":            pg_tratamento,
     }
 
