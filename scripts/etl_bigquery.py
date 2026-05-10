@@ -574,9 +574,14 @@ def run_etl(force_full=False):
 
 
 def _normalize_tz(df):
-    """Remove timezone de colunas datetime para compatibilidade com parquet."""
+    """Remove timezone e converte DATE (dbdate/date32) para datetime64[ns] compatível com parquet+pandas."""
     for col in df.select_dtypes(include=["datetimetz"]).columns:
         df[col] = df[col].dt.tz_localize(None)
+    # Converte colunas BigQuery DATE (dbdate / date32[day]) para datetime64[ns]
+    for col in df.columns:
+        dtype_str = str(df[col].dtype)
+        if dtype_str not in ("datetime64[ns]",) and "date" in dtype_str.lower():
+            df[col] = pd.to_datetime(df[col], errors="coerce")
 
 
 if __name__ == "__main__":
