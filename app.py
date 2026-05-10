@@ -2575,8 +2575,7 @@ def pg_cortes(D, d0, d1):
             ("SLA Religação Normal",   sla_rel_normal, _sn_c, lambda v: f"{v:.1%}", True),
         ])
 
-    st.markdown("---")
-    st.markdown("##### Religações — SLA e prazo")
+    st.markdown("#### Religações — SLA e prazo")
     r1, r2, r3 = st.columns(3)
     kpi(r1, "Normal (24h)", qtd_rel_normal, prefixo="")
     kpi(r2, "% Normal no Prazo", sla_rel_normal, prefixo="%",
