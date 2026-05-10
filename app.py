@@ -3647,14 +3647,14 @@ def pg_perdas(D, d0, d1):
 
     # ── Gráfico de barras mensais com meta ────────────────────────────────────
     _cores = [COR["verde"] if v <= _META_PERDA else COR["vermelho"]
-              for v in df["pct_perda"]]
+              for v in df_f["pct_perda"]]
 
     fig = go.Figure()
     fig.add_bar(
-        x=df["mes_label"],
-        y=df["pct_perda"].round(1),
+        x=df_f["mes_label"],
+        y=df_f["pct_perda"].round(1),
         marker_color=_cores,
-        text=[f"{v:.1f}%" for v in df["pct_perda"]],
+        text=[f"{v:.1f}%" for v in df_f["pct_perda"]],
         textposition="inside",
         insidetextanchor="middle",
         textangle=-90,
@@ -3681,8 +3681,8 @@ def pg_perdas(D, d0, d1):
         font=dict(size=12, color=COR["amarelo"], family="Arial Black"),
         bgcolor="rgba(255,255,255,0.8)", borderpad=2,
     )
-    # Média do período completo
-    _media_total = df["pct_perda"].mean()
+    # Média do período filtrado
+    _media_total = df_f["pct_perda"].mean()
     fig.add_hline(
         y=_media_total,
         line_dash="dot",
@@ -3700,7 +3700,7 @@ def pg_perdas(D, d0, d1):
     fig.update_layout(
         margin=dict(t=10, b=0, l=0, r=0),
         xaxis_title="", yaxis_title="% Perda",
-        yaxis=dict(ticksuffix="%", range=[0, max(df["pct_perda"].max() * 1.15, _META_PERDA * 1.3)]),
+        yaxis=dict(ticksuffix="%", range=[0, max(df_f["pct_perda"].max() * 1.15, _META_PERDA * 1.3)]),
         showlegend=False,
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -3709,16 +3709,16 @@ def pg_perdas(D, d0, d1):
     st.markdown("#### Volume Tratado vs Faturado (m³/mês)")
     fig2 = go.Figure()
     fig2.add_bar(
-        x=df["mes_label"], y=df["vol_tratado"],
+        x=df_f["mes_label"], y=df_f["vol_tratado"],
         name="Tratado", marker_color=COR["azul"],
-        text=(df["vol_tratado"] / 1000).round(1).apply(lambda v: f"{v:.1f}k"),
+        text=(df_f["vol_tratado"] / 1000).round(1).apply(lambda v: f"{v:.1f}k"),
         textposition="inside", textangle=-90, insidetextanchor="middle",
         textfont=dict(family="Arial Black", color="white", size=12),
     )
     fig2.add_bar(
-        x=df["mes_label"], y=df["vol_fat"],
+        x=df_f["mes_label"], y=df_f["vol_fat"],
         name="Faturado", marker_color=COR["verde"],
-        text=(df["vol_fat"] / 1000).round(1).apply(lambda v: f"{v:.1f}k"),
+        text=(df_f["vol_fat"] / 1000).round(1).apply(lambda v: f"{v:.1f}k"),
         textposition="inside", textangle=-90, insidetextanchor="middle",
         textfont=dict(family="Arial Black", color="white", size=12),
     )
@@ -3732,7 +3732,7 @@ def pg_perdas(D, d0, d1):
 
     # ── Tabela resumo ─────────────────────────────────────────────────────────
     st.markdown("#### Tabela Mensal de Perdas")
-    tbl = df[["mes_label","vol_tratado","vol_fat","vol_perda","pct_perda"]].copy()
+    tbl = df_f[["mes_label","vol_tratado","vol_fat","vol_perda","pct_perda"]].copy()
     tbl.columns = ["Mês","Tratado (m³)","Faturado (m³)","Perdido (m³)","% Perda"]
     tbl["Tratado (m³)"]  = tbl["Tratado (m³)"].apply(lambda v: f"{v:,.0f}".replace(",","."))
     tbl["Faturado (m³)"] = tbl["Faturado (m³)"].apply(lambda v: f"{v:,.0f}".replace(",","."))
