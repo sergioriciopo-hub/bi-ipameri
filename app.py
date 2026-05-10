@@ -2634,16 +2634,52 @@ def pg_cortes(D, d0, d1):
                 _ag_rg.columns = ["Mês","Qtd"]; _ag_rg["Tipo"] = f"Religações ({_comp['label_comp']})"
                 df_cr = pd.concat([df_cr, _ag_rg])
         meses_ord = sorted(df_cr["Mês"].unique(), key=lambda x: pd.to_datetime(x, format="%m/%Y"))
-        fig = px.line(df_cr, x="Mês", y="Qtd", color="Tipo", markers=True,
-                      title="Cortes vs Religações (mensal)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
-                      color_discrete_map={"Cortes": COR["vermelho"], "Religações": COR["verde"]},
-                      category_orders={"Mês": meses_ord})
+        _cor_s = df_cr[df_cr["Tipo"] == "Cortes"].set_index("Mês")["Qtd"].reindex(meses_ord, fill_value=0)
+        _rel_s = df_cr[df_cr["Tipo"] == "Religações"].set_index("Mês")["Qtd"].reindex(meses_ord, fill_value=0)
+        fig = go.Figure()
+        fig.add_bar(
+            x=meses_ord, y=_cor_s.values, name="Cortes",
+            marker_color=COR["vermelho"],
+            text=_cor_s.values,
+            textposition="inside",
+            textangle=-90,
+            insidetextanchor="middle",
+            textfont=dict(family="Arial Black", color="white", size=13),
+        )
+        fig.add_bar(
+            x=meses_ord, y=_rel_s.values, name="Religações",
+            marker_color=COR["verde"],
+            text=_rel_s.values,
+            textposition="inside",
+            textangle=-90,
+            insidetextanchor="middle",
+            textfont=dict(family="Arial Black", color="white", size=13),
+        )
         if _comp:
-            for trace in fig.data:
-                if _comp["label_comp"] in trace.name:
-                    trace.line = dict(dash="dot", color=trace.line.color if hasattr(trace, "line") else None)
-                    trace.opacity = 0.6
-        fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
+            _label_c = _comp["label_comp"]
+            _cor_c_s = df_cr[df_cr["Tipo"] == f"Cortes ({_label_c})"].set_index("Mês")["Qtd"].reindex(meses_ord, fill_value=0)
+            _rel_c_s = df_cr[df_cr["Tipo"] == f"Religações ({_label_c})"].set_index("Mês")["Qtd"].reindex(meses_ord, fill_value=0)
+            fig.add_bar(
+                x=meses_ord, y=_cor_c_s.values, name=f"Cortes ({_label_c})",
+                marker=dict(color=COR["vermelho"], pattern_shape="/", opacity=0.5),
+                text=_cor_c_s.values, textposition="inside", textangle=-90,
+                insidetextanchor="middle",
+                textfont=dict(family="Arial Black", color="#0d2e50", size=12),
+            )
+            fig.add_bar(
+                x=meses_ord, y=_rel_c_s.values, name=f"Religações ({_label_c})",
+                marker=dict(color=COR["verde"], pattern_shape="/", opacity=0.5),
+                text=_rel_c_s.values, textposition="inside", textangle=-90,
+                insidetextanchor="middle",
+                textfont=dict(family="Arial Black", color="#0d2e50", size=12),
+            )
+        fig.update_layout(
+            title="Cortes vs Religações (mensal)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
+            barmode="group",
+            margin=dict(t=40, b=0, l=0, r=20),
+            xaxis_title="", yaxis_title="",
+            legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0),
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     # Distribuição por tempo de execução (sol→fim) — em faixas de horas
