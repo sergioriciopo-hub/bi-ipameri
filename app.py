@@ -2734,10 +2734,11 @@ def pg_cortes(D, d0, d1):
         fig3.update_traces(
             textposition="inside",
             insidetextanchor="middle",
-            textfont=dict(family="Arial Black", color="white", size=13),
+            textangle=0,
+            textfont=dict(family="Arial Black", color="white", size=15),
+            cliponaxis=False,
         )
-        fig3.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="",
-                           uniformtext_minsize=10, uniformtext_mode="hide")
+        fig3.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
         st.plotly_chart(fig3, use_container_width=True)
 
     if not rel.empty and "dias_corte_religacao" in rel.columns and "id_servico_definicao" in rel.columns:
