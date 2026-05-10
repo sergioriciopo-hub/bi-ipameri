@@ -2343,9 +2343,9 @@ def pg_servicos(D, d0, d1):
             uniformtext_minsize=8, uniformtext_mode="hide",
         )
         st.plotly_chart(fig2, use_container_width=True)
-    # Evolução mensal
-    srv_m = srv.copy()
-    srv_m["_mes"] = pd.to_datetime(srv_m["dt_solicitacao"]).dt.to_period("M").dt.to_timestamp()
+    # Evolução mensal SLA — exclui solicitações internas (mesma regra de srv_can)
+    srv_m = srv_can.copy()   # usa srv_can que já excluiu Interno/Automático/Reservado
+    srv_m["_mes"] = pd.to_datetime(srv_m["dt_solicitacao"]).dt.strftime("%m/%Y")
     if "fl_fora_prazo" in srv_m.columns:
         srv_m["Status SLA"] = srv_m["fl_fora_prazo"].apply(
             lambda x: "Fora do Prazo" if x == True else "No Prazo"
@@ -2354,21 +2354,52 @@ def pg_servicos(D, d0, d1):
         srv_m["Status SLA"] = "No Prazo"
     ag_m = srv_m.groupby(["_mes","Status SLA"])["qt_servico"].sum().reset_index()
     ag_m.columns = ["Mês","SLA","Qtd"]
+    meses_m = sorted(ag_m["Mês"].unique().tolist(), key=lambda x: pd.to_datetime(x, format="%m/%Y"))
     _comp = _comp_periodo()
     if _comp:
         _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
         _srv_cg = filtrar(D["srv"], "dt_solicitacao", _cd0, _cd1)
         if not _srv_cg.empty:
             _sm_c = _srv_cg.copy()
-            _sm_c["_mes"] = pd.to_datetime(_sm_c["dt_solicitacao"]).dt.to_period("M").dt.to_timestamp()
-            _sm_c["Status SLA"] = _sm_c["fl_fora_prazo"].apply(lambda x: f"Fora do Prazo ({_comp['label_comp']})" if x == True else f"No Prazo ({_comp['label_comp']})") if "fl_fora_prazo" in _sm_c.columns else f"No Prazo ({_comp['label_comp']})"
+            _sm_c = _sm_c[~_sm_c["nm_tipo_atendimento"].isin(_canais_excluir) &
+                          ~_sm_c["nm_tipo_atendimento"].str.upper().str.contains("RESERVADO", na=False)]
+            _sm_c["_mes"] = pd.to_datetime(_sm_c["dt_solicitacao"]).dt.strftime("%m/%Y")
+            _sm_c["Status SLA"] = _sm_c["fl_fora_prazo"].apply(
+                lambda x: f"Fora do Prazo ({_comp['label_comp']})" if x == True else f"No Prazo ({_comp['label_comp']})"
+            ) if "fl_fora_prazo" in _sm_c.columns else f"No Prazo ({_comp['label_comp']})"
             _ag_mc = _sm_c.groupby(["_mes","Status SLA"])["qt_servico"].sum().reset_index()
             _ag_mc.columns = ["Mês","SLA","Qtd"]
             ag_m = pd.concat([ag_m, _ag_mc], ignore_index=True)
+    # Meta: % No Prazo ≥ 90% → linha de referência sobre total mensal
+    ag_total_m = ag_m[ag_m["SLA"].isin(["No Prazo","Fora do Prazo"])].groupby("Mês")["Qtd"].sum()
+    meta_vals  = (ag_total_m * 0.90).reindex(meses_m)
     fig3 = px.bar(ag_m, x="Mês", y="Qtd", color="SLA", barmode="group",
-                  title="Serviços Mensais (No Prazo vs Fora)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
-                  color_discrete_map={"No Prazo": COR["verde"], "Fora do Prazo": COR["vermelho"]})
-    fig3.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="")
+                  title="Serviços Mensais — No Prazo vs Fora do Prazo" + (f" ({_comp['label_atual']} vs {_comp['label_comp']})" if _comp else ""),
+                  color_discrete_map={"No Prazo": COR["verde"], "Fora do Prazo": COR["vermelho"]},
+                  category_orders={"Mês": meses_m},
+                  text="Qtd")
+    fig3.update_traces(textposition="inside", textangle=-90,
+                       textfont=dict(size=13, color="white", family="Arial Black"),
+                       insidetextanchor="middle")
+    # Destaque nas barras de comparativo
+    if _comp:
+        for trace in fig3.data:
+            if _comp["label_comp"] in trace.name:
+                trace.textfont = dict(size=14, color="#1a1a1a", family="Arial Black")
+    # Linha de meta 90%
+    fig3.add_scatter(x=meses_m, y=meta_vals.values, mode="lines+markers",
+                     name="Meta 90% (No Prazo)",
+                     line=dict(color="#1A5276", width=2, dash="dash"),
+                     marker=dict(size=5, color="#1A5276"))
+    fig3.update_layout(
+        margin=dict(t=50, b=50, l=0, r=20), height=450,
+        xaxis=dict(title="", categoryorder="array", categoryarray=meses_m),
+        yaxis=dict(title="Qtd Serviços"),
+        legend=dict(orientation="h", yanchor="top", y=-0.12, xanchor="center", x=0.5,
+                    font=dict(size=12)),
+        hovermode="x unified",
+        uniformtext_minsize=8, uniformtext_mode="hide",
+    )
     st.plotly_chart(fig3, use_container_width=True)
 
     # Por equipe
