@@ -849,6 +849,25 @@ def kpi(col, label, valor, delta=None, delta_inv=False, prefixo="R$"):
     col.markdown(html, unsafe_allow_html=True)
 
 
+def kpi_str(col, label, vstr, help=None):
+    """KPI com valor já formatado como string — mesma caixa visual do kpi()."""
+    help_icon = f' <span title="{help}" style="cursor:help;color:rgba(0,0,0,0.35);">ⓘ</span>' if help else ""
+    html = f"""
+    <div style="
+        background:linear-gradient(135deg, rgba(100,150,200,0.08) 0%, rgba(100,150,200,0.02) 100%);
+        border:1px solid rgba(100,150,200,0.15);
+        border-radius:10px;
+        padding:8px 10px;
+        margin-bottom:4px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.06);
+    ">
+        <div style="font-size:0.8rem;color:rgba(0,0,0,0.6);margin-bottom:3px;font-weight:500;">{label}{help_icon}</div>
+        <div style="font-size:1.2rem;font-weight:700;color:#0B3558;line-height:1.1;">{vstr}</div>
+    </div>
+    """
+    col.markdown(html, unsafe_allow_html=True)
+
+
 def bar_mensal(df, col_data, col_val, title, cor=None, agrupamento="M"):
     if df.empty:
         return go.Figure()
@@ -2536,10 +2555,10 @@ def pg_cortes(D, d0, d1):
     kpi(c1, "Cortes Executados",        qtd_cor,        prefixo="")
     kpi(c2, "Religações (cavalete)",    qtd_rel,        prefixo="")
     kpi(c3, "Taxa Religação/Corte",     taxa_r,         prefixo="%")
-    c4.metric("Tempo Médio Execução",   f"{t_exec_h:.1f}h",
-              help="Da solicitação ao fim da execução (sol→fim). SLA pendente de definição pela empresa.")
-    c5.metric("Tempo Médio Operação",   f"{t_med:.1f}h",
-              help="Tempo cronometrado na execução em campo.")
+    kpi_str(c4, "Tempo Médio Execução", f"{t_exec_h:.1f}h",
+            help="Da solicitação ao fim da execução (sol→fim). SLA pendente de definição pela empresa.")
+    kpi_str(c5, "Tempo Médio Operação", f"{t_med:.1f}h",
+            help="Tempo cronometrado na execução em campo.")
 
     # ── KPIs — linha 2: SLA religações ───────────────────────────────────────
     r1, r2, r3, r4, r5 = st.columns(5)
@@ -2547,8 +2566,8 @@ def pg_cortes(D, d0, d1):
     kpi(r2, "% Normal no Prazo",   sla_rel_normal,  prefixo="%", delta_inv=False)
     kpi(r3, "Urgente (6h/14h)",    qtd_rel_urgente, prefixo="")
     kpi(r4, "% Urgente no Prazo",  sla_rel_urgente, prefixo="%", delta_inv=False)
-    r5.metric("Outros tipos", f"{qtd_rel_outros:,}".replace(",", "."),
-              help="Ramal, reativação etc.")
+    kpi_str(r5, "Outros tipos", f"{qtd_rel_outros:,}".replace(",", "."),
+            help="Ramal, reativação etc.")
 
     st.caption(
         "SLA: Normal = 24h | Urgente expediente (seg-sex 08–18h) = 6h | "
