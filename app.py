@@ -2600,15 +2600,15 @@ def pg_cortes(D, d0, d1):
 
     st.markdown("---")
     if not cor.empty:
-        cor_m = cor.copy()
+        cor_m = cor.drop_duplicates("id_servico").copy()
         cor_m["_mes"] = pd.to_datetime(cor_m["dt_solicitacao"]).dt.strftime("%m/%Y")
-        ag_c = cor_m.groupby("_mes")["qt_servico"].sum().reset_index()
+        ag_c = cor_m.groupby("_mes")["id_servico"].nunique().reset_index()
         ag_c.columns = ["Mês", "Qtd"]
         ag_c["Tipo"] = "Cortes"
 
         frames_cr = [ag_c]
         if not rel_cav.empty:
-            rel_m = rel_cav.copy()
+            rel_m = rel_cav.drop_duplicates("id_servico").copy()
             rel_m["_mes"] = pd.to_datetime(rel_m["dt_reliagacao"]).dt.strftime("%m/%Y")
             ag_r = rel_m.groupby("_mes")["id_servico"].nunique().reset_index()
             ag_r.columns = ["Mês", "Qtd"]
@@ -2622,12 +2622,16 @@ def pg_cortes(D, d0, d1):
             _cor_cg = filtrar(D["cor"], "dt_solicitacao", _cd0, _cd1)
             _rel_cg = filtrar(D["rel"], "dt_reliagacao",  _cd0, _cd1)
             if not _cor_cg.empty:
-                _cg_m = _cor_cg.copy(); _cg_m["_mes"] = pd.to_datetime(_cg_m["dt_solicitacao"]).dt.strftime("%m/%Y")
-                _ag_cg = _cg_m.groupby("_mes")["qt_servico"].sum().reset_index(); _ag_cg.columns = ["Mês","Qtd"]; _ag_cg["Tipo"] = f"Cortes ({_comp['label_comp']})"
+                _cg_m = _cor_cg.drop_duplicates("id_servico").copy()
+                _cg_m["_mes"] = pd.to_datetime(_cg_m["dt_solicitacao"]).dt.strftime("%m/%Y")
+                _ag_cg = _cg_m.groupby("_mes")["id_servico"].nunique().reset_index()
+                _ag_cg.columns = ["Mês","Qtd"]; _ag_cg["Tipo"] = f"Cortes ({_comp['label_comp']})"
                 df_cr = pd.concat([df_cr, _ag_cg])
             if not _rel_cg.empty:
-                _rg_m = _rel_cg.copy(); _rg_m["_mes"] = pd.to_datetime(_rg_m["dt_reliagacao"]).dt.strftime("%m/%Y")
-                _ag_rg = _rg_m.groupby("_mes")["id_servico"].nunique().reset_index(); _ag_rg.columns = ["Mês","Qtd"]; _ag_rg["Tipo"] = f"Religações ({_comp['label_comp']})"
+                _rg_m = _rel_cg.drop_duplicates("id_servico").copy()
+                _rg_m["_mes"] = pd.to_datetime(_rg_m["dt_reliagacao"]).dt.strftime("%m/%Y")
+                _ag_rg = _rg_m.groupby("_mes")["id_servico"].nunique().reset_index()
+                _ag_rg.columns = ["Mês","Qtd"]; _ag_rg["Tipo"] = f"Religações ({_comp['label_comp']})"
                 df_cr = pd.concat([df_cr, _ag_rg])
         meses_ord = sorted(df_cr["Mês"].unique(), key=lambda x: pd.to_datetime(x, format="%m/%Y"))
         fig = px.line(df_cr, x="Mês", y="Qtd", color="Tipo", markers=True,
