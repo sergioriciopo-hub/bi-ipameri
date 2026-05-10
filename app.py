@@ -889,7 +889,6 @@ _PG_CORES = {
     "Cortes e Religações":      ("#3E5F7F", "#5B8FB8"),
     "Leituras e Hidrômetros":   ("#3E5F7F", "#5B8FB8"),
     "Frota Combustível":        ("#3E5F7F", "#5B8FB8"),
-    "Setores Operacionais":     ("#1A5276", "#2E86C1"),
     "Tratamento":               ("#0E6655", "#1A9278"),
 }
 
@@ -2217,6 +2216,16 @@ def pg_servicos(D, d0, d1):
     page_header("Serviços Operacionais",
                 f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
+    tab_vis, tab_det = st.tabs(["📊 Visão Geral", "📂 Detalhe por Setor"])
+
+    with tab_vis:
+        _servicos_visao_geral(D, d0, d1)
+
+    with tab_det:
+        pg_setores(D, d0, d1, _sub=True)
+
+
+def _servicos_visao_geral(D, d0, d1):
     srv = filtrar(D["srv"], "dt_solicitacao", d0, d1)
     bkl = filtrar(D["bkl"], "dt_ref", d0, d1)
 
@@ -3380,9 +3389,10 @@ def _render_setor_bloco(srv_bloco, setor_nome, cor_barra):
         col2.plotly_chart(fig_eq, use_container_width=True)
 
 
-def pg_setores(D, d0, d1):
-    page_header("Setores Operacionais",
-                f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
+def pg_setores(D, d0, d1, _sub=False):
+    if not _sub:
+        page_header("Setores Operacionais",
+                    f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
     srv = filtrar(D["srv"], "dt_solicitacao", d0, d1)
     if srv.empty:
@@ -3777,7 +3787,6 @@ def main():
         "Leituras":              pg_leituras,
         "Energia Elétrica":      pg_energia,
         "Frota Combustível":     pg_frota_combustivel,
-        "Setores Operacionais":  pg_setores,
         "Tratamento":            pg_tratamento,
     }
 
