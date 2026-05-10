@@ -889,6 +889,7 @@ _PG_CORES = {
     "Cortes e Religações":      ("#3E5F7F", "#5B8FB8"),
     "Leituras e Hidrômetros":   ("#3E5F7F", "#5B8FB8"),
     "Frota Combustível":        ("#3E5F7F", "#5B8FB8"),
+    "Setores Operacionais":     ("#1A5276", "#2E86C1"),
     "Tratamento":               ("#0E6655", "#1A9278"),
 }
 
@@ -2225,6 +2226,14 @@ def pg_servicos(D, d0, d1):
 
     srv = merge_equipe(srv, D)
     srv = merge_bairro(srv, D, col="id_bairro")
+    srv = merge_setor(srv, D)
+
+    # ── Filtro de setor ───────────────────────────────────────────────────────
+    if "nm_setor_operacional" in srv.columns:
+        setores_disp = sorted(srv["nm_setor_operacional"].dropna().unique().tolist())
+        setor_sel = st.selectbox("🏭 Setor Operacional", ["Todos os Setores"] + setores_disp)
+        if setor_sel != "Todos os Setores":
+            srv = srv[srv["nm_setor_operacional"] == setor_sel]
 
     qtd  = int(srv["qt_servico"].sum())
     fpr  = int(srv[srv["fl_fora_prazo"] == True]["qt_servico"].sum()) if "fl_fora_prazo" in srv.columns else 0
@@ -3305,6 +3314,160 @@ def pg_energia(D, d0, d1):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# COCKPIT — SETORES OPERACIONAIS
+# ══════════════════════════════════════════════════════════════════════════════
+def pg_setores(D, d0, d1):
+    page_header("Setores Operacionais",
+                f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
+
+    srv = filtrar(D["srv"], "dt_solicitacao", d0, d1)
+    if srv.empty:
+        st.warning("Sem dados de serviços no período.")
+        return
+
+    srv = merge_equipe(srv, D)
+    srv = merge_setor(srv, D)
+
+    # Exclui canais internos (mesma regra de pg_servicos)
+    _excluir = ["Automático - Sistema", "Interno"]
+    if "nm_tipo_atendimento" in srv.columns:
+        srv = srv[
+            ~srv["nm_tipo_atendimento"].isin(_excluir) &
+            ~srv["nm_tipo_atendimento"].str.upper().str.contains("RESERVADO", na=False)
+        ]
+
+    if "nm_setor_operacional" not in srv.columns or srv["nm_setor_operacional"].isna().all():
+        st.warning("Dados de setor operacional não disponíveis.")
+        return
+
+    srv = srv.dropna(subset=["nm_setor_operacional"])
+
+    # ── KPIs ────────────────────────────────────────────────────────────────
+    qtd_tot = int(srv["qt_servico"].sum())
+    fpr_tot = int(srv[srv["fl_fora_prazo"] == True]["qt_servico"].sum()) if "fl_fora_prazo" in srv.columns else 0
+    sla_tot = (qtd_tot - fpr_tot) / qtd_tot if qtd_tot else 0
+    set_atv = srv["nm_setor_operacional"].nunique()
+    t_med   = srv["qt_tempo_execucao"].mean() / 60 if "qt_tempo_execucao" in srv.columns else 0
+    c1, c2, c3, c4 = st.columns(4)
+    kpi(c1, "Total de Serviços", qtd_tot, prefixo="")
+    kpi(c2, "% SLA no Prazo",    sla_tot, prefixo="%")
+    kpi(c3, "Setores Ativos",    set_atv, prefixo="")
+    kpi(c4, "Tempo Médio Exec. (h)", t_med, prefixo="")
+
+    st.markdown("---")
+
+    # ── Agregação por setor ─────────────────────────────────────────────────
+    ag_set = srv.groupby("nm_setor_operacional").agg(
+        Qtd=("qt_servico", "sum"),
+        ForaPrazo=("fl_fora_prazo", lambda x: (x == True).sum()),
+        TempoMedio=("qt_tempo_execucao", "mean"),
+    ).reset_index()
+    ag_set["SLA_pct"] = (ag_set["Qtd"] - ag_set["ForaPrazo"]) / ag_set["Qtd"] * 100
+    ag_set["TempoMedio_h"] = ag_set["TempoMedio"] / 60
+    ag_set = ag_set.sort_values("Qtd", ascending=True)
+
+    col_a, col_b = st.columns(2)
+
+    # ── Gráfico 1 — Ranking por setor (barras horizontais, degradê azul) ────
+    n = len(ag_set)
+    cores_grad = [f"rgb({int(174-i*148/(max(n-1,1)))},{int(214-i*132/(max(n-1,1)))},{int(241-i*123/(max(n-1,1)))})" for i in range(n)]
+    fig1 = go.Figure(go.Bar(
+        x=ag_set["Qtd"], y=ag_set["nm_setor_operacional"], orientation="h",
+        marker_color=cores_grad, marker=dict(line=dict(width=0)),
+        text=ag_set["Qtd"].apply(lambda v: f"<b>{int(v):,}</b>".replace(",",".")),
+        textposition="inside", textfont=dict(size=13, color="white", family="Arial Black"),
+        insidetextanchor="end",
+    ))
+    fig1.update_layout(
+        title="Serviços por Setor Operacional",
+        margin=dict(t=40, b=0, l=0, r=20), height=max(350, n*40),
+        xaxis=dict(title=""), yaxis=dict(title=""),
+        uniformtext_minsize=9, uniformtext_mode="hide",
+    )
+    col_a.plotly_chart(fig1, use_container_width=True)
+
+    # ── Gráfico 2 — % SLA por setor (cor condicional) ───────────────────────
+    ag_sla = ag_set.sort_values("SLA_pct", ascending=True)
+    def _cor_sla(v):
+        return COR["verde"] if v >= 90 else COR["amarelo"] if v >= 75 else COR["vermelho"]
+    fig2 = go.Figure(go.Bar(
+        x=ag_sla["SLA_pct"], y=ag_sla["nm_setor_operacional"], orientation="h",
+        marker_color=[_cor_sla(v) for v in ag_sla["SLA_pct"]],
+        text=ag_sla["SLA_pct"].apply(lambda v: f"<b>{v:.0f}%</b>"),
+        textposition="inside", textfont=dict(size=13, color="white", family="Arial Black"),
+        insidetextanchor="end",
+    ))
+    fig2.add_vline(x=90, line_dash="dash", line_color="#1A5276", line_width=1.5,
+                   annotation_text="<b>Meta 90%</b>",
+                   annotation_position="top", annotation_font=dict(size=11, color="#1A5276"))
+    fig2.update_layout(
+        title="% SLA no Prazo por Setor",
+        margin=dict(t=40, b=0, l=0, r=20), height=max(350, n*40),
+        xaxis=dict(title="", ticksuffix="%", range=[0, 110]),
+        yaxis=dict(title=""),
+        uniformtext_minsize=9, uniformtext_mode="hide",
+    )
+    col_b.plotly_chart(fig2, use_container_width=True)
+
+    st.markdown("---")
+
+    # ── Gráfico 3 — Evolução mensal por setor (linhas) ──────────────────────
+    srv_m = srv.copy()
+    srv_m["_mes"] = pd.to_datetime(srv_m["dt_solicitacao"]).dt.strftime("%m/%Y")
+    ag_m = srv_m.groupby(["_mes","nm_setor_operacional"])["qt_servico"].sum().reset_index()
+    ag_m.columns = ["Mês","Setor","Qtd"]
+    meses_ord = sorted(ag_m["Mês"].unique().tolist(), key=lambda x: pd.to_datetime(x, format="%m/%Y"))
+    fig3 = px.line(ag_m, x="Mês", y="Qtd", color="Setor", markers=True,
+                   title="Evolução Mensal por Setor Operacional",
+                   category_orders={"Mês": meses_ord},
+                   color_discrete_sequence=px.colors.qualitative.Set2)
+    fig3.update_layout(
+        margin=dict(t=40, b=50, l=0, r=20), height=400,
+        xaxis=dict(title=""), yaxis=dict(title="Qtd Serviços"),
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5, font=dict(size=11)),
+        hovermode="x unified",
+    )
+    st.plotly_chart(fig3, use_container_width=True)
+
+    st.markdown("---")
+
+    # ── Gráfico 4 — Tempo médio por setor ───────────────────────────────────
+    ag_t = ag_set.sort_values("TempoMedio_h", ascending=True)
+    fig4 = go.Figure(go.Bar(
+        x=ag_t["TempoMedio_h"], y=ag_t["nm_setor_operacional"], orientation="h",
+        marker_color=COR["azul_c"], marker=dict(line=dict(width=0)),
+        text=ag_t["TempoMedio_h"].apply(lambda v: f"<b>{v:.1f}h</b>"),
+        textposition="inside", textfont=dict(size=13, color="white", family="Arial Black"),
+        insidetextanchor="end",
+    ))
+    fig4.update_layout(
+        title="Tempo Médio de Execução por Setor (h)",
+        margin=dict(t=40, b=0, l=0, r=20), height=max(300, n*38),
+        xaxis=dict(title="horas"), yaxis=dict(title=""),
+    )
+    st.plotly_chart(fig4, use_container_width=True)
+
+    st.markdown("---")
+
+    # ── Tabela resumo ────────────────────────────────────────────────────────
+    st.markdown("#### Resumo por Setor")
+    if "nm_equipe" in srv.columns:
+        equipes_por_setor = srv.groupby("nm_setor_operacional")["nm_equipe"].nunique().rename("Equipes")
+    else:
+        equipes_por_setor = pd.Series(dtype=int)
+
+    tbl = ag_set[["nm_setor_operacional","Qtd","SLA_pct","TempoMedio_h"]].copy()
+    tbl.columns = ["Setor","Serviços","% SLA","Tempo Médio (h)"]
+    tbl["% SLA"] = tbl["% SLA"].apply(lambda v: f"{v:.1f}%")
+    tbl["Tempo Médio (h)"] = tbl["Tempo Médio (h)"].apply(lambda v: f"{v:.1f}h")
+    tbl["Serviços"] = tbl["Serviços"].apply(lambda v: f"{int(v):,}".replace(",","."))
+    if not equipes_por_setor.empty:
+        tbl = tbl.merge(equipes_por_setor.reset_index(), on="Setor", how="left")
+    tbl = tbl.sort_values("Setor").reset_index(drop=True)
+    st.dataframe(tbl, use_container_width=True, hide_index=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # COCKPIT — TRATAMENTO
 # ══════════════════════════════════════════════════════════════════════════════
 def pg_tratamento(D, d0, d1):
@@ -3621,6 +3784,7 @@ def main():
         "Leituras":              pg_leituras,
         "Energia Elétrica":      pg_energia,
         "Frota Combustível":     pg_frota_combustivel,
+        "Setores Operacionais":  pg_setores,
         "Tratamento":            pg_tratamento,
     }
 
