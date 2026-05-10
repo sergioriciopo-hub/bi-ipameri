@@ -720,19 +720,13 @@ def arr_d_por_credito(D, d0, d1):
         return ad
     ad["data_pagamento"] = pd.to_datetime(ad["data_pagamento"])
 
-    def _dc(d):
-        dow = d.weekday()
-        if dow == 5: return d + pd.Timedelta(days=2)
-        if dow == 6: return d + pd.Timedelta(days=1)
-        return d
-
-    ad["data_credito"] = ad["data_pagamento"].apply(_dc)
+    ad["data_credito"] = ad["data_pagamento"].apply(calc_data_credito)
     return ad[(ad["data_pagamento"] >= d0) & (ad["data_pagamento"] < d1 + pd.Timedelta(days=1))]
 
 
 # Feriados nacionais fixos (mês, dia) — adicione municipais/estaduais se necessário
 _FERIADOS_FIXOS = {
-    (1, 1), (4, 21), (5, 1), (9, 7), (10, 12), (11, 2), (11, 15), (12, 25),
+    (1, 1), (4, 21), (5, 1), (9, 7), (10, 12), (11, 2), (11, 15), (11, 20), (12, 25),
 }
 # Feriados móveis calculados (Carnaval = -47d, Sexta Santa = -2d, Corpus Christi = +60d da Páscoa)
 # Páscoa calculada pelo algoritmo de Butcher
@@ -754,6 +748,28 @@ def _feriados_ano(ano):
               (p - timedelta(2)).timetuple()[1:3],    # Sexta-feira Santa
               (p + timedelta(60)).timetuple()[1:3]}   # Corpus Christi
     return _FERIADOS_FIXOS | moveis
+
+def _proximo_dia_util(d):
+    """Retorna o próximo dia útil após d (exclusive), respeitando fds e feriados."""
+    prox = pd.Timestamp(d) + pd.Timedelta(days=1)
+    feriados = _feriados_ano(prox.year)
+    while prox.weekday() >= 5 or (prox.month, prox.day) in feriados:
+        prox += pd.Timedelta(days=1)
+        if prox.year != (prox - pd.Timedelta(days=1)).year:
+            feriados = _feriados_ano(prox.year)
+    return prox
+
+def calc_data_credito(data_pag):
+    """Nova lógica D+: fds/feriado → próximo dia útil; se cruzar mês → mantém no mês do pagamento."""
+    d = pd.Timestamp(data_pag)
+    feriados = _feriados_ano(d.year)
+    eh_nao_util = d.weekday() >= 5 or (d.month, d.day) in feriados
+    if not eh_nao_util:
+        return d
+    proximo = _proximo_dia_util(d)
+    if proximo.month != d.month:
+        return d   # Protege o mês: mantém na data original
+    return proximo
 
 def _eh_expediente(dt):
     """True se dt cai em dia útil (seg-sex, não feriado) entre 08:00 e 18:00."""
@@ -1871,14 +1887,8 @@ def pg_arrecadacao_diaria(D, d0, d1):
 
     ad["data_pagamento"] = pd.to_datetime(ad["data_pagamento"])
 
-    # Aplica lógica D+: sábado → +2 dias (segunda), domingo → +1 dia (segunda)
-    def data_credito(row):
-        dow = row["data_pagamento"].weekday()  # 0=seg, 5=sab, 6=dom
-        if dow == 5: return row["data_pagamento"] + pd.Timedelta(days=2)
-        if dow == 6: return row["data_pagamento"] + pd.Timedelta(days=1)
-        return row["data_pagamento"]
-
-    ad["data_credito"] = ad.apply(data_credito, axis=1)
+    # Aplica lógica D+: fds/feriado → próximo dia útil; se cruzar mês, mantém no mês do pagamento
+    ad["data_credito"] = ad["data_pagamento"].apply(calc_data_credito)
 
     # Filtra pelo data_PAGAMENTO (não data_credito) para que pagamentos de
     # sábado/domingo em fim de mês fiquem no mês correto de pagamento, evitando
@@ -1920,7 +1930,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
         _vt_c  = _ad_c["vl_arrecadado"].sum() if not _ad_c.empty else 0
         # Aplica mesma lógica D+ do período atual: agrupa por data_credito
         if not _ad_c.empty:
-            _ad_c["data_credito"] = _ad_c.apply(data_credito, axis=1)
+            _ad_c["data_credito"] = _ad_c["data_pagamento"].apply(calc_data_credito)
             _qd_c = _ad_c.groupby("data_credito")["vl_arrecadado"].sum().shape[0]
             _md_c = _vt_c / _qd_c if _qd_c else 0
         else:
@@ -1933,12 +1943,10 @@ def pg_arrecadacao_diaria(D, d0, d1):
         ])
 
     st.info(
-        "ℹ️ **Lógica D+**: sábado → crédito segunda (+2 dias), domingo → crédito segunda (+1 dia). "
-        "O período filtra pela **data de pagamento** — pagamentos de fim de mês que creditariam no "
-        "mês seguinte ficam no mês de origem, consistente com o relatório do sistema. "
-        "⚠️ Lotes **DDA Bradesco** (agente 8 / forma 10) têm ciclo D+2 processado em tabela separada "
-        "não disponível na fonte atual (`painel_arrecadacao_contabil`): diferença residual de "
-        "~R$ 23.675 em mar/2026 (dias 20, 23, 24 e 25) deve-se a esses lotes."
+        "ℹ️ **Lógica D+**: pagamentos em finais de semana ou feriados nacionais → crédito no próximo dia útil. "
+        "Se o próximo dia útil cair no mês seguinte, o crédito permanece no mês do pagamento. "
+        "⚠️ Diferença residual de ~R$ 23.675 em mar/2026 (dias 20, 23, 24 e 25): "
+        "registros ausentes na fonte BigQuery (`painel_arrecadacao_contabil`)."
     )
 
     st.markdown("---")
@@ -1960,7 +1968,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
         _ad_c = ad[(ad["data_pagamento"] >= _cd0) & (ad["data_pagamento"] < _cd1 + pd.Timedelta(days=1))].copy()
         if not _ad_c.empty:
             # Aplica mesma lógica D+ do período atual
-            _ad_c["data_credito"] = _ad_c.apply(data_credito, axis=1)
+            _ad_c["data_credito"] = _ad_c["data_pagamento"].apply(calc_data_credito)
             _diario_c = (_ad_c.groupby("data_credito")
                          .agg(Valor=("vl_arrecadado","sum")).reset_index()
                          .rename(columns={"data_credito":"Data"}).sort_values("Data"))
