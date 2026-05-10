@@ -2531,24 +2531,29 @@ def pg_cortes(D, d0, d1):
     d_med_urgente   = _dmed(rel_urgente)
     taxa_r = qtd_rel / qtd_cor if qtd_cor else 0
 
-    # ── KPIs principais ───────────────────────────────────────────────────────
-    c1, c2 = st.columns(2)
-    kpi(c1, "Cortes Executados", qtd_cor, prefixo="")
-    kpi(c2, "Religações (cavalete)", qtd_rel, prefixo="")
-
-    c3, c4 = st.columns(2)
-    c3.metric("Tempo Médio Execução Corte", f"{t_exec_h:.1f}h",
+    # ── KPIs — linha 1: cortes e religações ──────────────────────────────────
+    c1, c2, c3, c4, c5 = st.columns(5)
+    kpi(c1, "Cortes Executados",        qtd_cor,        prefixo="")
+    kpi(c2, "Religações (cavalete)",    qtd_rel,        prefixo="")
+    kpi(c3, "Taxa Religação/Corte",     taxa_r,         prefixo="%")
+    c4.metric("Tempo Médio Execução",   f"{t_exec_h:.1f}h",
               help="Da solicitação ao fim da execução (sol→fim). SLA pendente de definição pela empresa.")
-    c4.metric("Tempo Médio Operação Corte", f"{t_med:.1f}h",
+    c4.caption(f"Tempo médio corte→religação: {d_med:.0f}d  (Normal {d_med_normal:.0f}d | Urgente {d_med_urgente:.0f}d)")
+    c5.metric("Tempo Médio Operação",   f"{t_med:.1f}h",
               help="Tempo cronometrado na execução em campo.")
 
-    c5, c6 = st.columns(2)
-    kpi(c5, "Taxa Religação/Corte", taxa_r, prefixo="%")
-    c6.empty()
+    # ── KPIs — linha 2: SLA religações ───────────────────────────────────────
+    r1, r2, r3, r4, r5 = st.columns(5)
+    kpi(r1, "Normal (24h)",        qtd_rel_normal,  prefixo="")
+    kpi(r2, "% Normal no Prazo",   sla_rel_normal,  prefixo="%", delta_inv=False)
+    kpi(r3, "Urgente (6h/14h)",    qtd_rel_urgente, prefixo="")
+    kpi(r4, "% Urgente no Prazo",  sla_rel_urgente, prefixo="%", delta_inv=False)
+    r5.metric("Outros tipos", f"{qtd_rel_outros:,}".replace(",", "."),
+              help="Ramal, reativação etc.")
 
     st.caption(
-        f"Tempo médio entre corte e pedido de religação (cavalete): "
-        f"{d_med:.0f} dias  —  Normal: {d_med_normal:.0f}d  |  Urgente: {d_med_urgente:.0f}d"
+        "SLA: Normal = 24h | Urgente expediente (seg-sex 08–18h) = 6h | "
+        "Urgente fora expediente/feriado = 14h — contado a partir da solicitação (dt_solicitacao)"
     )
 
     # ── Bloco comparativo ─────────────────────────────────────────────────────
@@ -2569,30 +2574,11 @@ def pg_cortes(D, d0, d1):
         _tx_c  = _re_c / _co_c if _co_c else 0
         _sn_c  = _sla(_rel_c[_rel_c["id_servico_definicao"] == 56]) if not _rel_c.empty and "id_servico_definicao" in _rel_c.columns else 0
         render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
-            ("Cortes Executados",      qtd_cor, _co_c, lambda v: f"{int(v):,}",  False),
-            ("Religações (cavalete)",  qtd_rel, _re_c, lambda v: f"{int(v):,}",  None),
-            ("Taxa Religação/Corte",   taxa_r,  _tx_c, lambda v: f"{v:.1%}",     True),
-            ("SLA Religação Normal",   sla_rel_normal, _sn_c, lambda v: f"{v:.1%}", True),
+            ("Cortes Executados",      qtd_cor,        _co_c, lambda v: f"{int(v):,}",  False),
+            ("Religações (cavalete)",  qtd_rel,        _re_c, lambda v: f"{int(v):,}",  None),
+            ("Taxa Religação/Corte",   taxa_r,         _tx_c, lambda v: f"{v:.1%}",     True),
+            ("SLA Religação Normal",   sla_rel_normal, _sn_c, lambda v: f"{v:.1%}",     True),
         ])
-
-    st.markdown("#### Religações — SLA e prazo")
-    r1, r2, r3 = st.columns(3)
-    kpi(r1, "Normal (24h)", qtd_rel_normal, prefixo="")
-    kpi(r2, "% Normal no Prazo", sla_rel_normal, prefixo="%",
-        delta_inv=False)
-    kpi(r3, "Urgente (6h/14h)", qtd_rel_urgente, prefixo="")
-
-    r4, r5 = st.columns(2)
-    kpi(r4, "% Urgente no Prazo", sla_rel_urgente, prefixo="%",
-        delta_inv=False)
-    r5.metric("Outros tipos", f"{qtd_rel_outros:,}".replace(",", "."),
-              help="Ramal, reativação etc.")
-
-    st.markdown(
-        "<small>SLA: Normal = 24h | Urgente expediente (seg-sex 08–18h) = 6h | "
-        "Urgente fora expediente/feriado = 14h — contado a partir da solicitacao (dt_solicitacao)</small>",
-        unsafe_allow_html=True,
-    )
 
     st.markdown("---")
     if not cor.empty:
