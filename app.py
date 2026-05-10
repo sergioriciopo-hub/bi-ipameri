@@ -3332,6 +3332,9 @@ _SETORES_OP = ["Corte", "Religação", "Operacional", "Fiscalização", "Hidrome
 def _render_setor_bloco(srv_bloco, setor_nome, cor_barra, _key_prefix=""):
     """Renderiza os dois gráficos de cada setor: SLA prazo e serviços por equipe."""
     df = srv_bloco[srv_bloco["nm_setor_operacional"] == setor_nome].copy() if setor_nome != "_TODOS" else srv_bloco.copy()
+    # Considera apenas serviços executados (id_situacao_servico == 3)
+    if "id_situacao_servico" in df.columns:
+        df = df[df["id_situacao_servico"] == 3]
     if df.empty:
         st.info(f"Sem dados para {setor_nome} no período.")
         return
@@ -3414,6 +3417,9 @@ def pg_setores(D, d0, d1, _sub=False):
     srv_op  = srv[srv["_bloco"] == "Operacional"]
     srv_int = srv[srv["_bloco"] == "Interno"]
 
+    # Para KPIs: filtra apenas executados (situação 3)
+    _exec = lambda df: df[df["id_situacao_servico"] == 3] if "id_situacao_servico" in df.columns else df
+
     # ════════════════════════════════════════════════════════════════════════
     # BLOCO 1 — SERVIÇOS OPERACIONAIS
     # ════════════════════════════════════════════════════════════════════════
@@ -3424,12 +3430,13 @@ def pg_setores(D, d0, d1, _sub=False):
     <span style='color:#AED6F1;font-size:13px;margin-left:12px'>Ações diretas externas</span>
     </div>""", unsafe_allow_html=True)
 
-    # KPIs bloco operacional
-    if not srv_op.empty:
-        qtd_op  = int(srv_op["qt_servico"].sum())
-        fpr_op  = int(srv_op[srv_op["fl_fora_prazo"] == True]["qt_servico"].sum()) if "fl_fora_prazo" in srv_op.columns else 0
+    # KPIs bloco operacional (apenas executados)
+    srv_op_ex = _exec(srv_op)
+    if not srv_op_ex.empty:
+        qtd_op  = int(srv_op_ex["qt_servico"].sum())
+        fpr_op  = int(srv_op_ex[srv_op_ex["fl_fora_prazo"] == True]["qt_servico"].sum()) if "fl_fora_prazo" in srv_op_ex.columns else 0
         sla_op  = (qtd_op - fpr_op) / qtd_op if qtd_op else 0
-        tmed_op = srv_op["qt_tempo_execucao"].mean() / 60 if "qt_tempo_execucao" in srv_op.columns else 0
+        tmed_op = srv_op_ex["qt_tempo_execucao"].mean() / 60 if "qt_tempo_execucao" in srv_op_ex.columns else 0
         c1, c2, c3 = st.columns(3)
         kpi(c1, "Total Operacional",    qtd_op,  prefixo="")
         kpi(c2, "% SLA no Prazo",       sla_op,  prefixo="%")
@@ -3455,11 +3462,12 @@ def pg_setores(D, d0, d1, _sub=False):
     <span style='color:#D5D8DC;font-size:13px;margin-left:12px'>Sem ação direta externa</span>
     </div>""", unsafe_allow_html=True)
 
-    if not srv_int.empty:
-        qtd_int  = int(srv_int["qt_servico"].sum())
-        fpr_int  = int(srv_int[srv_int["fl_fora_prazo"] == True]["qt_servico"].sum()) if "fl_fora_prazo" in srv_int.columns else 0
+    srv_int_ex = _exec(srv_int)
+    if not srv_int_ex.empty:
+        qtd_int  = int(srv_int_ex["qt_servico"].sum())
+        fpr_int  = int(srv_int_ex[srv_int_ex["fl_fora_prazo"] == True]["qt_servico"].sum()) if "fl_fora_prazo" in srv_int_ex.columns else 0
         sla_int  = (qtd_int - fpr_int) / qtd_int if qtd_int else 0
-        tmed_int = srv_int["qt_tempo_execucao"].mean() / 60 if "qt_tempo_execucao" in srv_int.columns else 0
+        tmed_int = srv_int_ex["qt_tempo_execucao"].mean() / 60 if "qt_tempo_execucao" in srv_int_ex.columns else 0
         c1, c2, c3 = st.columns(3)
         kpi(c1, "Total Interno",         qtd_int,  prefixo="")
         kpi(c2, "% SLA no Prazo",        sla_int,  prefixo="%")
