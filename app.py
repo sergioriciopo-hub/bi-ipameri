@@ -2538,7 +2538,6 @@ def pg_cortes(D, d0, d1):
     kpi(c3, "Taxa Religação/Corte",     taxa_r,         prefixo="%")
     c4.metric("Tempo Médio Execução",   f"{t_exec_h:.1f}h",
               help="Da solicitação ao fim da execução (sol→fim). SLA pendente de definição pela empresa.")
-    c4.caption(f"Tempo médio corte→religação: {d_med:.0f}d  (Normal {d_med_normal:.0f}d | Urgente {d_med_urgente:.0f}d)")
     c5.metric("Tempo Médio Operação",   f"{t_med:.1f}h",
               help="Tempo cronometrado na execução em campo.")
 
