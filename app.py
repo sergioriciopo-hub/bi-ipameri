@@ -880,16 +880,18 @@ def line_mensal(df, col_data, col_val, title, cor=None):
 
 # ── Header executivo por página ───────────────────────────────────────────────
 _PG_CORES = {
-    "Executivo":                ("#3E5F7F", "#5B8FB8"),
-    "Faturamento e Medição":            ("#3E5F7F", "#5B8FB8"),
-    "Arrecadação (Série Histórica)":    ("#3E5F7F", "#5B8FB8"),
-    "Boletim de Arrecadação Diária":    ("#3E5F7F", "#5B8FB8"),
-    "Inadimplência":                    ("#3E5F7F", "#5B8FB8"),
-    "Serviços Operacionais":            ("#3E5F7F", "#5B8FB8"),
+    "Executivo":                         ("#3E5F7F", "#5B8FB8"),
+    "Faturamento e Medição":             ("#3E5F7F", "#5B8FB8"),
+    "Arrecadação (Série Histórica)":     ("#3E5F7F", "#5B8FB8"),
+    "Boletim de Arrecadação Diária":     ("#3E5F7F", "#5B8FB8"),
+    "Inadimplência":                     ("#3E5F7F", "#5B8FB8"),
+    "Serviços Operacionais":             ("#3E5F7F", "#5B8FB8"),
     "Cobrança e Recuperação de Receita": ("#3E5F7F", "#5B8FB8"),
-    "Leituras e Hidrômetros":           ("#3E5F7F", "#5B8FB8"),
-    "Frota Combustível":        ("#3E5F7F", "#5B8FB8"),
-    "Tratamento":               ("#0E6655", "#1A9278"),
+    "Leituras e Hidrômetros":            ("#3E5F7F", "#5B8FB8"),
+    "Frota Combustível":                 ("#3E5F7F", "#5B8FB8"),
+    "Energia Elétrica":                  ("#3E5F7F", "#5B8FB8"),
+    "Setores Operacionais":              ("#3E5F7F", "#5B8FB8"),
+    "Tratamento":                        ("#0E6655", "#1A9278"),
 }
 
 def page_header(titulo, periodo_str=""):
