@@ -881,13 +881,13 @@ def line_mensal(df, col_data, col_val, title, cor=None):
 # ── Header executivo por página ───────────────────────────────────────────────
 _PG_CORES = {
     "Executivo":                ("#3E5F7F", "#5B8FB8"),
-    "Faturamento":              ("#3E5F7F", "#5B8FB8"),
-    "Arrecadação":              ("#3E5F7F", "#5B8FB8"),
-    "Arrecadação Diária":       ("#3E5F7F", "#5B8FB8"),
-    "Inadimplência":            ("#3E5F7F", "#5B8FB8"),
-    "Serviços Operacionais":    ("#3E5F7F", "#5B8FB8"),
-    "Cortes e Religações":      ("#3E5F7F", "#5B8FB8"),
-    "Leituras e Hidrômetros":   ("#3E5F7F", "#5B8FB8"),
+    "Faturamento e Medição":            ("#3E5F7F", "#5B8FB8"),
+    "Arrecadação (Série Histórica)":    ("#3E5F7F", "#5B8FB8"),
+    "Boletim de Arrecadação Diária":    ("#3E5F7F", "#5B8FB8"),
+    "Inadimplência":                    ("#3E5F7F", "#5B8FB8"),
+    "Serviços Operacionais":            ("#3E5F7F", "#5B8FB8"),
+    "Cobrança e Recuperação de Receita": ("#3E5F7F", "#5B8FB8"),
+    "Leituras e Hidrômetros":           ("#3E5F7F", "#5B8FB8"),
     "Frota Combustível":        ("#3E5F7F", "#5B8FB8"),
     "Tratamento":               ("#0E6655", "#1A9278"),
 }
@@ -1429,8 +1429,19 @@ def pg_cockpit(D, d0, d1):
 
 
 def pg_faturamento(D, d0, d1):
-    page_header("Faturamento",
+    page_header("Faturamento e Medição",
                 f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
+
+    tab_fat, tab_lei = st.tabs(["📊 Faturamento", "📏 Leituras e Medição"])
+
+    with tab_fat:
+        _faturamento_body(D, d0, d1)
+
+    with tab_lei:
+        pg_leituras(D, d0, d1, _sub=True)
+
+
+def _faturamento_body(D, d0, d1):
 
     fat_max = pd.to_datetime(D["fat"]["dt_ref"]).max() if not D["fat"].empty else None
     fat = filtrar(D["fat"], "dt_ref", d0, d1)
@@ -1682,7 +1693,7 @@ def pg_faturamento(D, d0, d1):
 
 
 def pg_arrecadacao(D, d0, d1):
-    page_header("Arrecadação",
+    page_header("Arrecadação (Série Histórica)",
                 f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
     # arr = arrecadacao_comercial (mensal) — rubrica breakdown e gráfico histórico
@@ -1848,7 +1859,7 @@ def pg_arrecadacao(D, d0, d1):
 
 
 def pg_arrecadacao_diaria(D, d0, d1):
-    page_header("Arrecadação Diária",
+    page_header("Boletim de Arrecadação Diária",
                 f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
     ad = D["arr_d"].copy()
@@ -2453,7 +2464,7 @@ def _servicos_visao_geral(D, d0, d1):
 
 
 def pg_cortes(D, d0, d1):
-    page_header("Cortes e Religações",
+    page_header("Cobrança e Recuperação de Receita",
                 f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
     cor = filtrar(D["cor"], "dt_solicitacao", d0, d1)
@@ -2678,9 +2689,10 @@ def pg_cortes(D, d0, d1):
             )
 
 
-def pg_leituras(D, d0, d1):
-    page_header("Leituras e Hidrômetros",
-                f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
+def pg_leituras(D, d0, d1, _sub=False):
+    if not _sub:
+        page_header("Leituras e Hidrômetros",
+                    f"{d0.strftime('%d/%m/%Y')} a {d1.strftime('%d/%m/%Y')}")
 
     lei = filtrar(D["lei"], "dt_ref", d0, d1)
 
@@ -3788,14 +3800,13 @@ def main():
     d0, d1 = sidebar_periodo()
 
     paginas = {
-        "Executivo":             pg_cockpit,
-        "Faturamento":           pg_faturamento,
-        "Arrecadação":           pg_arrecadacao,
-        "Arrecadação Diária":    pg_arrecadacao_diaria,
-        "Inadimplência":         pg_inadimplencia,
-        "Serviços Operacionais": pg_servicos,
-        "Cortes e Religações":   pg_cortes,
-        "Leituras":              pg_leituras,
+        "Executivo":                          pg_cockpit,
+        "Faturamento e Medição":              pg_faturamento,
+        "Arrecadação (Série Histórica)":      pg_arrecadacao,
+        "Boletim de Arrecadação Diária":      pg_arrecadacao_diaria,
+        "Inadimplência":                      pg_inadimplencia,
+        "Serviços Operacionais":              pg_servicos,
+        "Cobrança e Recuperação de Receita":  pg_cortes,
         "Energia Elétrica":      pg_energia,
         "Frota Combustível":     pg_frota_combustivel,
         "Tratamento":            pg_tratamento,
