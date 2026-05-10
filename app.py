@@ -2673,12 +2673,37 @@ def pg_cortes(D, d0, d1):
                 insidetextanchor="middle",
                 textfont=dict(family="Arial Black", color="#0d2e50", size=12),
             )
+        # Médias — apenas dos meses com valor > 0 (exclui meses parciais zerados)
+        _media_cor = _cor_s[_cor_s > 0].mean() if (_cor_s > 0).any() else 0
+        _media_rel = _rel_s[_rel_s > 0].mean() if (_rel_s > 0).any() else 0
+        fig.add_hline(y=_media_cor, line_dash="dash", line_color=COR["vermelho"], line_width=1.8)
+        fig.add_annotation(
+            xref="paper", yref="y", x=1, y=_media_cor,
+            text=f"<b>Média Cortes: {_media_cor:,.0f}</b>".replace(",", "."),
+            showarrow=False, xanchor="right", yanchor="bottom",
+            font=dict(size=11, color=COR["vermelho"], family="Arial Black"),
+            bgcolor="rgba(255,255,255,0.8)", borderpad=2,
+        )
+        fig.add_hline(y=_media_rel, line_dash="dash", line_color=COR["verde"], line_width=1.8)
+        fig.add_annotation(
+            xref="paper", yref="y", x=1, y=_media_rel,
+            text=f"<b>Média Religações: {_media_rel:,.0f}</b>".replace(",", "."),
+            showarrow=False, xanchor="right", yanchor="top",
+            font=dict(size=11, color=COR["verde"], family="Arial Black"),
+            bgcolor="rgba(255,255,255,0.8)", borderpad=2,
+        )
         fig.update_layout(
             title="Cortes vs Religações (mensal)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
             barmode="group",
             margin=dict(t=40, b=0, l=0, r=20),
             xaxis_title="", yaxis_title="",
-            legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0),
+            legend=dict(
+                orientation="v",
+                yanchor="top", y=1,
+                xanchor="left", x=1.01,
+                bgcolor="rgba(255,255,255,0.85)",
+                bordercolor="rgba(0,0,0,0.1)", borderwidth=1,
+            ),
         )
         st.plotly_chart(fig, use_container_width=True)
 
