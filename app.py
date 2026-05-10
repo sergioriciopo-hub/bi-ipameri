@@ -3329,7 +3329,7 @@ def pg_energia(D, d0, d1):
 # Setores com ação direta externa
 _SETORES_OP = ["Corte", "Religação", "Operacional", "Fiscalização", "Hidrometria", "Repavimentação"]
 
-def _render_setor_bloco(srv_bloco, setor_nome, cor_barra):
+def _render_setor_bloco(srv_bloco, setor_nome, cor_barra, _key_prefix=""):
     """Renderiza os dois gráficos de cada setor: SLA prazo e serviços por equipe."""
     df = srv_bloco[srv_bloco["nm_setor_operacional"] == setor_nome].copy() if setor_nome != "_TODOS" else srv_bloco.copy()
     if df.empty:
@@ -3365,7 +3365,9 @@ def _render_setor_bloco(srv_bloco, setor_nome, cor_barra):
         xaxis=dict(title=""), yaxis=dict(title="Qtd", tickformat=",.0f"),
         showlegend=False,
     )
-    col1.plotly_chart(fig_sla, use_container_width=True)
+    _slug = setor_nome.replace(" ", "_").replace("/", "_")
+    col1.plotly_chart(fig_sla, use_container_width=True,
+                      key=f"{_key_prefix}sla_{_slug}")
 
     # ── Gráfico B — Serviços por equipe ────────────────────────────────────
     if "nm_equipe" in df.columns:
@@ -3386,7 +3388,8 @@ def _render_setor_bloco(srv_bloco, setor_nome, cor_barra):
             xaxis=dict(title=""), yaxis=dict(title=""),
             uniformtext_minsize=8, uniformtext_mode="hide",
         )
-        col2.plotly_chart(fig_eq, use_container_width=True)
+        col2.plotly_chart(fig_eq, use_container_width=True,
+                          key=f"{_key_prefix}eq_{_slug}")
 
 
 def pg_setores(D, d0, d1, _sub=False):
@@ -3438,7 +3441,7 @@ def pg_setores(D, d0, d1, _sub=False):
         tabs = st.tabs([f"📂 {s}" for s in setores_presentes])
         for tab, setor in zip(tabs, setores_presentes):
             with tab:
-                _render_setor_bloco(srv_op, setor, COR["azul"])
+                _render_setor_bloco(srv_op, setor, COR["azul"], _key_prefix="op_")
 
     st.markdown("---")
 
@@ -3467,7 +3470,7 @@ def pg_setores(D, d0, d1, _sub=False):
         tabs_int = st.tabs([f"📋 {s}" for s in setores_int])
         for tab, setor in zip(tabs_int, setores_int):
             with tab:
-                _render_setor_bloco(srv_int, setor, COR["cinza"])
+                _render_setor_bloco(srv_int, setor, COR["cinza"], _key_prefix="int_")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
