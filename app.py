@@ -2325,17 +2325,17 @@ def pg_inadimplencia(D, d0, d1):
         st.plotly_chart(fig_bk, width="stretch", key="inad_bairro_faixa")
 
         # Tabela resumo por bairro (sem faixa, apenas total)
-        with st.expander("Ver tabela resumida por bairro"):
-            resumo = (
-                tb15.groupby("Bairro")
-                .agg(Faturas=("Qtd", "sum"), Valor=("Valor", "sum"))
-                .sort_values("Valor", ascending=False)
-                .reset_index()
-            )
-            resumo["% do Total"] = (resumo["Valor"] / inad["vl_divida"].sum() * 100).map("{:.1f}%".format)
-            resumo["Valor"] = resumo["Valor"].map("R$ {:,.2f}".format)
-            resumo["Faturas"] = resumo["Faturas"].map("{:,}".format)
-            st.dataframe(resumo, width="stretch", hide_index=True)
+        st.markdown("##### Resumo por Bairro (Top 15)")
+        resumo = (
+            tb15.groupby("Bairro")
+            .agg(Faturas=("Qtd", "sum"), Valor=("Valor", "sum"))
+            .sort_values("Valor", ascending=False)
+            .reset_index()
+        )
+        resumo["% do Total"] = (resumo["Valor"] / inad["vl_divida"].sum() * 100).map("{:.1f}%".format)
+        resumo["Valor"] = resumo["Valor"].map("R$ {:,.2f}".format)
+        resumo["Faturas"] = resumo["Faturas"].map("{:,}".format)
+        st.dataframe(resumo, width="stretch", hide_index=True)
 
 
 def pg_servicos(D, d0, d1):
