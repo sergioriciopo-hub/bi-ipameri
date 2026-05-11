@@ -3752,10 +3752,204 @@ def pg_tratamento(D, d0, d1):
     qual = D["qual_agua"].copy()
 
     # ── Tabs principais ────────────────────────────────────────────────────────
-    tab_prod, tab_qual = st.tabs(["💧 Produção de Água", "🔬 Qualidade da Água"])
+    tab_resumo, tab_prod, tab_qual = st.tabs([
+        "📊 Resumo Qualidade", "💧 Produção de Água", "🔬 Detalhe por Mês",
+    ])
 
     # ══════════════════════════════════════════════════════════════════════════
-    # TAB 1 — PRODUÇÃO
+    # TAB 1 — RESUMO QUALIDADE (respeita filtro d0/d1)
+    # ══════════════════════════════════════════════════════════════════════════
+    with tab_resumo:
+        if qual.empty:
+            st.warning("Sem dados de qualidade. Execute scripts/etl_tratamento.py.")
+        else:
+            qual["mes_ref"] = pd.to_datetime(qual["mes_ref"])
+            # Filtra pelo período do sidebar
+            qual_f = qual[
+                (qual["mes_ref"] >= pd.Timestamp(d0.year, d0.month, 1)) &
+                (qual["mes_ref"] <= pd.Timestamp(d1.year, d1.month, 1))
+            ].copy()
+
+            if qual_f.empty:
+                st.info(f"Sem dados de qualidade no período {d0.strftime('%m/%Y')} a {d1.strftime('%m/%Y')}.")
+            else:
+                _PADR_Q = {
+                    "fluor":    (0.6,  0.9,  "Flúor",     "mg/L"),
+                    "cor":      (None, 15.0, "Cor",        "uH"),
+                    "turbidez": (None, 5.0,  "Turbidez",   "NTU"),
+                    "crl":      (0.2,  2.0,  "Cloro Res.", "mg/L"),
+                    "ph":       (6.0,  9.5,  "pH",         ""),
+                }
+
+                def _conforme_val(param, val):
+                    if val is None or (isinstance(val, float) and pd.isna(val)):
+                        return None
+                    lo, hi, *_ = _PADR_Q.get(param, (None, None))
+                    if lo is not None and val < lo:
+                        return False
+                    if hi is not None and val > hi:
+                        return False
+                    return True
+
+                # ── KPIs gerais ────────────────────────────────────────────────
+                total_pontos = len(qual_f)
+                meses_avaliados = qual_f["mes_ref"].nunique()
+                sistemas_avaliados = qual_f["sistema"].nunique()
+
+                # Conformidade geral: % de medições numéricas dentro do padrão
+                todas_med = []
+                for p in ["fluor", "cor", "turbidez", "crl", "ph"]:
+                    if p in qual_f.columns:
+                        for v in qual_f[p].dropna():
+                            r = _conforme_val(p, v)
+                            if r is not None:
+                                todas_med.append(r)
+                pct_conf_geral = (sum(todas_med) / len(todas_med) * 100) if todas_med else 0
+
+                # Alertas: pontos com pelo menos 1 parâmetro fora do padrão
+                def _tem_nao_conforme(row):
+                    for p in ["fluor", "cor", "turbidez", "crl", "ph"]:
+                        v = row.get(p)
+                        if _conforme_val(p, v) is False:
+                            return True
+                    if str(row.get("ecoli", "")).upper() == "PRESENTE":
+                        return True
+                    return False
+
+                n_alertas = qual_f.apply(_tem_nao_conforme, axis=1).sum()
+
+                c1, c2, c3, c4 = st.columns(4)
+                kpi_str(c1, "Meses Avaliados",   f"{meses_avaliados}",                    help=f"Dentro do período {d0.strftime('%m/%Y')}–{d1.strftime('%m/%Y')}")
+                kpi_str(c2, "Pontos Analisados",  f"{total_pontos:,}".replace(",", "."),   help="Total de coletas no período (todos os sistemas)")
+                kpi_str(c3, "Conformidade Geral", f"{pct_conf_geral:.1f}%",                help="% de medições dentro dos limites da Portaria GM/MS 888/2021")
+                kpi_str(c4, "Pontos em Alerta",   f"{n_alertas}",                          help="Pontos com ao menos 1 parâmetro fora do padrão no período")
+
+                st.markdown("---")
+
+                # ── Gráfico 1 — Conformidade por parâmetro (barras por sistema) ─
+                st.markdown("#### Conformidade por Parâmetro (% dentro do padrão)")
+
+                rows_conf = []
+                for sis in qual_f["sistema"].unique():
+                    df_sis = qual_f[qual_f["sistema"] == sis]
+                    for p, (lo, hi, lbl, unit) in _PADR_Q.items():
+                        if p not in df_sis.columns:
+                            continue
+                        vals = df_sis[p].dropna().tolist()
+                        if not vals:
+                            continue
+                        ok = sum(1 for v in vals if _conforme_val(p, v) is True)
+                        rows_conf.append({
+                            "Sistema": sis,
+                            "Parâmetro": f"{lbl} ({unit})" if unit else lbl,
+                            "Conformidade (%)": round(ok / len(vals) * 100, 1),
+                            "ok": ok, "total": len(vals),
+                        })
+
+                if rows_conf:
+                    df_conf = pd.DataFrame(rows_conf)
+                    fig_conf = go.Figure()
+                    cores_sis = {"Ipameri": COR["azul"], "Domiciano Ribeiro": COR["verde"]}
+                    params_ord = [f"{l} ({u})" if u else l for _, (_, _, l, u) in _PADR_Q.items()]
+                    for sis in qual_f["sistema"].unique():
+                        sub = df_conf[df_conf["Sistema"] == sis].set_index("Parâmetro")
+                        y_vals = [sub.loc[p, "Conformidade (%)"] if p in sub.index else None for p in params_ord]
+                        txt = [f"{v:.0f}%" if v is not None else "" for v in y_vals]
+                        fig_conf.add_trace(go.Bar(
+                            name=sis, x=params_ord, y=y_vals,
+                            marker_color=cores_sis.get(sis, COR["cinza"]),
+                            text=txt, textposition="inside", textangle=-90,
+                            insidetextanchor="middle",
+                            textfont=dict(family="Arial Black", color="white", size=13),
+                        ))
+                    # Meta 100%
+                    fig_conf.add_hline(y=100, line_dash="dot", line_color="rgba(0,0,0,0.3)", line_width=1)
+                    fig_conf.update_layout(
+                        barmode="group", margin=dict(t=40, b=0, l=0, r=20), height=340,
+                        yaxis=dict(range=[0, 115], ticksuffix="%"),
+                        legend=dict(orientation="h", y=1.12),
+                    )
+                    st.plotly_chart(fig_conf, use_container_width=True, key="trat_conf_param")
+
+                # ── Gráfico 2 — Evolução mensal da conformidade ────────────────
+                st.markdown("#### Evolução da Conformidade por Mês")
+
+                meses_ord_q = sorted(qual_f["mes_ref"].unique())
+                rows_evo = []
+                for mes in meses_ord_q:
+                    df_mes = qual_f[qual_f["mes_ref"] == mes]
+                    for p, (lo, hi, lbl, unit) in _PADR_Q.items():
+                        if p not in df_mes.columns:
+                            continue
+                        vals = df_mes[p].dropna().tolist()
+                        if not vals:
+                            continue
+                        ok = sum(1 for v in vals if _conforme_val(p, v) is True)
+                        rows_evo.append({
+                            "mes_str": mes.strftime("%m/%Y"),
+                            "mes_dt":  mes,
+                            "Parâmetro": f"{lbl}",
+                            "Conformidade (%)": round(ok / len(vals) * 100, 1),
+                        })
+
+                if rows_evo:
+                    df_evo = pd.DataFrame(rows_evo)
+                    fig_evo = go.Figure()
+                    cores_param = {
+                        "Flúor": "#7C3AED", "Cor": "#F59E0B", "Turbidez": "#3B82F6",
+                        "Cloro Res.": "#10B981", "pH": "#EF4444",
+                    }
+                    for param in df_evo["Parâmetro"].unique():
+                        sub = df_evo[df_evo["Parâmetro"] == param].sort_values("mes_dt")
+                        fig_evo.add_trace(go.Scatter(
+                            x=sub["mes_str"], y=sub["Conformidade (%)"],
+                            name=param, mode="lines+markers",
+                            line=dict(color=cores_param.get(param, COR["cinza"]), width=2),
+                            marker=dict(size=7),
+                        ))
+                    fig_evo.add_hline(y=100, line_dash="dot", line_color="rgba(0,0,0,0.25)", line_width=1,
+                                      annotation_text="100%", annotation_position="right")
+                    fig_evo.update_layout(
+                        margin=dict(t=30, b=0, l=0, r=60), height=320,
+                        yaxis=dict(range=[0, 115], ticksuffix="%"),
+                        legend=dict(orientation="h", y=1.12),
+                    )
+                    st.plotly_chart(fig_evo, use_container_width=True, key="trat_evo_conf")
+
+                # ── Tabela sintética: % conformidade por mês/sistema/parâmetro ─
+                st.markdown("#### Síntese por Mês")
+                rows_sint = []
+                for mes in meses_ord_q:
+                    df_mes = qual_f[qual_f["mes_ref"] == mes]
+                    for sis in sorted(df_mes["sistema"].unique()):
+                        df_ms = df_mes[df_mes["sistema"] == sis]
+                        row_s = {"Mês": mes.strftime("%m/%Y"), "Sistema": sis,
+                                 "Pontos": len(df_ms)}
+                        for p, (lo, hi, lbl, unit) in _PADR_Q.items():
+                            if p not in df_ms.columns:
+                                row_s[lbl] = "—"
+                                continue
+                            vals = df_ms[p].dropna().tolist()
+                            if not vals:
+                                row_s[lbl] = "—"
+                                continue
+                            ok = sum(1 for v in vals if _conforme_val(p, v) is True)
+                            pct = ok / len(vals) * 100
+                            emoji = "🟢" if pct == 100 else ("🟡" if pct >= 80 else "🔴")
+                            row_s[lbl] = f"{emoji} {pct:.0f}%"
+                        # Microbiológico
+                        ec_vals = df_ms["ecoli"].dropna().tolist() if "ecoli" in df_ms else []
+                        ec_ok   = sum(1 for v in ec_vals if str(v).upper() == "AUSENTE")
+                        row_s["E.Coli"] = (f"{'🟢' if ec_ok==len(ec_vals) else '🔴'} {ec_ok}/{len(ec_vals)}"
+                                           if ec_vals else "—")
+                        rows_sint.append(row_s)
+
+                if rows_sint:
+                    df_sint = pd.DataFrame(rows_sint)
+                    st.dataframe(df_sint, use_container_width=True, hide_index=True)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # TAB 2 — PRODUÇÃO
     # ══════════════════════════════════════════════════════════════════════════
     with tab_prod:
         if prod.empty:
@@ -3909,7 +4103,7 @@ def pg_tratamento(D, d0, d1):
         )
 
     # ══════════════════════════════════════════════════════════════════════════
-    # TAB 2 — QUALIDADE
+    # TAB 3 — DETALHE POR MÊS (selectbox próprio, pontos individuais)
     # ══════════════════════════════════════════════════════════════════════════
     with tab_qual:
         if qual.empty:
