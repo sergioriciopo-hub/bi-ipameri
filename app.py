@@ -2238,19 +2238,104 @@ def pg_inadimplencia(D, d0, d1):
         )
         st.plotly_chart(fig4, width="stretch")
 
-    # Tabela detalhada
-    with st.expander("📋 Tabela — Inadimplência por Bairro e Faixa"):
-        if "nm_bairro_dim" in inad.columns:
-            tb = inad.groupby(["nm_bairro_dim","faixa_atraso"]).agg(
-                Qtd=("vl_divida","count"),
-                Valor=("vl_divida","sum")
-            ).reset_index()
-            tb.columns = ["Bairro","Faixa","Qtd","Valor"]
-            tb = tb.sort_values("Valor", ascending=False)
-            st.dataframe(
-                tb.style.format({"Valor": "R$ {:,.2f}", "Qtd": "{:,}"}),
-                width="stretch"
+    # ── Inadimplência por Bairro e Faixa ──────────────────────────────────────
+    if "nm_bairro_dim" in inad.columns:
+        st.markdown("#### Inadimplência por Bairro e Faixa de Atraso")
+
+        tb = inad.groupby(["nm_bairro_dim", "faixa_atraso"]).agg(
+            Qtd=("vl_divida", "count"),
+            Valor=("vl_divida", "sum"),
+        ).reset_index()
+        tb.columns = ["Bairro", "Faixa", "Qtd", "Valor"]
+
+        # Top 15 bairros por valor total
+        top15 = (
+            tb.groupby("Bairro")["Valor"].sum()
+            .sort_values(ascending=False)
+            .head(15)
+            .index.tolist()
+        )
+        tb15 = tb[tb["Bairro"].isin(top15)].copy()
+
+        # Ordem das faixas e cores (verde → amarelo → laranja → vermelho)
+        faixas_ord = [
+            "01-Até 30 dias",
+            "02-31 a 60 dias",
+            "03-61 a 90 dias",
+            "04-91 a 180 dias",
+            "05-181 a 365 dias",
+            "06-Mais de 365 dias",
+        ]
+        faixas_cores = {
+            "01-Até 30 dias":       "#27AE60",
+            "02-31 a 60 dias":      "#82C341",
+            "03-61 a 90 dias":      "#F39C12",
+            "04-91 a 180 dias":     "#E67E22",
+            "05-181 a 365 dias":    "#E74C3C",
+            "06-Mais de 365 dias":  "#7B241C",
+        }
+        faixas_label = {
+            "01-Até 30 dias":       "Até 30 dias",
+            "02-31 a 60 dias":      "31–60 dias",
+            "03-61 a 90 dias":      "61–90 dias",
+            "04-91 a 180 dias":     "91–180 dias",
+            "05-181 a 365 dias":    "181–365 dias",
+            "06-Mais de 365 dias":  "+365 dias",
+        }
+
+        # Ordena bairros por valor total crescente (Plotly exibe de baixo pra cima)
+        bairros_ord = (
+            tb15.groupby("Bairro")["Valor"].sum()
+            .sort_values(ascending=True)
+            .index.tolist()
+        )
+
+        fig_bk = go.Figure()
+        for faixa in faixas_ord:
+            sub = tb15[tb15["Faixa"] == faixa].set_index("Bairro")
+            y_vals = [sub.loc[b, "Valor"] if b in sub.index else 0 for b in bairros_ord]
+            qtd_vals = [int(sub.loc[b, "Qtd"]) if b in sub.index else 0 for b in bairros_ord]
+            fig_bk.add_trace(go.Bar(
+                name=faixas_label[faixa],
+                y=bairros_ord,
+                x=y_vals,
+                orientation="h",
+                marker_color=faixas_cores[faixa],
+                customdata=qtd_vals,
+                hovertemplate=(
+                    "<b>%{y}</b><br>"
+                    + faixas_label[faixa]
+                    + "<br>R$ %{x:,.2f}<br>%{customdata} faturas<extra></extra>"
+                ),
+            ))
+
+        fig_bk.update_layout(
+            barmode="stack",
+            margin=dict(t=10, b=0, l=0, r=20),
+            height=max(340, len(bairros_ord) * 36),
+            xaxis=dict(tickprefix="R$ ", tickformat=",.0f", title=""),
+            yaxis=dict(title=""),
+            legend=dict(
+                orientation="h", y=1.06, x=0,
+                traceorder="normal",
+                bgcolor="rgba(255,255,255,0.85)",
+                bordercolor="rgba(0,0,0,0.08)", borderwidth=1,
+            ),
+        )
+        st.plotly_chart(fig_bk, width="stretch", key="inad_bairro_faixa")
+
+        # Tabela resumo por bairro (sem faixa, apenas total)
+        with st.expander("Ver tabela resumida por bairro"):
+            resumo = (
+                tb15.groupby("Bairro")
+                .agg(Faturas=("Qtd", "sum"), Valor=("Valor", "sum"))
+                .sort_values("Valor", ascending=False)
+                .reset_index()
             )
+            resumo["% do Total"] = (resumo["Valor"] / inad["vl_divida"].sum() * 100).map("{:.1f}%".format)
+            resumo["Valor"] = resumo["Valor"].map("R$ {:,.2f}".format)
+            resumo["Faturas"] = resumo["Faturas"].map("{:,}".format)
+            st.dataframe(resumo, width="stretch", hide_index=True)
 
 
 def pg_servicos(D, d0, d1):
