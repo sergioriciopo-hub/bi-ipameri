@@ -2115,19 +2115,11 @@ def pg_inadimplencia(D, d0, d1):
     idx_inad = vl_inad / vl_fat if vl_fat else 0
     qtd_fat  = len(inad)
     tkt_med  = vl_inad / qtd_fat if qtd_fat else 0
-    qtd_corte = int(inad["fl_corte_pendente"].sum()) if "fl_corte_pendente" in inad.columns else 0
-    c1, c2 = st.columns(2)
-    kpi(c1, "Total Inadimplência", vl_inad)
-    kpi(c2, "Índice Inadimplência", idx_inad, prefixo="%")
-
-    c3, c4 = st.columns(2)
-    kpi(c3, "Qtd Faturas Vencidas", qtd_fat, prefixo="")
-    kpi(c4, "Ticket Médio", tkt_med)
-
-    c5, c6 = st.columns(2)
-    c5.metric("Com Corte Pendente", f"{qtd_corte:,}".replace(",", "."),
-              delta="aguardando corte", delta_color="off")
-    c6.empty()
+    c1, c2, c3, c4 = st.columns(4)
+    kpi(c1, "Total Inadimplência",  vl_inad,   prefixo="R$")
+    kpi(c2, "Índice Inadimplência", idx_inad,  prefixo="%")
+    kpi(c3, "Qtd Faturas Vencidas", qtd_fat,   prefixo="")
+    kpi(c4, "Ticket Médio",         tkt_med,   prefixo="R$")
 
     # ── Bloco comparativo — usa faturamento como proxy (inad é snapshot) ──────
     _comp = _comp_periodo()
