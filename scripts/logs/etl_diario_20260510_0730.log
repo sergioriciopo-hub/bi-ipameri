@@ -208,3 +208,20 @@ ETL concluido com sucesso em 10/05/2026 07:31:20
 
 [10/05/2026 07:31:20] ETL Frota concluido com SUCESSO
 [10/05/2026 07:31:21] Publicando no GitHub (Streamlit Cloud)...
+[main c139aae] Dados atualizados - 10/05/2026 [auto]
+ 13 files changed, 1895 insertions(+)
+ create mode 100644 scripts/logs/etl_diario_20260510_0730.log
+
+git.exe : To https://github.com/sergioriciopo-hub/bi-ipameri.git
+No C:\BI_Ipameri\scripts\run_etl_diario.ps1:61 caractere:20
++         $pushOut = & git push origin main 2>&1
++                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (To https://gith.../bi-ipameri.git 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   b063180..c139aae  main -> main
+
+[10/05/2026 07:31:28] Publicado no GitHub com SUCESSO - Streamlit Cloud atualizara em ~2 min
+[10/05/2026 07:31:28] ======================================================
+[10/05/2026 07:31:28] ETL DIARIO CONCLUIDO COM SUCESSO
