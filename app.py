@@ -3832,6 +3832,7 @@ def pg_tratamento(D, d0, d1):
                 rows_conf = []
                 for sis in qual_f["sistema"].unique():
                     df_sis = qual_f[qual_f["sistema"] == sis]
+                    # Parâmetros numéricos
                     for p, (lo, hi, lbl, unit) in _PADR_Q.items():
                         if p not in df_sis.columns:
                             continue
@@ -3843,14 +3844,38 @@ def pg_tratamento(D, d0, d1):
                             "Sistema": sis,
                             "Parâmetro": f"{lbl} ({unit})" if unit else lbl,
                             "Conformidade (%)": round(ok / len(vals) * 100, 1),
-                            "ok": ok, "total": len(vals),
                         })
+                    # E.Coli (microbiológico)
+                    if "ecoli" in df_sis.columns:
+                        ec_vals = df_sis["ecoli"].dropna().tolist()
+                        if ec_vals:
+                            ec_ok = sum(1 for v in ec_vals if str(v).upper() == "AUSENTE")
+                            rows_conf.append({
+                                "Sistema": sis,
+                                "Parâmetro": "E.Coli",
+                                "Conformidade (%)": round(ec_ok / len(ec_vals) * 100, 1),
+                            })
+                    # Coliformes Totais
+                    if "coli_tot" in df_sis.columns:
+                        ct_vals = df_sis["coli_tot"].dropna().tolist()
+                        if ct_vals:
+                            ct_ok = sum(1 for v in ct_vals if str(v).upper() == "AUSENTE")
+                            rows_conf.append({
+                                "Sistema": sis,
+                                "Parâmetro": "Col. Totais",
+                                "Conformidade (%)": round(ct_ok / len(ct_vals) * 100, 1),
+                            })
 
                 if rows_conf:
                     df_conf = pd.DataFrame(rows_conf)
                     fig_conf = go.Figure()
                     cores_sis = {"Ipameri": COR["azul"], "Domiciano Ribeiro": COR["verde"]}
-                    params_ord = [f"{l} ({u})" if u else l for _, (_, _, l, u) in _PADR_Q.items()]
+                    # Ordem: parâmetros numéricos + microbiológicos
+                    params_ord = (
+                        [f"{l} ({u})" if u else l for _, (_, _, l, u) in _PADR_Q.items()]
+                        + ["E.Coli", "Col. Totais"]
+                    )
+                    params_ord = [p for p in params_ord if p in df_conf["Parâmetro"].values]
                     for sis in qual_f["sistema"].unique():
                         sub = df_conf[df_conf["Sistema"] == sis].set_index("Parâmetro")
                         y_vals = [sub.loc[p, "Conformidade (%)"] if p in sub.index else None for p in params_ord]
@@ -3878,6 +3903,7 @@ def pg_tratamento(D, d0, d1):
                 rows_evo = []
                 for mes in meses_ord_q:
                     df_mes = qual_f[qual_f["mes_ref"] == mes]
+                    # Parâmetros numéricos
                     for p, (lo, hi, lbl, unit) in _PADR_Q.items():
                         if p not in df_mes.columns:
                             continue
@@ -3888,9 +3914,29 @@ def pg_tratamento(D, d0, d1):
                         rows_evo.append({
                             "mes_str": mes.strftime("%m/%Y"),
                             "mes_dt":  mes,
-                            "Parâmetro": f"{lbl}",
+                            "Parâmetro": lbl,
                             "Conformidade (%)": round(ok / len(vals) * 100, 1),
                         })
+                    # E.Coli
+                    if "ecoli" in df_mes.columns:
+                        ec_vals = df_mes["ecoli"].dropna().tolist()
+                        if ec_vals:
+                            ec_ok = sum(1 for v in ec_vals if str(v).upper() == "AUSENTE")
+                            rows_evo.append({
+                                "mes_str": mes.strftime("%m/%Y"), "mes_dt": mes,
+                                "Parâmetro": "E.Coli",
+                                "Conformidade (%)": round(ec_ok / len(ec_vals) * 100, 1),
+                            })
+                    # Coliformes Totais
+                    if "coli_tot" in df_mes.columns:
+                        ct_vals = df_mes["coli_tot"].dropna().tolist()
+                        if ct_vals:
+                            ct_ok = sum(1 for v in ct_vals if str(v).upper() == "AUSENTE")
+                            rows_evo.append({
+                                "mes_str": mes.strftime("%m/%Y"), "mes_dt": mes,
+                                "Parâmetro": "Col. Totais",
+                                "Conformidade (%)": round(ct_ok / len(ct_vals) * 100, 1),
+                            })
 
                 if rows_evo:
                     df_evo = pd.DataFrame(rows_evo)
@@ -3898,6 +3944,7 @@ def pg_tratamento(D, d0, d1):
                     cores_param = {
                         "Flúor": "#7C3AED", "Cor": "#F59E0B", "Turbidez": "#3B82F6",
                         "Cloro Res.": "#10B981", "pH": "#EF4444",
+                        "E.Coli": "#DC2626", "Col. Totais": "#F97316",
                     }
                     for param in df_evo["Parâmetro"].unique():
                         sub = df_evo[df_evo["Parâmetro"] == param].sort_values("mes_dt")
