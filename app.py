@@ -2762,18 +2762,58 @@ def pg_cortes(D, d0, d1):
                            xaxis_title="", yaxis_title="Qtd")
         st.plotly_chart(fig4, width="stretch")
 
-    # Valor pendência nos cortes
-    if not cor.empty and "vl_pendencia_atual" in cor.columns:
-        st.markdown("#### Valor de Inadimplência nos Cortes")
-        cor_bk = cor.copy()
-        if "nm_bairro_dim" in cor_bk.columns:
-            ag_vl = cor_bk.groupby("nm_bairro_dim")["vl_pendencia_atual"].sum()\
-                          .sort_values(ascending=False).head(10).reset_index()
-            ag_vl.columns = ["Bairro","Valor Pendência"]
-            st.dataframe(
-                ag_vl.style.format({"Valor Pendência": "R$ {:,.2f}"}),
-                width="stretch"
+    # ── Perfil de Inadimplência por Bairro (fonte: pendencia_atual — snapshot atual) ──
+    pend_all = D.get("inad")
+    if pend_all is not None and not pend_all.empty:
+        st.markdown("#### Perfil de Inadimplência por Bairro")
+        st.caption("Participação percentual de cada bairro no saldo devedor total atual — fonte: pendência atual (snapshot).")
+
+        pend_bk = merge_bairro(pend_all.copy(), D)
+        if "nm_bairro_dim" in pend_bk.columns:
+            total_inad = pend_bk["vl_divida"].sum()
+            ag_pct = (
+                pend_bk.groupby("nm_bairro_dim")["vl_divida"].sum()
+                .sort_values(ascending=False)
+                .head(15)
+                .reset_index()
             )
+            ag_pct.columns = ["Bairro", "vl_divida"]
+            ag_pct["pct"] = ag_pct["vl_divida"] / total_inad * 100
+            ag_pct["txt"] = ag_pct["pct"].apply(lambda v: f"{v:.1f}%")
+            ag_pct = ag_pct.sort_values("pct", ascending=True)  # barras crescentes (Plotly exibe de baixo pra cima)
+
+            fig_pct = go.Figure()
+            fig_pct.add_trace(go.Bar(
+                x=ag_pct["pct"],
+                y=ag_pct["Bairro"],
+                orientation="h",
+                text=ag_pct["txt"],
+                textposition="inside",
+                insidetextanchor="middle",
+                textangle=0,
+                textfont=dict(family="Arial Black", color="white", size=13),
+                marker=dict(
+                    color=ag_pct["pct"],
+                    colorscale=[[0, "#5B8FB8"], [1, "#1A3A5C"]],
+                    showscale=False,
+                ),
+                hovertemplate="<b>%{y}</b><br>%{x:.1f}% do total<extra></extra>",
+            ))
+            fig_pct.add_vline(
+                x=100 / len(ag_pct),
+                line_dash="dot", line_color="rgba(0,0,0,0.25)", line_width=1.5,
+                annotation_text=f"Média ({100/len(ag_pct):.1f}%)",
+                annotation_position="top right",
+                annotation_font=dict(size=10, color="rgba(0,0,0,0.45)"),
+            )
+            fig_pct.update_layout(
+                margin=dict(t=30, b=10, l=0, r=30),
+                height=max(320, len(ag_pct) * 34),
+                xaxis=dict(ticksuffix="%", title=""),
+                yaxis=dict(title=""),
+                showlegend=False,
+            )
+            st.plotly_chart(fig_pct, width="stretch", key="cortes_pct_bairro")
 
 
 def pg_leituras(D, d0, d1, _sub=False):
