@@ -3752,8 +3752,8 @@ def pg_tratamento(D, d0, d1):
     qual = D["qual_agua"].copy()
 
     # ── Tabs principais ────────────────────────────────────────────────────────
-    tab_resumo, tab_prod, tab_qual = st.tabs([
-        "📊 Resumo Qualidade", "💧 Produção de Água", "🔬 Detalhe por Mês",
+    tab_prod, tab_resumo, tab_qual = st.tabs([
+        "💧 Produção de Água", "📊 Resumo Qualidade", "🔬 Detalhe por Mês",
     ])
 
     # ══════════════════════════════════════════════════════════════════════════
