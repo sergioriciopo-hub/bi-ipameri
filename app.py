@@ -1725,46 +1725,6 @@ def _faturamento_body(D, d0, d1):
         )
         st.plotly_chart(fig5, width="stretch")
 
-    # ── Perdas por Bairro — Abatimentos em Alterações de Fatura ──────────────
-    alt_fat_f = filtrar(D["alt_fat"], "dt_ref", d0, d1)
-    if not alt_fat_f.empty and "ch_rsf_bairro_dim" in alt_fat_f.columns:
-        alt_fat_f = alt_fat_f.merge(
-            D["d_bairro"][["id_bairro", "nm_bairro_dim"]],
-            left_on="ch_rsf_bairro_dim",
-            right_on="id_bairro",
-            how="left",
-        )
-        perdas_bairro = (
-            alt_fat_f.groupby("nm_bairro_dim")
-            .agg(
-                Perda_Valor=("vl_abatimento", lambda x: abs(x.sum())),
-                Qtd_Alteracoes=("id_localizacao_dim", "count"),
-            )
-            .reset_index()
-            .sort_values("Perda_Valor", ascending=True)
-            .tail(12)
-        )
-        if not perdas_bairro.empty and perdas_bairro["Perda_Valor"].sum() > 0:
-            fig_ab = px.bar(
-                perdas_bairro, x="Perda_Valor", y="nm_bairro_dim",
-                orientation="h",
-                title="Perdas por Bairro — Abatimentos em Alterações de Fatura (R$)",
-                color="Perda_Valor",
-                color_continuous_scale=["#27AE60", "#F39C12", "#E74C3C"],
-                hover_data={"Qtd_Alteracoes": True},
-            )
-            fig_ab.update_traces(
-                text=[f"R$ {v:,.2f}" for v in perdas_bairro["Perda_Valor"]],
-                textposition="inside",
-                textfont=dict(size=13, color="white", family="Arial Black"),
-            )
-            fig_ab.update_layout(
-                margin=dict(t=40, b=0, l=0, r=20),
-                xaxis_title="R$", yaxis_title="",
-                coloraxis_showscale=False,
-            )
-            st.plotly_chart(fig_ab, width="stretch", key="fat_perdas_bairro")
-
     # Aviso de cobertura
     if fat_max is not None:
         st.info(f"Dados de faturamento disponíveis até **{fat_max.strftime('%B/%Y').capitalize()}**.")
@@ -3174,7 +3134,7 @@ def pg_leituras(D, d0, d1, _sub=False):
             fig4.update_layout(margin=dict(t=35, b=0, l=0, r=20),
                                xaxis_title="R$", yaxis_title="",
                                coloraxis_showscale=False)
-            st.plotly_chart(fig4, width="stretch")
+            st.plotly_chart(fig4, width="stretch", key="leituras_perdas_bairro")
         else:
             st.info("Sem perdas detectadas no período selecionado")
 
