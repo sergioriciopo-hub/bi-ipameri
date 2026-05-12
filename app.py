@@ -1933,7 +1933,6 @@ def pg_arrecadacao_diaria(D, d0, d1):
     )
     if _has_tarifa:
         diario["Tarifa"] = diario["tarifa"].fillna(0)
-        diario["Líquido"] = diario["Valor"] - diario["Tarifa"]
         diario.drop(columns=["tarifa"], inplace=True)
     diario["Dia Semana"] = diario["Data"].dt.strftime("%A").map({
         "Monday":"Segunda-feira","Tuesday":"Terça-feira","Wednesday":"Quarta-feira",
@@ -1944,21 +1943,21 @@ def pg_arrecadacao_diaria(D, d0, d1):
 
     vl_total  = diario["Valor"].sum()
     vl_tarifa = diario["Tarifa"].sum() if _has_tarifa else 0
-    vl_liq    = vl_total - vl_tarifa
-    pct_tar   = vl_tarifa / vl_total * 100 if vl_total else 0
+    vl_bruto  = vl_total + vl_tarifa
+    pct_tar   = vl_tarifa / vl_bruto * 100 if vl_bruto else 0
     qtd_dias  = len(diario)
     media_dia = vl_total / qtd_dias if qtd_dias else 0
 
     c1, c2, c3 = st.columns(3)
-    kpi(c1, "Total Arrecadado (D+)", vl_total)
+    kpi(c1, "Arrecadação Líquida (D+)", vl_total)
     kpi(c2, "Dias Úteis", qtd_dias, prefixo="")
     kpi(c3, "Média por Dia Útil", media_dia)
 
     if _has_tarifa:
         c4, c5, c6 = st.columns(3)
         kpi(c4, "Total Tarifas Bancárias", vl_tarifa)
-        kpi(c5, "Arrecadação Líquida", vl_liq)
-        kpi(c6, "% Tarifa s/ Arrecadação", pct_tar, prefixo="%")
+        kpi(c5, "Arrecadação Bruta", vl_bruto)
+        kpi(c6, "% Tarifa s/ Bruto", pct_tar, prefixo="%")
 
     # ── Bloco comparativo ─────────────────────────────────────────────────────
     _comp = _comp_periodo()
@@ -2072,7 +2071,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
     st.markdown("#### Tabela Diária de Arrecadação")
     _cols_tbl = ["Útil","Data","Dia Semana","Qtd Docs","Valor"]
     if _has_tarifa:
-        _cols_tbl += ["Tarifa","Líquido"]
+        _cols_tbl.append("Tarifa")
     _cols_tbl.append("Acumulado")
     tbl_view = diario[_cols_tbl].copy()
     tbl_view["Data"] = tbl_view["Data"].dt.strftime("%d/%m/%Y")
@@ -2083,8 +2082,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
               "Valor": tbl_view["Valor"].sum(),
               "Acumulado": tbl_view["Valor"].sum()}
     if _has_tarifa:
-        _total["Tarifa"]  = tbl_view["Tarifa"].sum()
-        _total["Líquido"] = tbl_view["Líquido"].sum()
+        _total["Tarifa"] = tbl_view["Tarifa"].sum()
     total_row = pd.DataFrame([_total])
     tbl_view = pd.concat([tbl_view, total_row], ignore_index=True)
 
@@ -2092,8 +2090,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
     _fmt_int = lambda v: f"{int(v):,}"      if isinstance(v, (int,float)) and v==v else v
     _fmt_map = {"Valor": _fmt_brl, "Acumulado": _fmt_brl, "Qtd Docs": _fmt_int}
     if _has_tarifa:
-        _fmt_map["Tarifa"]  = _fmt_brl
-        _fmt_map["Líquido"] = _fmt_brl
+        _fmt_map["Tarifa"] = _fmt_brl
 
     st.dataframe(
         tbl_view.style
@@ -2123,18 +2120,17 @@ def pg_arrecadacao_diaria(D, d0, d1):
                      .reset_index())
             ag_ag.columns = ["Agente"] + list(ag_ag.columns[1:])
             if _has_tarifa:
-                ag_ag["Líquido"] = ag_ag["Valor"] - ag_ag["Tarifa"]
-                ag_ag["% Tarifa"] = (ag_ag["Tarifa"] / ag_ag["Valor"] * 100).round(2)
+                _vl_ag = ag_ag["Valor"].sum()
+                _tar_ag = ag_ag["Tarifa"].sum()
+                ag_ag["% Tarifa"] = (ag_ag["Tarifa"] / (ag_ag["Valor"] + ag_ag["Tarifa"]) * 100).round(2)
             _tot = {"Agente":"TOTAL","Valor": ag_ag["Valor"].sum()}
             if _has_tarifa:
-                _tot["Tarifa"]   = ag_ag["Tarifa"].sum()
-                _tot["Líquido"]  = ag_ag["Líquido"].sum()
-                _tot["% Tarifa"] = (ag_ag["Tarifa"].sum() / ag_ag["Valor"].sum() * 100) if ag_ag["Valor"].sum() else 0
+                _tot["Tarifa"]   = _tar_ag
+                _tot["% Tarifa"] = (_tar_ag / (_vl_ag + _tar_ag) * 100) if (_vl_ag + _tar_ag) else 0
             ag_ag = pd.concat([ag_ag, pd.DataFrame([_tot])], ignore_index=True)
             _fmt_ag = {"Valor": "R$ {:,.2f}"}
             if _has_tarifa:
                 _fmt_ag["Tarifa"]   = "R$ {:,.2f}"
-                _fmt_ag["Líquido"]  = "R$ {:,.2f}"
                 _fmt_ag["% Tarifa"] = "{:.2f}%"
             st.dataframe(
                 ag_ag.style
