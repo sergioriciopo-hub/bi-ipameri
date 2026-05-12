@@ -10,6 +10,7 @@ config.toml.txt
 data/*.parquet
 !data/frota_combustivel.parquet
 !data/dim_veiculo_frota.parquet
+!data/alteracao_fatura_contabil.parquet
 scripts/etl_energia*.py
 scripts/consolidar_energia*.py
 scripts/gerar_dim*.py
