@@ -1920,13 +1920,21 @@ def pg_arrecadacao_diaria(D, d0, d1):
         return
 
     # Agrega por data_credito
+    _has_tarifa = "vl_tarifa" in ad_f.columns
+    _agg = {"qt_docs": ("qt_documentos","sum"), "vl": ("vl_arrecadado","sum")}
+    if _has_tarifa:
+        _agg["tarifa"] = ("vl_tarifa","sum")
     diario = (
         ad_f.groupby("data_credito")
-        .agg(qt_docs=("qt_documentos","sum"), vl=("vl_arrecadado","sum"))
+        .agg(**_agg)
         .reset_index()
         .rename(columns={"data_credito":"Data","qt_docs":"Qtd Docs","vl":"Valor"})
         .sort_values("Data")
     )
+    if _has_tarifa:
+        diario["Tarifa"] = diario["tarifa"].fillna(0)
+        diario["Líquido"] = diario["Valor"] - diario["Tarifa"]
+        diario.drop(columns=["tarifa"], inplace=True)
     diario["Dia Semana"] = diario["Data"].dt.strftime("%A").map({
         "Monday":"Segunda-feira","Tuesday":"Terça-feira","Wednesday":"Quarta-feira",
         "Thursday":"Quinta-feira","Friday":"Sexta-feira","Saturday":"Sábado","Sunday":"Domingo"
@@ -1934,13 +1942,23 @@ def pg_arrecadacao_diaria(D, d0, d1):
     diario["Acumulado"] = diario["Valor"].cumsum()
     diario["Útil"] = range(1, len(diario)+1)
 
-    vl_total = diario["Valor"].sum()
+    vl_total  = diario["Valor"].sum()
+    vl_tarifa = diario["Tarifa"].sum() if _has_tarifa else 0
+    vl_liq    = vl_total - vl_tarifa
+    pct_tar   = vl_tarifa / vl_total * 100 if vl_total else 0
     qtd_dias  = len(diario)
     media_dia = vl_total / qtd_dias if qtd_dias else 0
+
     c1, c2, c3 = st.columns(3)
     kpi(c1, "Total Arrecadado (D+)", vl_total)
     kpi(c2, "Dias Úteis", qtd_dias, prefixo="")
     kpi(c3, "Média por Dia Útil", media_dia)
+
+    if _has_tarifa:
+        c4, c5, c6 = st.columns(3)
+        kpi(c4, "Total Tarifas Bancárias", vl_tarifa)
+        kpi(c5, "Arrecadação Líquida", vl_liq)
+        kpi(c6, "% Tarifa s/ Arrecadação", pct_tar, prefixo="%")
 
     # ── Bloco comparativo ─────────────────────────────────────────────────────
     _comp = _comp_periodo()
@@ -2052,25 +2070,34 @@ def pg_arrecadacao_diaria(D, d0, d1):
 
     # Tabela detalhada — igual ao relatório do sistema
     st.markdown("#### Tabela Diária de Arrecadação")
-    tbl_view = diario[["Útil","Data","Dia Semana","Qtd Docs","Valor","Acumulado"]].copy()
+    _cols_tbl = ["Útil","Data","Dia Semana","Qtd Docs","Valor"]
+    if _has_tarifa:
+        _cols_tbl += ["Tarifa","Líquido"]
+    _cols_tbl.append("Acumulado")
+    tbl_view = diario[_cols_tbl].copy()
     tbl_view["Data"] = tbl_view["Data"].dt.strftime("%d/%m/%Y")
 
     # Linha de total
-    total_row = pd.DataFrame([{
-        "Útil": "", "Data": "TOTAL", "Dia Semana": "",
-        "Qtd Docs": int(tbl_view["Qtd Docs"].sum()),
-        "Valor": tbl_view["Valor"].sum(),
-        "Acumulado": tbl_view["Valor"].sum(),
-    }])
+    _total = {"Útil": "", "Data": "TOTAL", "Dia Semana": "",
+              "Qtd Docs": int(tbl_view["Qtd Docs"].sum()),
+              "Valor": tbl_view["Valor"].sum(),
+              "Acumulado": tbl_view["Valor"].sum()}
+    if _has_tarifa:
+        _total["Tarifa"]  = tbl_view["Tarifa"].sum()
+        _total["Líquido"] = tbl_view["Líquido"].sum()
+    total_row = pd.DataFrame([_total])
     tbl_view = pd.concat([tbl_view, total_row], ignore_index=True)
+
+    _fmt_brl = lambda v: f"R$ {v:>12,.2f}" if isinstance(v, float) else v
+    _fmt_int = lambda v: f"{int(v):,}"      if isinstance(v, (int,float)) and v==v else v
+    _fmt_map = {"Valor": _fmt_brl, "Acumulado": _fmt_brl, "Qtd Docs": _fmt_int}
+    if _has_tarifa:
+        _fmt_map["Tarifa"]  = _fmt_brl
+        _fmt_map["Líquido"] = _fmt_brl
 
     st.dataframe(
         tbl_view.style
-        .format({
-            "Valor":     lambda v: f"R$ {v:>12,.2f}" if isinstance(v, float) else v,
-            "Acumulado": lambda v: f"R$ {v:>12,.2f}" if isinstance(v, float) else v,
-            "Qtd Docs":  lambda v: f"{int(v):,}"    if isinstance(v, (int,float)) and v==v else v,
-        })
+        .format(_fmt_map)
         .apply(lambda row: ["font-weight:bold; background:#E8F4FD"]*len(row)
                if row["Data"]=="TOTAL" else [""]*len(row), axis=1),
         width="stretch",
@@ -2087,13 +2114,33 @@ def pg_arrecadacao_diaria(D, d0, d1):
             merged["nm_agente_arrecadador"] = merged["nm_agente_arrecadador"].fillna(
                 merged["id_agente"].astype(str)
             )
-            ag_ag = (merged.groupby("nm_agente_arrecadador")["vl_arrecadado"]
-                     .sum().sort_values(ascending=False).reset_index())
-            ag_ag.columns = ["Agente","Valor"]
-            ag_tot = pd.DataFrame([{"Agente":"TOTAL","Valor":ag_ag["Valor"].sum()}])
-            ag_ag = pd.concat([ag_ag, ag_tot])
+            _agg_ag = {"Valor": ("vl_arrecadado","sum")}
+            if _has_tarifa:
+                _agg_ag["Tarifa"] = ("vl_tarifa","sum")
+            ag_ag = (merged.groupby("nm_agente_arrecadador")
+                     .agg(**_agg_ag)
+                     .sort_values("Valor", ascending=False)
+                     .reset_index())
+            ag_ag.columns = ["Agente"] + list(ag_ag.columns[1:])
+            if _has_tarifa:
+                ag_ag["Líquido"] = ag_ag["Valor"] - ag_ag["Tarifa"]
+                ag_ag["% Tarifa"] = (ag_ag["Tarifa"] / ag_ag["Valor"] * 100).round(2)
+            _tot = {"Agente":"TOTAL","Valor": ag_ag["Valor"].sum()}
+            if _has_tarifa:
+                _tot["Tarifa"]   = ag_ag["Tarifa"].sum()
+                _tot["Líquido"]  = ag_ag["Líquido"].sum()
+                _tot["% Tarifa"] = (ag_ag["Tarifa"].sum() / ag_ag["Valor"].sum() * 100) if ag_ag["Valor"].sum() else 0
+            ag_ag = pd.concat([ag_ag, pd.DataFrame([_tot])], ignore_index=True)
+            _fmt_ag = {"Valor": "R$ {:,.2f}"}
+            if _has_tarifa:
+                _fmt_ag["Tarifa"]   = "R$ {:,.2f}"
+                _fmt_ag["Líquido"]  = "R$ {:,.2f}"
+                _fmt_ag["% Tarifa"] = "{:.2f}%"
             st.dataframe(
-                ag_ag.style.format({"Valor": "R$ {:,.2f}"}),
+                ag_ag.style
+                .format(_fmt_ag)
+                .apply(lambda row: ["font-weight:bold; background:#E8F4FD"]*len(row)
+                       if row["Agente"]=="TOTAL" else [""]*len(row), axis=1),
                 width="stretch",
             )
 
