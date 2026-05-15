@@ -481,6 +481,7 @@ def sidebar_periodo():
         "── Comparativos ──",
         "📊 Mês vs Mesmo Mês Ano Anterior",
         "📊 Trimestre vs Trimestre Anterior",
+        "📊 N Meses vs Ano Anterior",
         "Período Personalizado",
     ]
     sel = st.sidebar.selectbox("Periodo", opcoes, index=10, label_visibility="collapsed")
@@ -624,6 +625,61 @@ def sidebar_periodo():
             <b style="color:#fca5a5;">◉ {_lbl_comp}</b>
             </div>""",
             unsafe_allow_html=True
+        )
+
+    elif sel == "📊 N Meses vs Ano Anterior":
+        import calendar
+        # Mês final da comparação
+        _meses_disp = [(hoje.replace(day=1) - relativedelta(months=i)) for i in range(24)]
+        _labels_m   = [f"{MESES_PT[m.month-1]}/{m.year}" for m in _meses_disp]
+        _sel_fim = st.sidebar.selectbox(
+            "Mês final", _labels_m, index=1, label_visibility="visible"
+        )
+        _mes_fim = _meses_disp[_labels_m.index(_sel_fim)]
+        # Quantidade de meses retroativos
+        _n = st.sidebar.slider("Meses a comparar", min_value=2, max_value=24, value=6)
+        # Calcula intervalo atual: dos últimos N meses até o mês final
+        _mes_ini = _mes_fim - relativedelta(months=_n - 1)
+        d0 = date(_mes_ini.year, _mes_ini.month, 1)
+        d1 = date(_mes_fim.year, _mes_fim.month,
+                  calendar.monthrange(_mes_fim.year, _mes_fim.month)[1])
+        # Intervalo comparativo: mesmo range, 1 ano antes
+        _comp_d0 = date(d0.year - 1, d0.month, 1)
+        _comp_d1 = date(d1.year - 1, d1.month,
+                        calendar.monthrange(d1.year - 1, d1.month)[1])
+        # Labels para badge: lista dos pares mês a mês
+        _pares = []
+        for i in range(_n):
+            _ma = _mes_ini + relativedelta(months=i)
+            _mc = date(_ma.year - 1, _ma.month, 1)
+            _pares.append((f"{MESES_PT[_ma.month-1]}/{_ma.year}",
+                           f"{MESES_PT[_mc.month-1]}/{_mc.year}"))
+        _lbl_atual = f"{MESES_PT[d0.month-1]}/{d0.year} → {MESES_PT[d1.month-1]}/{d1.year}"
+        _lbl_comp  = f"{MESES_PT[_comp_d0.month-1]}/{_comp_d0.year} → {MESES_PT[_comp_d1.month-1]}/{_comp_d1.year}"
+        st.session_state["comp_periodo"] = {
+            "ativo":      True,
+            "tipo":       "multi_mes",
+            "d0":         pd.Timestamp(d0),
+            "d1":         pd.Timestamp(d1),
+            "comp_d0":    pd.Timestamp(_comp_d0),
+            "comp_d1":    pd.Timestamp(_comp_d1),
+            "label_atual": _lbl_atual,
+            "label_comp":  _lbl_comp,
+            "pares":       _pares,
+        }
+        # Badge — lista de pares mês a mês
+        _linhas_badge = "".join(
+            f'<span style="color:#7dd3fc;">{a}</span>'
+            f'<span style="color:rgba(255,255,255,.45);"> vs </span>'
+            f'<span style="color:#fca5a5;">{c}</span><br>'
+            for a, c in _pares
+        )
+        st.sidebar.markdown(
+            f"""<div style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);
+            border-radius:10px;padding:8px 12px;margin-top:4px;font-size:.75rem;line-height:1.7;">
+            <span style="color:rgba(255,255,255,.6);font-size:.7rem;">
+            {_n} meses vs Ano Anterior</span><br>{_linhas_badge}</div>""",
+            unsafe_allow_html=True,
         )
 
     else:  # Período Personalizado
