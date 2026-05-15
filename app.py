@@ -1058,6 +1058,30 @@ def _bar_comp_mensal(fat_atual, fat_full, col_val, title, comp, cor_atual, unida
     return fig
 
 
+def _pares_comp(comp):
+    """Retorna lista de (lbl_atual_PT, lbl_comp_PT, lbl_atual_mmyyyy, lbl_comp_mmyyyy).
+    Funciona para todos os tipos: mes, trimestre, multi_mes.
+    """
+    MESES_PT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"]
+    def _pt_to_mmyyyy(lbl):
+        parts = lbl.split("/")
+        mes = MESES_PT.index(parts[0]) + 1
+        return f"{mes:02d}/{parts[1]}"
+
+    if comp.get("tipo") == "multi_mes":
+        raw = comp.get("pares", [])
+    else:
+        cur = pd.Timestamp(comp["d0"]).replace(day=1)
+        end = pd.Timestamp(comp["d1"]).replace(day=1)
+        raw = []
+        while cur <= end:
+            lbl_a = f"{MESES_PT[cur.month-1]}/{cur.year}"
+            lbl_c = f"{MESES_PT[cur.month-1]}/{cur.year-1}"
+            raw.append((lbl_a, lbl_c))
+            cur += relativedelta(months=1)
+    return [(a, c, _pt_to_mmyyyy(a), _pt_to_mmyyyy(c)) for a, c in raw]
+
+
 def line_mensal(df, col_data, col_val, title, cor=None):
     if df.empty:
         return go.Figure()
@@ -1210,101 +1234,139 @@ def pg_cockpit(D, d0, d1):
             arr_c_m = tmp.groupby("Mês")["vl_arrecadado"].sum().reset_index()
             arr_c_m.columns = ["Mês", "Valor"]
 
-    todos = _sort_meses(list(set(
-        (fat_m["Mês"].tolist() if not fat_m.empty else []) +
-        (arr_m["Mês"].tolist() if not arr_m.empty else []) +
-        (fat_c_m["Mês"].tolist() if not fat_c_m.empty else []) +
-        (arr_c_m["Mês"].tolist() if not arr_c_m.empty else [])
-    )))
-    if todos:
+    if _comp:
+        # ── Intercalated bars when comparison is active ────────────────────────
+        pares = _pares_comp(_comp)  # [(lbl_atual, lbl_comp, mmyyyy_atual, mmyyyy_comp)]
+        fat_idx  = fat_m.set_index("Mês")["Valor"]   if not fat_m.empty   else pd.Series(dtype=float)
+        arr_idx  = arr_m.set_index("Mês")["Valor"]   if not arr_m.empty   else pd.Series(dtype=float)
+        fat_cidx = fat_c_m.set_index("Mês")["Valor"] if not fat_c_m.empty else pd.Series(dtype=float)
+        arr_cidx = arr_c_m.set_index("Mês")["Valor"] if not arr_c_m.empty else pd.Series(dtype=float)
+        n = len(pares)
+        GAP = 7
+        x_fc = [i*GAP + 0.0 for i in range(n)]
+        x_ac = [i*GAP + 1.1 for i in range(n)]
+        x_fa = [i*GAP + 3.6 for i in range(n)]
+        x_aa = [i*GAP + 4.7 for i in range(n)]
+        y_fc, y_ac, y_fa, y_aa = [], [], [], []
+        lbl_comp_xs, lbl_atual_xs = [], []
+        for lbl_a, lbl_c, mmyyyy_a, mmyyyy_c in pares:
+            y_fc.append(float(fat_cidx.get(mmyyyy_c, 0)))
+            y_ac.append(float(arr_cidx.get(mmyyyy_c, 0)))
+            y_fa.append(float(fat_idx.get(mmyyyy_a, 0)))
+            y_aa.append(float(arr_idx.get(mmyyyy_a, 0)))
+            lbl_comp_xs.append(lbl_c)
+            lbl_atual_xs.append(lbl_a)
+        tickvals = [i*GAP + 0.55 for i in range(n)] + [i*GAP + 4.15 for i in range(n)]
+        ticktext = lbl_comp_xs + lbl_atual_xs
         fig1 = go.Figure()
-        vf = fat_m.set_index("Mês").reindex(todos)["Valor"].fillna(0) if not fat_m.empty else pd.Series([0]*len(todos), index=todos)
-        va = arr_m.set_index("Mês").reindex(todos)["Valor"].fillna(0) if not arr_m.empty else pd.Series([0]*len(todos), index=todos)
-        label_fat = f"Faturamento {_comp['label_atual'] if _comp else ''}".strip()
-        label_arr = f"Arrecadação {_comp['label_atual'] if _comp else ''}".strip()
-        if not fat_m.empty:
-            fig1.add_trace(go.Bar(
-                x=todos, y=vf, name=label_fat,
-                marker_color=COR["azul"], opacity=0.9,
-                text=[f"<b>{v/1000:.0f}k</b>" if v > 0 else "" for v in vf],
-                textposition="inside", textangle=-90,
-                textfont=dict(size=14, color="white"),
-                insidetextanchor="middle",
-            ))
-        if not arr_m.empty:
-            fig1.add_trace(go.Bar(
-                x=todos, y=va, name=label_arr,
-                marker_color=COR["verde"], opacity=0.9,
-                text=[f"<b>{v/1000:.0f}k</b>" if v > 0 else "" for v in va],
-                textposition="inside", textangle=-90,
-                textfont=dict(size=14, color="white"),
-                insidetextanchor="middle",
-            ))
-        if _comp and not fat_c_m.empty:
-            vfc = fat_c_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
-            fig1.add_trace(go.Bar(
-                x=todos, y=vfc, name=f"Faturamento {_comp['label_comp']}",
-                marker_color=COR["azul"], opacity=0.40,
-                marker_pattern_shape="/",
-                text=[f"<b>{v/1000:.0f}k</b>" if v > 0 else "" for v in vfc],
-                textposition="inside", textangle=-90,
-                textfont=dict(size=15, color="#0d2e50", family="Arial Black"),
-                insidetextanchor="middle",
-            ))
-        if _comp and not arr_c_m.empty:
-            vac = arr_c_m.set_index("Mês").reindex(todos)["Valor"].fillna(0)
-            fig1.add_trace(go.Bar(
-                x=todos, y=vac, name=f"Arrecadação {_comp['label_comp']}",
-                marker_color=COR["verde"], opacity=0.40,
-                marker_pattern_shape="/",
-                text=[f"<b>{v/1000:.0f}k</b>" if v > 0 else "" for v in vac],
-                textposition="inside", textangle=-90,
-                textfont=dict(size=15, color="#0d3320", family="Arial Black"),
-                insidetextanchor="middle",
-            ))
-        # Linhas de média
-        vf_nonzero = vf[vf > 0]
-        va_nonzero = va[va > 0]
+        fig1.add_trace(go.Bar(
+            x=x_fc, y=y_fc, name=f"Faturamento {_comp['label_comp']}",
+            marker=dict(color=COR["azul"], opacity=0.40, pattern_shape="/"), width=1.0,
+            text=[f"<b>{v/1000:.0f}k</b>" if v > 0 else "" for v in y_fc],
+            textposition="inside", textangle=-90,
+            textfont=dict(size=13, color="#0d2e50", family="Arial Black"),
+            insidetextanchor="middle",
+        ))
+        fig1.add_trace(go.Bar(
+            x=x_ac, y=y_ac, name=f"Arrecadação {_comp['label_comp']}",
+            marker=dict(color=COR["verde"], opacity=0.40, pattern_shape="/"), width=1.0,
+            text=[f"<b>{v/1000:.0f}k</b>" if v > 0 else "" for v in y_ac],
+            textposition="inside", textangle=-90,
+            textfont=dict(size=13, color="#0d3320", family="Arial Black"),
+            insidetextanchor="middle",
+        ))
+        fig1.add_trace(go.Bar(
+            x=x_fa, y=y_fa, name=f"Faturamento {_comp['label_atual']}",
+            marker_color=COR["azul"], opacity=0.9, width=1.0,
+            text=[f"<b>{v/1000:.0f}k</b>" if v > 0 else "" for v in y_fa],
+            textposition="inside", textangle=-90,
+            textfont=dict(size=14, color="white"),
+            insidetextanchor="middle",
+        ))
+        fig1.add_trace(go.Bar(
+            x=x_aa, y=y_aa, name=f"Arrecadação {_comp['label_atual']}",
+            marker_color=COR["verde"], opacity=0.9, width=1.0,
+            text=[f"<b>{v/1000:.0f}k</b>" if v > 0 else "" for v in y_aa],
+            textposition="inside", textangle=-90,
+            textfont=dict(size=14, color="white"),
+            insidetextanchor="middle",
+        ))
+        vf_nz = [v for v in y_fa if v > 0]; va_nz = [v for v in y_aa if v > 0]
         annotations_medias = []
-        media_fat = media_arr = None
-        if len(vf_nonzero) > 0:
-            media_fat = vf_nonzero.mean()
-            fig1.add_hline(y=media_fat, line_dash="dash", line_color=COR["azul"], line_width=1.5)
-        if len(va_nonzero) > 0:
-            media_arr = va_nonzero.mean()
-            fig1.add_hline(y=media_arr, line_dash="dash", line_color=COR["verde"], line_width=1.5)
-        # Texto das médias posicionado logo abaixo do título (yref=paper, topo do plot)
-        if media_fat is not None:
-            annotations_medias.append(dict(
-                xref="paper", yref="paper", x=0.0, y=1.06,
-                text=f"<b>── Média Fat.: R$ {media_fat/1000:.0f}k</b>",
-                showarrow=False, xanchor="left", yanchor="top",
-                font=dict(size=12, color=COR["azul"]),
-            ))
-        if media_arr is not None:
-            annotations_medias.append(dict(
-                xref="paper", yref="paper", x=0.5, y=1.06,
-                text=f"<b>── Média Arrec.: R$ {media_arr/1000:.0f}k</b>",
-                showarrow=False, xanchor="center", yanchor="top",
-                font=dict(size=12, color="#1a6b3c"),
-            ))
+        if vf_nz:
+            mf = sum(vf_nz)/len(vf_nz)
+            fig1.add_hline(y=mf, line_dash="dash", line_color=COR["azul"], line_width=1.5)
+            annotations_medias.append(dict(xref="paper", yref="paper", x=0.0, y=1.06,
+                text=f"<b>── Média Fat.: R$ {mf/1000:.0f}k</b>", showarrow=False,
+                xanchor="left", yanchor="top", font=dict(size=12, color=COR["azul"])))
+        if va_nz:
+            ma = sum(va_nz)/len(va_nz)
+            fig1.add_hline(y=ma, line_dash="dash", line_color=COR["verde"], line_width=1.5)
+            annotations_medias.append(dict(xref="paper", yref="paper", x=0.5, y=1.06,
+                text=f"<b>── Média Arrec.: R$ {ma/1000:.0f}k</b>", showarrow=False,
+                xanchor="center", yanchor="top", font=dict(size=12, color="#1a6b3c")))
         fig1.update_layout(
-            title="Faturamento × Arrecadação (R$)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
-            barmode="group",
-            margin=dict(t=70, b=60, l=0, r=30), height=450,
+            title=f"Faturamento × Arrecadação (R$) — {_comp['label_atual']} vs {_comp['label_comp']}",
+            barmode="overlay", margin=dict(t=70, b=60, l=0, r=30), height=450,
             annotations=annotations_medias,
-            xaxis=dict(title="", categoryorder="array", categoryarray=todos),
+            xaxis=dict(title="", tickvals=tickvals, ticktext=ticktext,
+                       tickfont=dict(size=11), tickangle=-30),
             yaxis=dict(title="", tickformat=",.0f"),
-            legend=dict(
-                orientation="h", yanchor="top", y=-0.12,
-                xanchor="center", x=0.5,
-                font=dict(size=12),
-            ),
+            legend=dict(orientation="h", yanchor="top", y=-0.18,
+                        xanchor="center", x=0.5, font=dict(size=12)),
             hovermode="x unified",
         )
         st.plotly_chart(fig1, width="stretch")
     else:
-        st.info("Sem dados de faturamento/arrecadação no período.")
+        todos = _sort_meses(list(set(
+            (fat_m["Mês"].tolist() if not fat_m.empty else []) +
+            (arr_m["Mês"].tolist() if not arr_m.empty else [])
+        )))
+        if todos:
+            fig1 = go.Figure()
+            vf = fat_m.set_index("Mês").reindex(todos)["Valor"].fillna(0) if not fat_m.empty else pd.Series([0]*len(todos), index=todos)
+            va = arr_m.set_index("Mês").reindex(todos)["Valor"].fillna(0) if not arr_m.empty else pd.Series([0]*len(todos), index=todos)
+            if not fat_m.empty:
+                fig1.add_trace(go.Bar(
+                    x=todos, y=vf, name="Faturamento",
+                    marker_color=COR["azul"], opacity=0.9,
+                    text=[f"<b>{v/1000:.0f}k</b>" if v > 0 else "" for v in vf],
+                    textposition="inside", textangle=-90,
+                    textfont=dict(size=14, color="white"), insidetextanchor="middle",
+                ))
+            if not arr_m.empty:
+                fig1.add_trace(go.Bar(
+                    x=todos, y=va, name="Arrecadação",
+                    marker_color=COR["verde"], opacity=0.9,
+                    text=[f"<b>{v/1000:.0f}k</b>" if v > 0 else "" for v in va],
+                    textposition="inside", textangle=-90,
+                    textfont=dict(size=14, color="white"), insidetextanchor="middle",
+                ))
+            vf_nonzero = vf[vf > 0]; va_nonzero = va[va > 0]
+            annotations_medias = []
+            if len(vf_nonzero) > 0:
+                media_fat = vf_nonzero.mean()
+                fig1.add_hline(y=media_fat, line_dash="dash", line_color=COR["azul"], line_width=1.5)
+                annotations_medias.append(dict(xref="paper", yref="paper", x=0.0, y=1.06,
+                    text=f"<b>── Média Fat.: R$ {media_fat/1000:.0f}k</b>", showarrow=False,
+                    xanchor="left", yanchor="top", font=dict(size=12, color=COR["azul"])))
+            if len(va_nonzero) > 0:
+                media_arr = va_nonzero.mean()
+                fig1.add_hline(y=media_arr, line_dash="dash", line_color=COR["verde"], line_width=1.5)
+                annotations_medias.append(dict(xref="paper", yref="paper", x=0.5, y=1.06,
+                    text=f"<b>── Média Arrec.: R$ {media_arr/1000:.0f}k</b>", showarrow=False,
+                    xanchor="center", yanchor="top", font=dict(size=12, color="#1a6b3c")))
+            fig1.update_layout(
+                title="Faturamento × Arrecadação (R$)",
+                barmode="group", margin=dict(t=70, b=60, l=0, r=30), height=450,
+                annotations=annotations_medias,
+                xaxis=dict(title="", categoryorder="array", categoryarray=todos),
+                yaxis=dict(title="", tickformat=",.0f"),
+                legend=dict(orientation="h", yanchor="top", y=-0.12,
+                            xanchor="center", x=0.5, font=dict(size=12)),
+                hovermode="x unified",
+            )
+            st.plotly_chart(fig1, width="stretch")
 
     # ══════════════════════════════════════════════════════════════════════════
     # 2 — Economias Ativas + Cortadas
@@ -1735,40 +1797,85 @@ def _faturamento_body(D, d0, d1):
     ag = fat_m.groupby("_mes").agg(**agg_dict).reset_index().rename(columns={"_mes": "Mês"})
     ag_melt = ag.melt(id_vars="Mês", var_name="Componente", value_name="Valor")
     ag_melt = ag_melt[ag_melt["Valor"] > 0]
-    # Adiciona série comparativa ao gráfico de componentes
+    _COMP_CORES = {"Água": COR["agua"], "Tarifa Básica": "#8B5CF6",
+                   "Serviços": COR["servico"], "Lixo": COR["lixo"]}
     if _comp:
+        # Intercalated stacked bars per month pair
         _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
         _fat_cg = filtrar(D["fat"], "dt_ref", _cd0, _cd1)
+        ag_c_wide = pd.DataFrame()
         if not _fat_cg.empty:
             _fm_c = _fat_cg.copy()
             _fm_c["_mes"] = pd.to_datetime(_fm_c["dt_ref"]).dt.to_period("M").dt.to_timestamp()
             _agg_c = {k: (v, "sum") for k, v in agg_cols.items() if v in _fm_c.columns}
-            _ag_c  = _fm_c.groupby("_mes").agg(**_agg_c).reset_index().rename(columns={"_mes": "Mês"})
-            _ag_c_melt = _ag_c.melt(id_vars="Mês", var_name="Componente", value_name="Valor")
-            _ag_c_melt = _ag_c_melt[_ag_c_melt["Valor"] > 0]
-            _ag_c_melt["Componente"] = _ag_c_melt["Componente"] + f" ({_comp['label_comp']})"
-            ag_melt = pd.concat([ag_melt, _ag_c_melt], ignore_index=True)
-    _label_comp_fat = _comp["label_comp"] if _comp else ""
-    ag_melt["_texto"] = ag_melt["Valor"].apply(lambda v: f"{v/1000:.0f}k" if v >= 1000 else f"{v:.0f}")
-    fig = px.bar(ag_melt, x="Mês", y="Valor", color="Componente",
-                 title="Faturamento Líquido por Componente (mensal)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
-                 color_discrete_map={
-                     "Água": COR["agua"], "Tarifa Básica": "#8B5CF6",
-                     "Serviços": COR["servico"], "Lixo": COR["lixo"],
-                 }, barmode="group" if _comp else "stack",
-                 text="_texto")
-    # Estilo padrão para barras do período atual
-    fig.update_traces(textposition="inside", textangle=-90,
-                      textfont=dict(size=13, color="white", family="Arial"),
-                      insidetextanchor="middle")
-    # Destaque extra para barras do período comparativo
-    if _comp:
-        for trace in fig.data:
-            if _label_comp_fat in trace.name:
-                trace.textfont = dict(size=15, color="#1a1a1a", family="Arial Black")
-    fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="",
-                      uniformtext_minsize=8, uniformtext_mode="hide")
-    fig.update_yaxes(tickformat=",.0f")
+            ag_c_wide = _fm_c.groupby("_mes").agg(**_agg_c).reset_index().rename(columns={"_mes": "Mês"})
+        pares_c = _pares_comp(_comp)
+        n = len(pares_c)
+        GAP = 4
+        x_comp  = [i*GAP + 0.5 for i in range(n)]
+        x_atual = [i*GAP + 2.0 for i in range(n)]
+        lbl_comp_xs = [lbl_c for _, lbl_c, _, _ in pares_c]
+        lbl_atual_xs = [lbl_a for lbl_a, _, _, _ in pares_c]
+        ag_wide = ag.set_index("Mês") if not ag.empty else pd.DataFrame()
+        ag_c_wi = ag_c_wide.set_index("Mês") if not ag_c_wide.empty else pd.DataFrame()
+        MESES_PT_C = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"]
+        def _pt_to_ts(lbl):
+            try:
+                parts = lbl.split("/"); mes = MESES_PT_C.index(parts[0])+1
+                return pd.Timestamp(year=int(parts[1]), month=mes, day=1)
+            except Exception:
+                return None
+        fig = go.Figure()
+        componentes = list(agg_cols.keys())
+        showleg = True
+        for comp_name in componentes:
+            cor = _COMP_CORES.get(comp_name, COR["azul"])
+            y_c, y_a = [], []
+            for lbl_a, lbl_c, _, _ in pares_c:
+                ts_a = _pt_to_ts(lbl_a); ts_c = _pt_to_ts(lbl_c)
+                y_c.append(float(ag_c_wi.loc[ts_c, comp_name]) if ts_c is not None and not ag_c_wi.empty and ts_c in ag_c_wi.index and comp_name in ag_c_wi.columns else 0)
+                y_a.append(float(ag_wide.loc[ts_a, comp_name]) if ts_a is not None and not ag_wide.empty and ts_a in ag_wide.index and comp_name in ag_wide.columns else 0)
+            fig.add_trace(go.Bar(
+                x=x_comp, y=y_c, name=f"{comp_name} ({_comp['label_comp']})",
+                marker=dict(color=cor, opacity=0.4, pattern_shape="/"), width=1.0,
+                legendgroup=comp_name, showlegend=showleg,
+                text=[f"{v/1000:.0f}k" if v >= 1000 else (f"{v:.0f}" if v > 0 else "") for v in y_c],
+                textposition="inside", textangle=-90,
+                textfont=dict(size=12, color="#1a1a1a", family="Arial Black"),
+                insidetextanchor="middle",
+            ))
+            fig.add_trace(go.Bar(
+                x=x_atual, y=y_a, name=comp_name,
+                marker_color=cor, opacity=0.9, width=1.0,
+                legendgroup=comp_name, showlegend=showleg,
+                text=[f"{v/1000:.0f}k" if v >= 1000 else (f"{v:.0f}" if v > 0 else "") for v in y_a],
+                textposition="inside", textangle=-90,
+                textfont=dict(size=13, color="white", family="Arial"),
+                insidetextanchor="middle",
+            ))
+            showleg = True
+        tickvals = [i*GAP + 0.5 for i in range(n)] + [i*GAP + 2.0 for i in range(n)]
+        ticktext = lbl_comp_xs + lbl_atual_xs
+        fig.update_layout(
+            title=f"Faturamento Líquido por Componente (mensal) — {_comp['label_atual']} vs {_comp['label_comp']}",
+            barmode="stack", margin=dict(t=45, b=50, l=0, r=20), height=420,
+            xaxis=dict(title="", tickvals=tickvals, ticktext=ticktext,
+                       tickfont=dict(size=11), tickangle=-30),
+            yaxis=dict(title="", tickformat=",.0f"),
+            legend=dict(orientation="h", yanchor="top", y=-0.18,
+                        xanchor="center", x=0.5, font=dict(size=12)),
+        )
+    else:
+        ag_melt["_texto"] = ag_melt["Valor"].apply(lambda v: f"{v/1000:.0f}k" if v >= 1000 else f"{v:.0f}")
+        fig = px.bar(ag_melt, x="Mês", y="Valor", color="Componente",
+                     title="Faturamento Líquido por Componente (mensal)",
+                     color_discrete_map=_COMP_CORES, barmode="stack", text="_texto")
+        fig.update_traces(textposition="inside", textangle=-90,
+                          textfont=dict(size=13, color="white", family="Arial"),
+                          insidetextanchor="middle")
+        fig.update_layout(margin=dict(t=35, b=0, l=0, r=20), xaxis_title="", yaxis_title="",
+                          uniformtext_minsize=8, uniformtext_mode="hide")
+        fig.update_yaxes(tickformat=",.0f")
     st.plotly_chart(fig, width="stretch")
 
     # Pizza composição — somente componentes do líquido
@@ -2905,94 +3012,99 @@ def pg_cortes(D, d0, d1):
 
         df_cr = pd.concat(frames_cr)
         _comp = _comp_periodo()
+        _cor_idx = df_cr[df_cr["Tipo"] == "Cortes"].set_index("Mês")["Qtd"]
+        _rel_idx = df_cr[df_cr["Tipo"] == "Religações"].set_index("Mês")["Qtd"]
+        fig = go.Figure()
         if _comp:
             _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
             _cor_cg = filtrar(D["cor"], "dt_solicitacao", _cd0, _cd1)
             _rel_cg = filtrar(D["rel"], "dt_reliagacao",  _cd0, _cd1)
+            _cor_c_idx = pd.Series(dtype=float); _rel_c_idx = pd.Series(dtype=float)
             if not _cor_cg.empty:
                 _cg_m = _cor_cg.drop_duplicates("id_servico").copy()
                 _cg_m["_mes"] = pd.to_datetime(_cg_m["dt_solicitacao"]).dt.strftime("%m/%Y")
-                _ag_cg = _cg_m.groupby("_mes")["id_servico"].nunique().reset_index()
-                _ag_cg.columns = ["Mês","Qtd"]; _ag_cg["Tipo"] = f"Cortes ({_comp['label_comp']})"
-                df_cr = pd.concat([df_cr, _ag_cg])
+                _cor_c_idx = _cg_m.groupby("_mes")["id_servico"].nunique()
             if not _rel_cg.empty:
                 _rg_m = _rel_cg.drop_duplicates("id_servico").copy()
                 _rg_m["_mes"] = pd.to_datetime(_rg_m["dt_reliagacao"]).dt.strftime("%m/%Y")
-                _ag_rg = _rg_m.groupby("_mes")["id_servico"].nunique().reset_index()
-                _ag_rg.columns = ["Mês","Qtd"]; _ag_rg["Tipo"] = f"Religações ({_comp['label_comp']})"
-                df_cr = pd.concat([df_cr, _ag_rg])
-        meses_ord = sorted(df_cr["Mês"].unique(), key=lambda x: pd.to_datetime(x, format="%m/%Y"))
-        _cor_s = df_cr[df_cr["Tipo"] == "Cortes"].set_index("Mês")["Qtd"].reindex(meses_ord, fill_value=0)
-        _rel_s = df_cr[df_cr["Tipo"] == "Religações"].set_index("Mês")["Qtd"].reindex(meses_ord, fill_value=0)
-        fig = go.Figure()
-        fig.add_bar(
-            x=meses_ord, y=_cor_s.values, name="Cortes",
-            marker_color=COR["vermelho"],
-            text=_cor_s.values,
-            textposition="inside",
-            textangle=-90,
-            insidetextanchor="middle",
-            textfont=dict(family="Arial Black", color="white", size=13),
-        )
-        fig.add_bar(
-            x=meses_ord, y=_rel_s.values, name="Religações",
-            marker_color=COR["verde"],
-            text=_rel_s.values,
-            textposition="inside",
-            textangle=-90,
-            insidetextanchor="middle",
-            textfont=dict(family="Arial Black", color="white", size=13),
-        )
-        if _comp:
-            _label_c = _comp["label_comp"]
-            _cor_c_s = df_cr[df_cr["Tipo"] == f"Cortes ({_label_c})"].set_index("Mês")["Qtd"].reindex(meses_ord, fill_value=0)
-            _rel_c_s = df_cr[df_cr["Tipo"] == f"Religações ({_label_c})"].set_index("Mês")["Qtd"].reindex(meses_ord, fill_value=0)
-            fig.add_bar(
-                x=meses_ord, y=_cor_c_s.values, name=f"Cortes ({_label_c})",
-                marker=dict(color=COR["vermelho"], pattern_shape="/", opacity=0.5),
-                text=_cor_c_s.values, textposition="inside", textangle=-90,
-                insidetextanchor="middle",
-                textfont=dict(family="Arial Black", color="#0d2e50", size=12),
+                _rel_c_idx = _rg_m.groupby("_mes")["id_servico"].nunique()
+            pares_cr = _pares_comp(_comp)
+            n = len(pares_cr)
+            GAP = 6
+            x_cc = [i*GAP + 0.0 for i in range(n)]
+            x_rc = [i*GAP + 1.1 for i in range(n)]
+            x_ca = [i*GAP + 3.5 for i in range(n)]
+            x_ra = [i*GAP + 4.6 for i in range(n)]
+            y_cc, y_rc, y_ca, y_ra = [], [], [], []
+            lbl_comp_xs, lbl_atual_xs = [], []
+            for lbl_a, lbl_c, mmyyyy_a, mmyyyy_c in pares_cr:
+                y_cc.append(int(_cor_c_idx.get(mmyyyy_c, 0)))
+                y_rc.append(int(_rel_c_idx.get(mmyyyy_c, 0)))
+                y_ca.append(int(_cor_idx.get(mmyyyy_a, 0)))
+                y_ra.append(int(_rel_idx.get(mmyyyy_a, 0)))
+                lbl_comp_xs.append(lbl_c); lbl_atual_xs.append(lbl_a)
+            tickvals = [i*GAP + 0.55 for i in range(n)] + [i*GAP + 4.05 for i in range(n)]
+            ticktext = lbl_comp_xs + lbl_atual_xs
+            fig.add_bar(x=x_cc, y=y_cc, name=f"Cortes ({_comp['label_comp']})",
+                marker=dict(color=COR["vermelho"], pattern_shape="/", opacity=0.5), width=1.0,
+                text=y_cc, textposition="inside", textangle=-90, insidetextanchor="middle",
+                textfont=dict(family="Arial Black", color="#5a0000", size=12))
+            fig.add_bar(x=x_rc, y=y_rc, name=f"Religações ({_comp['label_comp']})",
+                marker=dict(color=COR["verde"], pattern_shape="/", opacity=0.5), width=1.0,
+                text=y_rc, textposition="inside", textangle=-90, insidetextanchor="middle",
+                textfont=dict(family="Arial Black", color="#0d3320", size=12))
+            fig.add_bar(x=x_ca, y=y_ca, name=f"Cortes ({_comp['label_atual']})",
+                marker_color=COR["vermelho"], width=1.0,
+                text=y_ca, textposition="inside", textangle=-90, insidetextanchor="middle",
+                textfont=dict(family="Arial Black", color="white", size=13))
+            fig.add_bar(x=x_ra, y=y_ra, name=f"Religações ({_comp['label_atual']})",
+                marker_color=COR["verde"], width=1.0,
+                text=y_ra, textposition="inside", textangle=-90, insidetextanchor="middle",
+                textfont=dict(family="Arial Black", color="white", size=13))
+            _media_cor = sum([v for v in y_ca if v > 0]) / max(len([v for v in y_ca if v > 0]), 1)
+            _media_rel = sum([v for v in y_ra if v > 0]) / max(len([v for v in y_ra if v > 0]), 1)
+            fig.update_layout(
+                title=f"Cortes vs Religações (mensal) — {_comp['label_atual']} vs {_comp['label_comp']}",
+                barmode="overlay", margin=dict(t=40, b=55, l=0, r=20),
+                xaxis=dict(title="", tickvals=tickvals, ticktext=ticktext,
+                           tickfont=dict(size=11), tickangle=-30),
+                yaxis_title="",
+                legend=dict(orientation="h", yanchor="top", y=-0.18,
+                            xanchor="center", x=0.5, font=dict(size=12)),
             )
-            fig.add_bar(
-                x=meses_ord, y=_rel_c_s.values, name=f"Religações ({_label_c})",
-                marker=dict(color=COR["verde"], pattern_shape="/", opacity=0.5),
-                text=_rel_c_s.values, textposition="inside", textangle=-90,
-                insidetextanchor="middle",
-                textfont=dict(family="Arial Black", color="#0d2e50", size=12),
+        else:
+            meses_ord = sorted(df_cr["Mês"].unique(), key=lambda x: pd.to_datetime(x, format="%m/%Y"))
+            _cor_s = _cor_idx.reindex(meses_ord, fill_value=0)
+            _rel_s = _rel_idx.reindex(meses_ord, fill_value=0)
+            fig.add_bar(x=meses_ord, y=_cor_s.values, name="Cortes",
+                marker_color=COR["vermelho"], text=_cor_s.values,
+                textposition="inside", textangle=-90, insidetextanchor="middle",
+                textfont=dict(family="Arial Black", color="white", size=13))
+            fig.add_bar(x=meses_ord, y=_rel_s.values, name="Religações",
+                marker_color=COR["verde"], text=_rel_s.values,
+                textposition="inside", textangle=-90, insidetextanchor="middle",
+                textfont=dict(family="Arial Black", color="white", size=13))
+            _media_cor = _cor_s[_cor_s > 0].mean() if (_cor_s > 0).any() else 0
+            _media_rel = _rel_s[_rel_s > 0].mean() if (_rel_s > 0).any() else 0
+            fig.update_layout(
+                title="Cortes vs Religações (mensal)", barmode="group",
+                margin=dict(t=40, b=0, l=0, r=20), xaxis_title="", yaxis_title="",
+                legend=dict(orientation="v", yanchor="top", y=1, xanchor="left", x=1.01,
+                            bgcolor="rgba(255,255,255,0.85)",
+                            bordercolor="rgba(0,0,0,0.1)", borderwidth=1),
             )
-        # Médias — apenas dos meses com valor > 0 (exclui meses parciais zerados)
-        _media_cor = _cor_s[_cor_s > 0].mean() if (_cor_s > 0).any() else 0
-        _media_rel = _rel_s[_rel_s > 0].mean() if (_rel_s > 0).any() else 0
         fig.add_hline(y=_media_cor, line_dash="dash", line_color=COR["vermelho"], line_width=1.8)
-        fig.add_annotation(
-            xref="paper", yref="y", x=1, y=_media_cor,
+        fig.add_annotation(xref="paper", yref="y", x=1, y=_media_cor,
             text=f"<b>Média Cortes: {_media_cor:,.0f}</b>".replace(",", "."),
             showarrow=False, xanchor="right", yanchor="bottom",
             font=dict(size=11, color=COR["vermelho"], family="Arial Black"),
-            bgcolor="rgba(255,255,255,0.8)", borderpad=2,
-        )
+            bgcolor="rgba(255,255,255,0.8)", borderpad=2)
         fig.add_hline(y=_media_rel, line_dash="dash", line_color=COR["verde"], line_width=1.8)
-        fig.add_annotation(
-            xref="paper", yref="y", x=1, y=_media_rel,
+        fig.add_annotation(xref="paper", yref="y", x=1, y=_media_rel,
             text=f"<b>Média Religações: {_media_rel:,.0f}</b>".replace(",", "."),
             showarrow=False, xanchor="right", yanchor="top",
             font=dict(size=11, color=COR["verde"], family="Arial Black"),
-            bgcolor="rgba(255,255,255,0.8)", borderpad=2,
-        )
-        fig.update_layout(
-            title="Cortes vs Religações (mensal)" + (f" — {_comp['label_atual']} vs {_comp['label_comp']}" if _comp else ""),
-            barmode="group",
-            margin=dict(t=40, b=0, l=0, r=20),
-            xaxis_title="", yaxis_title="",
-            legend=dict(
-                orientation="v",
-                yanchor="top", y=1,
-                xanchor="left", x=1.01,
-                bgcolor="rgba(255,255,255,0.85)",
-                bordercolor="rgba(0,0,0,0.1)", borderwidth=1,
-            ),
-        )
+            bgcolor="rgba(255,255,255,0.8)", borderpad=2)
         st.plotly_chart(fig, width="stretch")
 
     # Distribuição por tempo de execução (sol→fim) — em faixas de horas
