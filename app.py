@@ -996,13 +996,27 @@ def _bar_comp_mensal(fat_atual, fat_full, col_val, title, comp, cor_atual, unida
         except Exception:
             return None
 
-    xs, y_comp, y_atual = [], [], []
+    y_comp, y_atual, lbl_comp_xs, lbl_atual_xs = [], [], [], []
     for lbl_a, lbl_c in pares:
-        xs.append(lbl_a or lbl_c)
         pa = _lbl_to_period(lbl_a)
         pc = _lbl_to_period(lbl_c)
         y_atual.append(float(vol_a.get(pa, 0)) if pa else 0)
         y_comp.append(float(vol_c.get(pc, 0)) if pc else 0)
+        lbl_comp_xs.append(lbl_c or lbl_a)
+        lbl_atual_xs.append(lbl_a or lbl_c)
+
+    n = len(pares)
+    # Posições numéricas: cada grupo ocupa 3 unidades; comp à esq, atual à dir
+    GAP = 3
+    x_comp  = [i * GAP + 0.7 for i in range(n)]
+    x_atual = [i * GAP + 1.9 for i in range(n)]
+
+    # Ticks individuais sob cada barra
+    tickvals = sorted(x_comp + x_atual)
+    ticktext = []
+    for i in range(n):
+        ticktext.append(lbl_comp_xs[i])   # tick sob barra comp
+        ticktext.append(lbl_atual_xs[i])  # tick sob barra atual
 
     def _fmt(v):
         s = f"{v:,.0f}".replace(",", ".")
@@ -1011,25 +1025,32 @@ def _bar_comp_mensal(fat_atual, fat_full, col_val, title, comp, cor_atual, unida
     _txt_fn = dict(size=12, color="white", family="Arial Black")
     fig = go.Figure()
     fig.add_bar(
-        x=xs, y=y_comp,
+        x=x_comp, y=y_comp,
         name=comp["label_comp"],
         marker_color="rgba(220,38,38,0.60)",
+        width=1.0,
         text=[_fmt(v) for v in y_comp],
         textposition="inside", textangle=-90,
         textfont=_txt_fn, insidetextanchor="middle",
     )
     fig.add_bar(
-        x=xs, y=y_atual,
+        x=x_atual, y=y_atual,
         name=comp["label_atual"],
         marker_color=cor_atual,
+        width=1.0,
         text=[_fmt(v) for v in y_atual],
         textposition="inside", textangle=-90,
         textfont=_txt_fn, insidetextanchor="middle",
     )
     fig.update_layout(
-        title=title, barmode="group",
+        title=title,
+        xaxis=dict(
+            tickvals=tickvals,
+            ticktext=ticktext,
+            tickfont=dict(size=11, family="Arial"),
+        ),
         xaxis_title="", yaxis_title="",
-        margin=dict(t=45, b=0, l=0, r=20),
+        margin=dict(t=45, b=40, l=0, r=20),
         legend=dict(orientation="h", y=1.10, x=0.5, xanchor="center",
                     font=dict(size=12, family="Arial")),
         uniformtext_minsize=9, uniformtext_mode="hide",
