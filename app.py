@@ -1651,10 +1651,33 @@ def _faturamento_body(D, d0, d1):
             paper_bgcolor="rgba(0,0,0,0)",
         )
         st.plotly_chart(fig2, width="stretch")
-    # Volume m³ mensal
-    fig3 = bar_mensal(fat, "dt_ref", "volume_m3",
-                      "Volume Faturado m³ (mensal)", COR["azul_c"])
-    fig3.update_yaxes(tickformat=",.0f")
+    # Volume m³ mensal — inclui período comparativo quando ativo
+    _comp = _comp_periodo()
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _fat_c = filtrar(D["fat"], "dt_ref", _cd0, _cd1)
+        _fat_atual = fat.copy(); _fat_atual["_Período"] = _comp["label_atual"]
+        _fat_comp  = _fat_c.copy(); _fat_comp["_Período"] = _comp["label_comp"]
+        _fat_both  = pd.concat([_fat_atual, _fat_comp], ignore_index=True)
+        _fat_both["_mes"] = pd.to_datetime(_fat_both["dt_ref"]).dt.to_period("M").dt.to_timestamp()
+        _ag3 = _fat_both.groupby(["_mes","_Período"])["volume_m3"].sum().reset_index()
+        _ag3.columns = ["Mês","Período","Volume"]
+        _ag3["_label"] = _ag3["Mês"].dt.strftime("%b/%Y")
+        fig3 = px.bar(_ag3, x="_label", y="Volume", color="Período", barmode="group",
+                      title="Volume Faturado m³ (mensal)",
+                      color_discrete_map={_comp["label_atual"]: COR["azul_c"],
+                                          _comp["label_comp"]:  "rgba(220,38,38,0.55)"},
+                      text=_ag3["Volume"].apply(lambda v: f"<b>{v:,.0f} m³</b>".replace(",",".")))
+        fig3.update_traces(textposition="inside", textangle=-90,
+                           textfont=dict(size=13, color="white", family="Arial Black"),
+                           insidetextanchor="middle")
+        fig3.update_layout(xaxis_title="", yaxis_title="", margin=dict(t=35,b=0,l=0,r=20),
+                           legend=dict(orientation="h", y=1.08, x=0.5, xanchor="center"))
+        fig3.update_yaxes(tickformat=",.0f")
+    else:
+        fig3 = bar_mensal(fat, "dt_ref", "volume_m3",
+                          "Volume Faturado m³ (mensal)", COR["azul_c"])
+        fig3.update_yaxes(tickformat=",.0f")
     st.plotly_chart(fig3, width="stretch")
 
     # Por categoria
