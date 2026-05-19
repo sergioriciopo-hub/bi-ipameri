@@ -4752,6 +4752,39 @@ def main():
         st.cache_data.clear()
         st.rerun()
 
+    # ── Gerador de Apresentação PPTX ──────────────────────────────────────────
+    st.sidebar.markdown("---")
+    if st.sidebar.button("📊 Gerar Apresentação PPTX", use_container_width=True,
+                         help="Gera apresentação de fechamento com base no período selecionado"):
+        with st.sidebar:
+            with st.spinner("Gerando apresentação..."):
+                try:
+                    import pptx_report
+                    pptx_bytes = pptx_report.gerar_pptx(D, d0, d1, pptx_report.CFG_IPAMERI)
+                    st.session_state["pptx_bytes"] = pptx_bytes
+                    st.session_state["pptx_periodo"] = (d0, d1)
+                except Exception as _e:
+                    st.error(f"Erro ao gerar PPTX: {_e}")
+
+    if st.session_state.get("pptx_bytes"):
+        _d0p, _d1p = st.session_state.get("pptx_periodo", (d0, d1))
+        _nome = f"BI_Ipameri_{pd.Timestamp(_d0p).strftime('%Y%m')}_{pd.Timestamp(_d1p).strftime('%Y%m')}.pptx"
+        st.sidebar.download_button(
+            "⬇️ Baixar PPTX",
+            data=st.session_state["pptx_bytes"],
+            file_name=_nome,
+            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            use_container_width=True,
+        )
+
+    # ── Link para BI Buriti Alegre ─────────────────────────────────────────────
+    st.sidebar.markdown("---")
+    st.sidebar.link_button(
+        "🔀 BI Buriti Alegre",
+        "https://bi-buriti-alegre.streamlit.app",
+        use_container_width=True,
+    )
+
     paginas[pg_sel](D, d0, d1)
 
 
