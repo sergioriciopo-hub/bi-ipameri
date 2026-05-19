@@ -1394,13 +1394,13 @@ def pg_cockpit(D, d0, d1):
             ticktext = lbl_c_xs + lbl_a_xs
             fig2.add_trace(go.Bar(
                 x=x_c, y=y_c, name=_comp["label_comp"],
-                marker_color=COR["azul_c"], opacity=0.75,
+                marker_color=COR["azul_c"], opacity=0.85, width=1.6,
                 text=[f"{int(v):,}".replace(",",".") for v in y_c],
                 textposition="outside", textfont=dict(size=11),
             ))
             fig2.add_trace(go.Bar(
                 x=x_a, y=y_a, name=_comp["label_atual"],
-                marker_color=COR["azul"], opacity=0.95,
+                marker_color=COR["azul"], opacity=0.95, width=1.6,
                 text=[f"{int(v):,}".replace(",",".") for v in y_a],
                 textposition="outside", textfont=dict(size=11),
             ))
@@ -1505,12 +1505,12 @@ def pg_cockpit(D, d0, d1):
             ticktext = lbl_c_xs + lbl_a_xs
             fig3.add_trace(go.Bar(
                 x=x_c, y=y_c, name=_comp["label_comp"],
-                marker_color=COR["azul_c"], opacity=0.75,
+                marker_color=COR["azul_c"], opacity=0.85, width=1.6,
                 text=[f"R${v:.1f}" for v in y_c], textposition="outside", textfont=dict(size=11),
             ))
             fig3.add_trace(go.Bar(
                 x=x_a, y=y_a, name=_comp["label_atual"],
-                marker_color=COR["azul"], opacity=0.95,
+                marker_color=COR["azul"], opacity=0.95, width=1.6,
                 text=[f"R${v:.1f}" for v in y_a], textposition="outside", textfont=dict(size=11),
             ))
             _all_fm = [v for v in y_c + y_a if v > 0]
@@ -1600,12 +1600,12 @@ def pg_cockpit(D, d0, d1):
             ticktext = lbl_c_xs + lbl_a_xs
             fig4.add_trace(go.Bar(
                 x=x_c, y=y_c, name=_comp["label_comp"],
-                marker_color=COR["azul_c"], opacity=0.75,
+                marker_color=COR["azul_c"], opacity=0.85, width=1.6,
                 text=[f"{v:.1f}" for v in y_c], textposition="outside", textfont=dict(size=11),
             ))
             fig4.add_trace(go.Bar(
                 x=x_a, y=y_a, name=_comp["label_atual"],
-                marker_color=COR["azul"], opacity=0.95,
+                marker_color=COR["azul"], opacity=0.95, width=1.6,
                 text=[f"{v:.1f}" for v in y_a], textposition="outside", textfont=dict(size=11),
             ))
             _all_vol = [v for v in y_c + y_a if v > 0]
