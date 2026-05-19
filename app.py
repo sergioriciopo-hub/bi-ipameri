@@ -4777,14 +4777,6 @@ def main():
             use_container_width=True,
         )
 
-    # ── Link para BI Buriti Alegre ─────────────────────────────────────────────
-    st.sidebar.markdown("---")
-    st.sidebar.link_button(
-        "🔀 BI Buriti Alegre",
-        "https://bi-buriti-alegre.streamlit.app",
-        use_container_width=True,
-    )
-
     paginas[pg_sel](D, d0, d1)
 
 
