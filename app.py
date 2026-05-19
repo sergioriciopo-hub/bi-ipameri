@@ -1404,12 +1404,15 @@ def pg_cockpit(D, d0, d1):
                 text=[f"{int(v):,}".replace(",",".") for v in y_a],
                 textposition="outside", textfont=dict(size=11),
             ))
+            _all_eco = [v for v in y_c + y_a if v > 0]
+            _eco_min = min(_all_eco) * 0.97 if _all_eco else 0
+            _eco_max = max(_all_eco) * 1.06 if _all_eco else 1
             fig2.update_layout(
                 title="Economias Ativas + Cortadas Cavalete",
                 barmode="overlay",
                 margin=dict(t=70, b=60, l=0, r=30), height=400,
                 xaxis=dict(tickvals=tickvals, ticktext=ticktext, tickangle=-30),
-                yaxis=dict(title=""),
+                yaxis=dict(title="", range=[_eco_min, _eco_max]),
                 legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
                 hovermode="x unified",
             )
@@ -1510,12 +1513,15 @@ def pg_cockpit(D, d0, d1):
                 marker_color=COR["azul"], opacity=0.95,
                 text=[f"R${v:.1f}" for v in y_a], textposition="outside", textfont=dict(size=11),
             ))
+            _all_fm = [v for v in y_c + y_a if v > 0]
+            _fm_min = min(_all_fm) * 0.95 if _all_fm else 0
+            _fm_max = max(_all_fm) * 1.08 if _all_fm else 1
             fig3.update_layout(
                 title="Fatura Média por Economia (R$/Economia)",
                 barmode="overlay",
                 margin=dict(t=70, b=60, l=0, r=30), height=400,
                 xaxis=dict(tickvals=tickvals, ticktext=ticktext, tickangle=-30),
-                yaxis=dict(title="R$"),
+                yaxis=dict(title="R$", range=[_fm_min, _fm_max]),
                 legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
                 hovermode="x unified",
             )
@@ -1602,12 +1608,15 @@ def pg_cockpit(D, d0, d1):
                 marker_color=COR["azul"], opacity=0.95,
                 text=[f"{v:.1f}" for v in y_a], textposition="outside", textfont=dict(size=11),
             ))
+            _all_vol = [v for v in y_c + y_a if v > 0]
+            _vol_min = min(_all_vol) * 0.93 if _all_vol else 0
+            _vol_max = max(_all_vol) * 1.10 if _all_vol else 1
             fig4.update_layout(
                 title="Volume Faturado por Economia (m³/Economia)",
                 barmode="overlay",
                 margin=dict(t=70, b=60, l=0, r=30), height=400,
                 xaxis=dict(tickvals=tickvals, ticktext=ticktext, tickangle=-30),
-                yaxis=dict(title="m³"),
+                yaxis=dict(title="m³", range=[_vol_min, _vol_max]),
                 legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
                 hovermode="x unified",
             )
