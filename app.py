@@ -637,7 +637,7 @@ def sidebar_periodo():
         )
         _mes_fim = _meses_disp[_labels_m.index(_sel_fim)]
         # Quantidade de meses retroativos
-        _n = st.sidebar.slider("Meses a comparar", min_value=2, max_value=24, value=6)
+        _n = st.sidebar.slider("Meses a comparar", min_value=1, max_value=24, value=6)
         # Calcula intervalo atual: dos últimos N meses até o mês final
         _mes_ini = _mes_fim - relativedelta(months=_n - 1)
         d0 = date(_mes_ini.year, _mes_ini.month, 1)
