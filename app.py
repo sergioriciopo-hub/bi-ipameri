@@ -1372,39 +1372,79 @@ def pg_cockpit(D, d0, d1):
     # 2 — Economias Ativas + Cortadas
     # ══════════════════════════════════════════════════════════════════════════
     if not fat.empty and "nr_economia_agua" in fat.columns:
-        eco = fat.copy()
-        eco["Mês"] = pd.to_datetime(eco["dt_ref"]).dt.strftime("%m/%Y")
-        eco_m = eco.groupby("Mês").agg(
-            Agua   =("nr_economia_agua",   "sum"),
-            Esgoto =("nr_economia_esgoto", "sum"),
-        ).reset_index()
-        meses_eco = _sort_meses(eco_m["Mês"].tolist())
-        eco_m = eco_m.set_index("Mês").reindex(meses_eco).reset_index()
+        def _ag_eco(df):
+            if df.empty: return pd.Series(dtype=float)
+            d = df.copy(); d["_m"] = pd.to_datetime(d["dt_ref"]).dt.strftime("%m/%Y")
+            return d.groupby("_m")["nr_economia_agua"].sum()
         fig2 = go.Figure()
-        fig2.add_trace(go.Scatter(
-            x=eco_m["Mês"], y=eco_m["Agua"], name="Economias Água",
-            mode="lines+markers+text",
-            text=eco_m["Agua"].apply(lambda v: f"{int(v):,}".replace(",", ".")),
-            textposition="top center", textfont=dict(size=13),
-            line=dict(color=COR["azul"], width=2), marker=dict(size=5),
-        ))
-        # Adiciona Esgoto apenas se houver dados
-        if eco_m["Esgoto"].sum() > 0:
-            fig2.add_trace(go.Scatter(
-                x=eco_m["Mês"], y=eco_m["Esgoto"], name="Economias Esgoto",
-                mode="lines+markers+text",
-                text=eco_m["Esgoto"].apply(lambda v: f"{int(v):,}".replace(",", ".")),
-                textposition="bottom center", textfont=dict(size=13),
-                line=dict(color=COR["amarelo"], width=2), marker=dict(size=5),
+        if _comp:
+            _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+            fat_c2 = filtrar(D["fat"], "dt_ref", _cd0, _cd1)
+            pares = _pares_comp(_comp)
+            n = len(pares); GAP = 5
+            eco_a = _ag_eco(fat); eco_c = _ag_eco(fat_c2)
+            x_c = [i*GAP + 0.0 for i in range(n)]
+            x_a = [i*GAP + 1.8 for i in range(n)]
+            y_c, y_a, lbl_c_xs, lbl_a_xs = [], [], [], []
+            for lbl_a, lbl_c, mm_a, mm_c in pares:
+                y_a.append(float(eco_a.get(mm_a, 0)))
+                y_c.append(float(eco_c.get(mm_c, 0)))
+                lbl_a_xs.append(lbl_a); lbl_c_xs.append(lbl_c)
+            tickvals = [i*GAP + 0.0 for i in range(n)] + [i*GAP + 1.8 for i in range(n)]
+            ticktext = lbl_c_xs + lbl_a_xs
+            fig2.add_trace(go.Bar(
+                x=x_c, y=y_c, name=_comp["label_comp"],
+                marker_color=COR["azul_c"], opacity=0.75,
+                text=[f"{int(v):,}".replace(",",".") for v in y_c],
+                textposition="outside", textfont=dict(size=11),
             ))
-        fig2.update_layout(
-            title="Economias Ativas + Cortadas Cavalete",
-            margin=dict(t=70, b=10, l=0, r=30), height=400,
-            xaxis=dict(title="", categoryorder="array", categoryarray=meses_eco),
-            yaxis=dict(title=""),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            hovermode="x unified",
-        )
+            fig2.add_trace(go.Bar(
+                x=x_a, y=y_a, name=_comp["label_atual"],
+                marker_color=COR["azul"], opacity=0.95,
+                text=[f"{int(v):,}".replace(",",".") for v in y_a],
+                textposition="outside", textfont=dict(size=11),
+            ))
+            fig2.update_layout(
+                title="Economias Ativas + Cortadas Cavalete",
+                barmode="overlay",
+                margin=dict(t=70, b=60, l=0, r=30), height=400,
+                xaxis=dict(tickvals=tickvals, ticktext=ticktext, tickangle=-30),
+                yaxis=dict(title=""),
+                legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                hovermode="x unified",
+            )
+        else:
+            eco = fat.copy()
+            eco["Mês"] = pd.to_datetime(eco["dt_ref"]).dt.strftime("%m/%Y")
+            eco_m = eco.groupby("Mês").agg(
+                Agua   =("nr_economia_agua",   "sum"),
+                Esgoto =("nr_economia_esgoto", "sum"),
+            ).reset_index()
+            meses_eco = _sort_meses(eco_m["Mês"].tolist())
+            eco_m = eco_m.set_index("Mês").reindex(meses_eco).reset_index()
+            fig2.add_trace(go.Scatter(
+                x=eco_m["Mês"], y=eco_m["Agua"], name="Economias Água",
+                mode="lines+markers+text",
+                text=eco_m["Agua"].apply(lambda v: f"{int(v):,}".replace(",", ".")),
+                textposition="top center", textfont=dict(size=13),
+                line=dict(color=COR["azul"], width=2), marker=dict(size=5),
+            ))
+            if eco_m["Esgoto"].sum() > 0:
+                fig2.add_trace(go.Scatter(
+                    x=eco_m["Mês"], y=eco_m["Esgoto"], name="Economias Esgoto",
+                    mode="lines+markers+text",
+                    text=eco_m["Esgoto"].apply(lambda v: f"{int(v):,}".replace(",", ".")),
+                    textposition="bottom center", textfont=dict(size=13),
+                    line=dict(color=COR["amarelo"], width=2), marker=dict(size=5),
+                ))
+            fig2.update_layout(
+                title="Economias Ativas + Cortadas Cavalete",
+                margin=dict(t=70, b=10, l=0, r=30), height=400,
+                xaxis=dict(title="", categoryorder="array", categoryarray=meses_eco),
+                yaxis=dict(title=""),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                hovermode="x unified",
+            )
         st.plotly_chart(fig2, width="stretch")
 
     # ══════════════════════════════════════════════════════════════════════════
