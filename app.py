@@ -2835,23 +2835,35 @@ def _servicos_visao_geral(D, d0, d1):
         ])
 
     st.markdown("---")
-    # Por canal de atendimento — agrupa Interno (3) + Automático-Sistema (4) como "Ações Internas"
-    srv_can = srv.copy()
-    # Remove canais irrelevantes
+    # Por canal de atendimento
     _canais_excluir = ["Automático - Sistema", "Interno"]
-    srv_can = srv_can[
-        ~srv_can["nm_tipo_atendimento"].str.upper().str.contains("RESERVADO", na=False) &
-        ~srv_can["nm_tipo_atendimento"].isin(_canais_excluir)
-    ]
+
+    def _prep_srv_can(df):
+        sc = df.copy()
+        sc = sc[
+            ~sc["nm_tipo_atendimento"].str.upper().str.contains("RESERVADO", na=False) &
+            ~sc["nm_tipo_atendimento"].isin(_canais_excluir)
+        ]
+        sc["_mes"] = pd.to_datetime(sc["dt_solicitacao"]).dt.strftime("%m/%Y")
+        return sc
+
+    srv_can = _prep_srv_can(srv)
+
+    # Se comparativo ativo, concatena período anterior
+    if _comp:
+        _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+        _srv_comp = filtrar(D["srv"], "dt_solicitacao", _cd0, _cd1)
+        _srv_comp_can = _prep_srv_can(_srv_comp)
+        srv_can_plot = pd.concat([_srv_comp_can, srv_can], ignore_index=True)
+    else:
+        srv_can_plot = srv_can
 
     # ── Evolução mensal por canal ──────────────────────────────────────────────
-    srv_can["_mes"] = pd.to_datetime(srv_can["dt_solicitacao"]).dt.strftime("%m/%Y")
-    ag_can_m = srv_can.groupby(["_mes", "nm_tipo_atendimento"])["qt_servico"].sum().reset_index()
+    ag_can_m = srv_can_plot.groupby(["_mes", "nm_tipo_atendimento"])["qt_servico"].sum().reset_index()
     ag_can_m.columns = ["Mês", "Canal", "Qtd"]
     meses_ord_can = sorted(ag_can_m["Mês"].unique().tolist(),
                            key=lambda x: pd.to_datetime(x, format="%m/%Y"))
 
-    # Exclui canais irrelevantes: < 1% do total e "RESERVADO PARA O FUTURO"
     total_can = ag_can_m["Qtd"].sum()
     canais_rel = ag_can_m.groupby("Canal")["Qtd"].sum()
     canais_rel = canais_rel[
@@ -2861,27 +2873,41 @@ def _servicos_visao_geral(D, d0, d1):
     ag_can_m = ag_can_m[ag_can_m["Canal"].isin(canais_rel)]
 
     _cores_can = px.colors.qualitative.Set2
+    _title_can = "Serviços por Canal de Atendimento (mensal)"
+    if _comp:
+        _title_can += f" — {_comp['label_comp']} vs {_comp['label_atual']}"
     fig_can = px.bar(ag_can_m, x="Mês", y="Qtd", color="Canal",
                      barmode="group",
-                     title="Serviços por Canal de Atendimento (mensal)",
+                     title=_title_can,
                      color_discrete_sequence=_cores_can,
                      category_orders={"Mês": meses_ord_can},
                      text="Qtd")
     fig_can.update_traces(textposition="inside", textangle=-90,
                           textfont=dict(size=12, color="white", family="Arial Black"),
                           insidetextanchor="middle")
-    # Linha de média por canal
-    for i, canal in enumerate(ag_can_m["Canal"].unique()):
-        media_c = ag_can_m[ag_can_m["Canal"] == canal]["Qtd"].mean()
-        fig_can.add_hline(
-            y=media_c, line_dash="dot",
-            line_color=_cores_can[i % len(_cores_can)], line_width=1.5,
-            annotation_text=f"<b>Méd. {canal}: {media_c:.0f}</b>",
-            annotation_position="top right",
-            annotation_font=dict(size=11, color=_cores_can[i % len(_cores_can)]),
-        )
+    if not _comp:
+        for i, canal in enumerate(ag_can_m["Canal"].unique()):
+            media_c = ag_can_m[ag_can_m["Canal"] == canal]["Qtd"].mean()
+            fig_can.add_hline(
+                y=media_c, line_dash="dot",
+                line_color=_cores_can[i % len(_cores_can)], line_width=1.5,
+                annotation_text=f"<b>Méd. {canal}: {media_c:.0f}</b>",
+                annotation_position="top right",
+                annotation_font=dict(size=11, color=_cores_can[i % len(_cores_can)]),
+            )
+    # Linha divisória visual entre períodos
+    if _comp and len(meses_ord_can) > 1:
+        _meio = len(meses_ord_can) / 2 - 0.5
+        fig_can.add_vline(x=_meio, line_dash="dash", line_color="gray",
+                          line_width=1, opacity=0.5)
+        fig_can.add_annotation(x=_meio * 0.5, y=1.04, xref="x", yref="paper",
+                               text=_comp["label_comp"], showarrow=False,
+                               font=dict(size=11, color="gray"))
+        fig_can.add_annotation(x=_meio + len(meses_ord_can) * 0.25, y=1.04, xref="x", yref="paper",
+                               text=_comp["label_atual"], showarrow=False,
+                               font=dict(size=11, color=COR["azul"]))
     fig_can.update_layout(
-        margin=dict(t=50, b=50, l=0, r=20), height=450,
+        margin=dict(t=60, b=50, l=0, r=20), height=450,
         xaxis=dict(title="", categoryorder="array", categoryarray=meses_ord_can),
         yaxis=dict(title=""),
         legend=dict(orientation="h", yanchor="top", y=-0.12, xanchor="center", x=0.5,
@@ -2892,9 +2918,8 @@ def _servicos_visao_geral(D, d0, d1):
     st.plotly_chart(fig_can, width="stretch")
 
     # SLA por canal — evolução mensal
-    if "fl_fora_prazo" in srv_can.columns:
-        srv_sla = srv_can.copy()
-        srv_sla["_mes"] = pd.to_datetime(srv_sla["dt_solicitacao"]).dt.strftime("%m/%Y")
+    if "fl_fora_prazo" in srv_can_plot.columns:
+        srv_sla = srv_can_plot.copy()
         ag_sla_m = srv_sla.groupby(["_mes","nm_tipo_atendimento"]).agg(
             Total=("qt_servico","sum"),
             ForaPrazo=("fl_fora_prazo", lambda x: (x == True).sum())
@@ -2903,9 +2928,12 @@ def _servicos_visao_geral(D, d0, d1):
         ag_sla_m.rename(columns={"_mes":"Mês","nm_tipo_atendimento":"Canal"}, inplace=True)
         meses_sla = sorted(ag_sla_m["Mês"].unique().tolist(),
                            key=lambda x: pd.to_datetime(x, format="%m/%Y"))
+        _title_sla = "% SLA no Prazo por Canal (mensal)"
+        if _comp:
+            _title_sla += f" — {_comp['label_comp']} vs {_comp['label_atual']}"
         fig2 = px.bar(ag_sla_m, x="Mês", y="%SLA", color="Canal",
                       barmode="group",
-                      title="% SLA no Prazo por Canal (mensal)",
+                      title=_title_sla,
                       color_discrete_sequence=px.colors.qualitative.Set2,
                       category_orders={"Mês": meses_sla},
                       text=ag_sla_m["%SLA"].apply(lambda v: f"<b>{v:.0f}%</b>"))
@@ -2915,8 +2943,12 @@ def _servicos_visao_geral(D, d0, d1):
         fig2.add_hline(y=90, line_dash="dash", line_color="gray", line_width=1.5,
                        annotation_text="<b>Meta 90%</b>", annotation_position="top left",
                        annotation_font=dict(size=11, color="gray"))
+        if _comp and len(meses_sla) > 1:
+            _meio_s = len(meses_sla) / 2 - 0.5
+            fig2.add_vline(x=_meio_s, line_dash="dash", line_color="gray",
+                           line_width=1, opacity=0.5)
         fig2.update_layout(
-            margin=dict(t=50, b=50, l=0, r=20), height=420,
+            margin=dict(t=60, b=50, l=0, r=20), height=420,
             xaxis=dict(title="", categoryorder="array", categoryarray=meses_sla),
             yaxis=dict(title="", ticksuffix="%", range=[0, 110]),
             legend=dict(orientation="h", yanchor="top", y=-0.12, xanchor="center", x=0.5,
