@@ -1451,115 +1451,195 @@ def pg_cockpit(D, d0, d1):
     # 3 — Fatura Média por Economia (R$/Economia)
     # ══════════════════════════════════════════════════════════════════════════
     if not fat.empty and "nr_economia_agua" in fat.columns:
-        fm = fat.copy()
-        fm["Mês"] = pd.to_datetime(fm["dt_ref"]).dt.strftime("%m/%Y")
-        cols_agg = {
-            "vl_agua": ("vl_agua",                   "sum"),
-            "vl_esgo": ("vl_esgoto",                 "sum"),
-            "nr_eco":  ("nr_economia_agua",          "sum"),
-        }
-        if "vl_servico_basico_agua" in fm.columns:
-            cols_agg["vl_tbas_a"] = ("vl_servico_basico_agua", "sum")
-        if "vl_servico_basico_esgoto" in fm.columns:
-            cols_agg["vl_tbas_e"] = ("vl_servico_basico_esgoto", "sum")
-        if "vl_lixo" in fm.columns:
-            cols_agg["vl_lixo"] = ("vl_lixo", "sum")
-        if "vl_servico" in fm.columns:
-            cols_agg["vl_serv"] = ("vl_servico", "sum")
+        def _agg_fm(df):
+            if df.empty: return pd.DataFrame()
+            fm = df.copy()
+            fm["Mês"] = pd.to_datetime(fm["dt_ref"]).dt.strftime("%m/%Y")
+            cols_agg = {
+                "vl_agua": ("vl_agua", "sum"),
+                "vl_esgo": ("vl_esgoto", "sum"),
+                "nr_eco":  ("nr_economia_agua", "sum"),
+            }
+            for c, k in [("vl_servico_basico_agua","vl_tbas_a"),
+                          ("vl_servico_basico_esgoto","vl_tbas_e"),
+                          ("vl_lixo","vl_lixo"), ("vl_servico","vl_serv")]:
+                if c in fm.columns: cols_agg[k] = (c, "sum")
+            a = fm.groupby("Mês").agg(**cols_agg).reset_index()
+            a = a[a["nr_eco"] > 0]
+            for col in ["vl_tbas_a","vl_tbas_e","vl_lixo","vl_serv"]:
+                if col not in a.columns: a[col] = 0.0
+            a["vl_tbas_a"] = a["vl_tbas_a"].fillna(0)
+            a["vl_tbas_e"] = a["vl_tbas_e"].fillna(0)
+            a["vl_lixo"]   = a["vl_lixo"].fillna(0)
+            a["vl_serv"]   = a["vl_serv"].fillna(0)
+            a["vl_srv_div"] = (a["vl_serv"] - a["vl_lixo"] - a["vl_tbas_a"] - a["vl_tbas_e"]).clip(lower=0)
+            return a
 
-        agg = fm.groupby("Mês").agg(**cols_agg).reset_index()
-        agg = agg[agg["nr_eco"] > 0]
-
-        agg["vl_tbas_a"] = agg.get("vl_tbas_a", 0).fillna(0)
-        agg["vl_tbas_e"] = agg.get("vl_tbas_e", 0).fillna(0)
-        agg["vl_lixo"] = agg.get("vl_lixo", 0).fillna(0)
-        agg["vl_serv"] = agg.get("vl_serv", 0).fillna(0)
-        agg["vl_srv_div"] = agg["vl_serv"] - agg["vl_lixo"] - agg["vl_tbas_a"] - agg["vl_tbas_e"]
-        agg["vl_srv_div"] = agg["vl_srv_div"].clip(lower=0)
-
-        meses_fm = _sort_meses(agg["Mês"].tolist())
-        agg = agg.set_index("Mês").reindex(meses_fm).reset_index()
-
+        agg = _agg_fm(fat)
         fig3 = go.Figure()
-        series_fm = [
-            ("Faturamento Total",       (agg["vl_agua"] + agg["vl_tbas_a"]) / agg["nr_eco"], "#1A6FAD", "top center", 4),
-            ("Consumo Água",            agg["vl_agua"] / agg["nr_eco"], "#2E7FD6", "top center", 2),
-            ("Produção Esgoto",         agg["vl_esgo"] / agg["nr_eco"], "#8B4513", "bottom center", 2),
-            ("Tarifa Básica + Serviços", (agg["vl_tbas_a"] + agg["vl_srv_div"]) / agg["nr_eco"], "#FF9F43", "top center", 2),
-            ("Tarifa Básica Esgoto",    agg["vl_tbas_e"] / agg["nr_eco"], "#A0622D", "bottom center", 2),
-            ("Lixo",                    agg["vl_lixo"] / agg["nr_eco"], "#E74C3C", "bottom center", 2),
-            ("Serviços Diversos",       agg["vl_srv_div"] / agg["nr_eco"], COR["amarelo"], "top center", 2),
-        ]
 
-        for idx, (nome, vals, cor_v, textpos, width) in enumerate(series_fm):
-            if vals.sum() > 0:
-                fig3.add_trace(go.Scatter(
-                    x=meses_fm, y=vals.round(1), name=nome,
-                    mode="lines+markers+text",
-                    text=vals.round(1).apply(lambda v: f"{v:.1f}" if v > 0 else ""),
-                    textposition=textpos, textfont=dict(size=13),
-                    line=dict(color=cor_v, width=width), marker=dict(size=4),
-                    visible=(idx < 4),
-                ))
+        if _comp and not agg.empty:
+            _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+            fat_c2 = filtrar(D["fat"], "dt_ref", _cd0, _cd1)
+            agg_c = _agg_fm(fat_c2)
+            pares = _pares_comp(_comp)
+            n = len(pares); GAP = 6
+            agg_idx  = agg.set_index("Mês")
+            agg_cidx = agg_c.set_index("Mês") if not agg_c.empty else pd.DataFrame()
 
-        fig3.update_layout(
-            title=dict(
-                text="Fatura Média por Economia (R$/Economia) <span style='font-size:0.8em;cursor:help;'>ℹ️</span>",
-                x=0.0, xanchor="left"
-            ),
-            margin=dict(t=70, b=10, l=0, r=30), height=400,
-            xaxis=dict(title="", categoryorder="array", categoryarray=meses_fm),
-            yaxis=dict(title=""),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-            hovermode="x unified",
-        )
+            def _fat_media(idx, mm):
+                if idx.empty or mm not in idx.index: return 0.0
+                r = idx.loc[mm]
+                return float((r["vl_agua"] + r["vl_tbas_a"]) / r["nr_eco"]) if r["nr_eco"] > 0 else 0.0
+
+            x_c = [i*GAP + 0.0 for i in range(n)]
+            x_a = [i*GAP + 1.8 for i in range(n)]
+            y_c = [_fat_media(agg_cidx, mm_c) for _, _, _, mm_c in pares]
+            y_a = [_fat_media(agg_idx,  mm_a) for _, _, mm_a, _ in pares]
+            lbl_c_xs = [lbl_c for _, lbl_c, _, _ in pares]
+            lbl_a_xs = [lbl_a for lbl_a, _, _, _ in pares]
+            tickvals = [i*GAP + 0.0 for i in range(n)] + [i*GAP + 1.8 for i in range(n)]
+            ticktext = lbl_c_xs + lbl_a_xs
+            fig3.add_trace(go.Bar(
+                x=x_c, y=y_c, name=_comp["label_comp"],
+                marker_color=COR["azul_c"], opacity=0.75,
+                text=[f"R${v:.1f}" for v in y_c], textposition="outside", textfont=dict(size=11),
+            ))
+            fig3.add_trace(go.Bar(
+                x=x_a, y=y_a, name=_comp["label_atual"],
+                marker_color=COR["azul"], opacity=0.95,
+                text=[f"R${v:.1f}" for v in y_a], textposition="outside", textfont=dict(size=11),
+            ))
+            fig3.update_layout(
+                title="Fatura Média por Economia (R$/Economia)",
+                barmode="overlay",
+                margin=dict(t=70, b=60, l=0, r=30), height=400,
+                xaxis=dict(tickvals=tickvals, ticktext=ticktext, tickangle=-30),
+                yaxis=dict(title="R$"),
+                legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                hovermode="x unified",
+            )
+        elif not agg.empty:
+            meses_fm = _sort_meses(agg["Mês"].tolist())
+            agg = agg.set_index("Mês").reindex(meses_fm).reset_index()
+            series_fm = [
+                ("Faturamento Total",       (agg["vl_agua"] + agg["vl_tbas_a"]) / agg["nr_eco"], "#1A6FAD", "top center", 4),
+                ("Consumo Água",            agg["vl_agua"] / agg["nr_eco"], "#2E7FD6", "top center", 2),
+                ("Produção Esgoto",         agg["vl_esgo"] / agg["nr_eco"], "#8B4513", "bottom center", 2),
+                ("Tarifa Básica + Serviços", (agg["vl_tbas_a"] + agg["vl_srv_div"]) / agg["nr_eco"], "#FF9F43", "top center", 2),
+                ("Tarifa Básica Esgoto",    agg["vl_tbas_e"] / agg["nr_eco"], "#A0622D", "bottom center", 2),
+                ("Lixo",                    agg["vl_lixo"] / agg["nr_eco"], "#E74C3C", "bottom center", 2),
+                ("Serviços Diversos",       agg["vl_srv_div"] / agg["nr_eco"], COR["amarelo"], "top center", 2),
+            ]
+            for idx_s, (nome, vals, cor_v, textpos, width) in enumerate(series_fm):
+                if vals.sum() > 0:
+                    fig3.add_trace(go.Scatter(
+                        x=meses_fm, y=vals.round(1), name=nome,
+                        mode="lines+markers+text",
+                        text=vals.round(1).apply(lambda v: f"{v:.1f}" if v > 0 else ""),
+                        textposition=textpos, textfont=dict(size=13),
+                        line=dict(color=cor_v, width=width), marker=dict(size=4),
+                        visible=(idx_s < 4),
+                    ))
+            fig3.update_layout(
+                title=dict(text="Fatura Média por Economia (R$/Economia) <span style='font-size:0.8em;cursor:help;'>ℹ️</span>", x=0.0, xanchor="left"),
+                margin=dict(t=70, b=10, l=0, r=30), height=400,
+                xaxis=dict(title="", categoryorder="array", categoryarray=meses_fm),
+                yaxis=dict(title=""),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+                hovermode="x unified",
+            )
         st.plotly_chart(fig3, width="stretch")
 
     # ══════════════════════════════════════════════════════════════════════════
     # 4 — Volume Faturado por Economia (m³/Economia)
     # ══════════════════════════════════════════════════════════════════════════
-    if not fat.empty and "nr_economia_agua" in fat.columns:
-        vf2 = fat.copy()
-        vf2["Mês"] = pd.to_datetime(vf2["dt_ref"]).dt.strftime("%m/%Y")
-        has_ev = "volume_esgoto_m3" in vf2.columns
-        cols_v = {
-            "vol_a": ("volume_m3",          "sum"),
-            "nr_ea": ("nr_economia_agua",   "sum"),
-            "nr_ee": ("nr_economia_esgoto", "sum"),
-        }
-        if has_ev:
-            cols_v["vol_e"] = ("volume_esgoto_m3", "sum")
-        agg_v = vf2.groupby("Mês").agg(**cols_v).reset_index()
-        agg_v = agg_v[agg_v["nr_ea"] > 0]
-        meses_vf = _sort_meses(agg_v["Mês"].tolist())
-        agg_v = agg_v.set_index("Mês").reindex(meses_vf).reset_index()
+    if not fat.empty and "nr_economia_agua" in fat.columns and "volume_m3" in fat.columns:
+        def _agg_vol(df):
+            if df.empty: return pd.DataFrame()
+            vf = df.copy()
+            vf["Mês"] = pd.to_datetime(vf["dt_ref"]).dt.strftime("%m/%Y")
+            has_ev = "volume_esgoto_m3" in vf.columns
+            cols_v = {"vol_a": ("volume_m3","sum"), "nr_ea": ("nr_economia_agua","sum"),
+                      "nr_ee": ("nr_economia_esgoto","sum")}
+            if has_ev: cols_v["vol_e"] = ("volume_esgoto_m3","sum")
+            a = vf.groupby("Mês").agg(**cols_v).reset_index()
+            return a[a["nr_ea"] > 0]
+
+        agg_v = _agg_vol(fat)
+        has_ev = "volume_esgoto_m3" in fat.columns
         fig4 = go.Figure()
-        y_agua = (agg_v["vol_a"] / agg_v["nr_ea"]).round(1)
-        fig4.add_trace(go.Scatter(
-            x=meses_vf, y=y_agua, name="Água",
-            mode="lines+markers+text",
-            text=y_agua.apply(lambda v: f"{v:.1f}"),
-            textposition="top center", textfont=dict(size=13),
-            line=dict(color=COR["azul"], width=2), marker=dict(size=4),
-        ))
-        if has_ev:
-            nr_ee = agg_v["nr_ee"].replace(0, float("nan"))
-            y_esgo = (agg_v["vol_e"] / nr_ee).round(1)
-            fig4.add_trace(go.Scatter(
-                x=meses_vf, y=y_esgo, name="Esgoto",
-                mode="lines+markers+text",
-                text=y_esgo.apply(lambda v: f"{v:.1f}" if v == v else ""),
-                textposition="bottom center", textfont=dict(size=13),
-                line=dict(color=COR["esgoto"], width=2), marker=dict(size=4),
+
+        if _comp and not agg_v.empty:
+            _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
+            fat_c2 = filtrar(D["fat"], "dt_ref", _cd0, _cd1)
+            agg_vc = _agg_vol(fat_c2)
+            pares = _pares_comp(_comp)
+            n = len(pares); GAP = 5
+            vidx  = agg_v.set_index("Mês")
+            vcidx = agg_vc.set_index("Mês") if not agg_vc.empty else pd.DataFrame()
+
+            def _vol_med(idx, mm):
+                if idx.empty or mm not in idx.index: return 0.0
+                r = idx.loc[mm]
+                return float(r["vol_a"] / r["nr_ea"]) if r["nr_ea"] > 0 else 0.0
+
+            x_c = [i*GAP + 0.0 for i in range(n)]
+            x_a = [i*GAP + 1.8 for i in range(n)]
+            y_c = [_vol_med(vcidx, mm_c) for _, _, _, mm_c in pares]
+            y_a = [_vol_med(vidx,  mm_a) for _, _, mm_a, _ in pares]
+            lbl_c_xs = [lbl_c for _, lbl_c, _, _ in pares]
+            lbl_a_xs = [lbl_a for lbl_a, _, _, _ in pares]
+            tickvals = [i*GAP + 0.0 for i in range(n)] + [i*GAP + 1.8 for i in range(n)]
+            ticktext = lbl_c_xs + lbl_a_xs
+            fig4.add_trace(go.Bar(
+                x=x_c, y=y_c, name=_comp["label_comp"],
+                marker_color=COR["azul_c"], opacity=0.75,
+                text=[f"{v:.1f}" for v in y_c], textposition="outside", textfont=dict(size=11),
             ))
-        fig4.update_layout(
-            title="Volume Faturado por Economia (m³/Economia)",
-            margin=dict(t=70, b=10, l=0, r=30), height=400,
-            xaxis=dict(title="", categoryorder="array", categoryarray=meses_vf),
-            yaxis=dict(title=""),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            hovermode="x unified",
-        )
+            fig4.add_trace(go.Bar(
+                x=x_a, y=y_a, name=_comp["label_atual"],
+                marker_color=COR["azul"], opacity=0.95,
+                text=[f"{v:.1f}" for v in y_a], textposition="outside", textfont=dict(size=11),
+            ))
+            fig4.update_layout(
+                title="Volume Faturado por Economia (m³/Economia)",
+                barmode="overlay",
+                margin=dict(t=70, b=60, l=0, r=30), height=400,
+                xaxis=dict(tickvals=tickvals, ticktext=ticktext, tickangle=-30),
+                yaxis=dict(title="m³"),
+                legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                hovermode="x unified",
+            )
+        elif not agg_v.empty:
+            meses_vf = _sort_meses(agg_v["Mês"].tolist())
+            agg_v = agg_v.set_index("Mês").reindex(meses_vf).reset_index()
+            y_agua = (agg_v["vol_a"] / agg_v["nr_ea"]).round(1)
+            fig4.add_trace(go.Scatter(
+                x=meses_vf, y=y_agua, name="Água",
+                mode="lines+markers+text",
+                text=y_agua.apply(lambda v: f"{v:.1f}"),
+                textposition="top center", textfont=dict(size=13),
+                line=dict(color=COR["azul"], width=2), marker=dict(size=4),
+            ))
+            if has_ev and "vol_e" in agg_v.columns:
+                nr_ee = agg_v["nr_ee"].replace(0, float("nan"))
+                y_esgo = (agg_v["vol_e"] / nr_ee).round(1)
+                fig4.add_trace(go.Scatter(
+                    x=meses_vf, y=y_esgo, name="Esgoto",
+                    mode="lines+markers+text",
+                    text=y_esgo.apply(lambda v: f"{v:.1f}" if v == v else ""),
+                    textposition="bottom center", textfont=dict(size=13),
+                    line=dict(color=COR["esgoto"], width=2), marker=dict(size=4),
+                ))
+            fig4.update_layout(
+                title="Volume Faturado por Economia (m³/Economia)",
+                margin=dict(t=70, b=10, l=0, r=30), height=400,
+                xaxis=dict(title="", categoryorder="array", categoryarray=meses_vf),
+                yaxis=dict(title=""),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                hovermode="x unified",
+            )
         st.plotly_chart(fig4, width="stretch")
 
     # ══════════════════════════════════════════════════════════════════════════
