@@ -1,11 +1,11 @@
-[19/05/2026 07:30:03] ======================================================
-[19/05/2026 07:30:03] INICIO ETL DIARIO - Aguas de Ipameri
-[19/05/2026 07:30:03] ======================================================
-[19/05/2026 07:30:03] Iniciando ETL BigQuery...
-2026-05-19 07:30:05,474 [INFO] ============================================================
-2026-05-19 07:30:05,475 [INFO] ETL iniciado: 2026-05-19 07:30:05
-2026-05-19 07:30:05,475 [INFO] Modo: INCREMENTAL (full para dims/snapshots)
-2026-05-19 07:30:05,698 [INFO] [INC]  faturamento (a partir de 2026-02-01) ...
+[20/05/2026 07:30:01] ======================================================
+[20/05/2026 07:30:01] INICIO ETL DIARIO - Aguas de Ipameri
+[20/05/2026 07:30:01] ======================================================
+[20/05/2026 07:30:01] Iniciando ETL BigQuery...
+2026-05-20 07:30:04,524 [INFO] ============================================================
+2026-05-20 07:30:04,525 [INFO] ETL iniciado: 2026-05-20 07:30:04
+2026-05-20 07:30:04,525 [INFO] Modo: INCREMENTAL (full para dims/snapshots)
+2026-05-20 07:30:04,937 [INFO] [INC]  faturamento (a partir de 2026-02-01) ...
 python : 
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
@@ -16,136 +16,136 @@ No C:\BI_Ipameri\scripts\run_etl_diario.ps1:28 caractere:15
     + FullyQualifiedErrorId : NativeCommandError
  
   warnings.warn(
-2026-05-19 07:30:14,801 [INFO]   OK faturamento: +16,014 novas | 241,945 total -> faturamento.parquet
-2026-05-19 07:30:14,816 [INFO] [INC]  arrecadacao (a partir de 2026-03-01) ...
+2026-05-20 07:30:13,522 [INFO]   OK faturamento: +16,014 novas | 241,945 total -> faturamento.parquet
+2026-05-20 07:30:13,547 [INFO] [INC]  arrecadacao (a partir de 2026-03-01) ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:16,576 [INFO]   OK arrecadacao: +790 novas | 10,623 total -> arrecadacao.parquet
-2026-05-19 07:30:16,612 [INFO] [INC]  painel_arrecadacao (a partir de 2024-06-11) ...
+2026-05-20 07:30:15,229 [INFO]   OK arrecadacao: +798 novas | 10,631 total -> arrecadacao.parquet
+2026-05-20 07:30:15,263 [INFO] [INC]  painel_arrecadacao (a partir de 2024-06-11) ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:19,290 [INFO]   OK painel_arrecadacao: +1,537 novas | 549,010 total -> painel_arrecadacao.parquet
-2026-05-19 07:30:19,314 [INFO] [INC]  arrecadacao_diaria (a partir de 2026-05-06) ...
+2026-05-20 07:30:17,549 [INFO]   OK painel_arrecadacao: +1,537 novas | 549,010 total -> painel_arrecadacao.parquet
+2026-05-20 07:30:17,569 [INFO] [INC]  arrecadacao_diaria (a partir de 2026-05-06) ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:21,907 [INFO]   OK arrecadacao_diaria: +1,914 novas | 156,512 total -> arrecadacao_diaria.parquet
-2026-05-19 07:30:21,920 [INFO] [INC]  arrecadacao_rubricas (a partir de 2026-03-01) ...
+2026-05-20 07:30:20,203 [INFO]   OK arrecadacao_diaria: +2,213 novas | 156,409 total -> arrecadacao_diaria.parquet
+2026-05-20 07:30:20,219 [INFO] [INC]  arrecadacao_rubricas (a partir de 2026-03-01) ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:23,415 [INFO]   OK arrecadacao_rubricas: +790 novas | 10,623 total -> arrecadacao_rubricas.parquet
-2026-05-19 07:30:23,416 [INFO] [FULL] pendencia_atual ...
+2026-05-20 07:30:21,771 [INFO]   OK arrecadacao_rubricas: +798 novas | 10,631 total -> arrecadacao_rubricas.parquet
+2026-05-20 07:30:21,771 [INFO] [FULL] pendencia_atual ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:28,191 [INFO]   OK pendencia_atual: 20,274 linhas (full) -> pendencia_atual.parquet
-2026-05-19 07:30:28,207 [INFO] [INC]  cortes (a partir de 2026-04-14) ...
+2026-05-20 07:30:26,391 [INFO]   OK pendencia_atual: 20,029 linhas (full) -> pendencia_atual.parquet
+2026-05-20 07:30:26,407 [INFO] [INC]  cortes (a partir de 2026-04-18) ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:30,560 [INFO]   OK cortes: +624 novas | 31,635 total -> cortes.parquet
-2026-05-19 07:30:30,575 [INFO] [INC]  religacoes (a partir de 2026-04-16) ...
+2026-05-20 07:30:28,236 [INFO]   OK cortes: +502 novas | 31,590 total -> cortes.parquet
+2026-05-20 07:30:28,250 [INFO] [INC]  religacoes (a partir de 2026-04-18) ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:32,101 [INFO]   OK religacoes: +240 novas | 27,900 total -> religacoes.parquet
-2026-05-19 07:30:32,136 [INFO] [INC]  servicos (a partir de 2026-05-02) ...
+2026-05-20 07:30:30,790 [INFO]   OK religacoes: +236 novas | 27,913 total -> religacoes.parquet
+2026-05-20 07:30:30,807 [INFO] [INC]  servicos (a partir de 2026-05-04) ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:34,525 [INFO]   OK servicos: +1,144 novas | 235,453 total -> servicos.parquet
-2026-05-19 07:30:34,558 [INFO] [INC]  leituras (a partir de 2026-03-01) ...
+2026-05-20 07:30:32,623 [INFO]   OK servicos: +1,233 novas | 235,741 total -> servicos.parquet
+2026-05-20 07:30:32,656 [INFO] [INC]  leituras (a partir de 2026-03-01) ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:42,520 [INFO]   OK leituras: +31,588 novas | 451,638 total -> leituras.parquet
-2026-05-19 07:30:42,536 [INFO] [INC]  backlog_servicos (a partir de 2026-05-02) ...
+2026-05-20 07:30:40,056 [INFO]   OK leituras: +32,063 novas | 452,113 total -> leituras.parquet
+2026-05-20 07:30:40,071 [INFO] [INC]  backlog_servicos (a partir de 2026-05-05) ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:44,077 [INFO]   OK backlog_servicos: +822 novas | 52,023 total -> backlog_servicos.parquet
-2026-05-19 07:30:44,085 [INFO] [INC]  alteracao_fatura_contabil (a partir de 2026-03-01) ...
+2026-05-20 07:30:41,655 [INFO]   OK backlog_servicos: +773 novas | 52,079 total -> backlog_servicos.parquet
+2026-05-20 07:30:41,663 [INFO] [INC]  alteracao_fatura_contabil (a partir de 2026-03-01) ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:45,430 [INFO]   OK alteracao_fatura_contabil: +66 novas | 899 total -> alteracao_fatura_contabil.parquet
-2026-05-19 07:30:45,430 [INFO] [FULL] dim_bairro ...
+2026-05-20 07:30:43,527 [INFO]   OK alteracao_fatura_contabil: +66 novas | 899 total -> alteracao_fatura_contabil.parquet
+2026-05-20 07:30:43,527 [INFO] [FULL] dim_bairro ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:46,673 [INFO]   OK dim_bairro: 47 linhas (full) -> dim_bairro.parquet
-2026-05-19 07:30:46,673 [INFO] [FULL] dim_grupo ...
+2026-05-20 07:30:44,747 [INFO]   OK dim_bairro: 47 linhas (full) -> dim_bairro.parquet
+2026-05-20 07:30:44,747 [INFO] [FULL] dim_grupo ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:48,045 [INFO]   OK dim_grupo: 20 linhas (full) -> dim_grupo.parquet
-2026-05-19 07:30:48,046 [INFO] [FULL] dim_categoria ...
+2026-05-20 07:30:46,293 [INFO]   OK dim_grupo: 20 linhas (full) -> dim_grupo.parquet
+2026-05-20 07:30:46,293 [INFO] [FULL] dim_categoria ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:49,762 [INFO]   OK dim_categoria: 5 linhas (full) -> dim_categoria.parquet
-2026-05-19 07:30:49,762 [INFO] [FULL] dim_classe ...
+2026-05-20 07:30:47,461 [INFO]   OK dim_categoria: 5 linhas (full) -> dim_categoria.parquet
+2026-05-20 07:30:47,461 [INFO] [FULL] dim_classe ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:50,969 [INFO]   OK dim_classe: 3 linhas (full) -> dim_classe.parquet
-2026-05-19 07:30:50,969 [INFO] [FULL] dim_situacao_fatura ...
+2026-05-20 07:30:48,755 [INFO]   OK dim_classe: 3 linhas (full) -> dim_classe.parquet
+2026-05-20 07:30:48,755 [INFO] [FULL] dim_situacao_fatura ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:52,276 [INFO]   OK dim_situacao_fatura: 15 linhas (full) -> dim_situacao_fatura.parquet
-2026-05-19 07:30:52,276 [INFO] [FULL] dim_situacao_servico ...
+2026-05-20 07:30:50,768 [INFO]   OK dim_situacao_fatura: 15 linhas (full) -> dim_situacao_fatura.parquet
+2026-05-20 07:30:50,768 [INFO] [FULL] dim_situacao_servico ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:53,417 [INFO]   OK dim_situacao_servico: 11 linhas (full) -> dim_situacao_servico.parquet
-2026-05-19 07:30:53,417 [INFO] [FULL] dim_agente_arrecadador ...
+2026-05-20 07:30:52,122 [INFO]   OK dim_situacao_servico: 11 linhas (full) -> dim_situacao_servico.parquet
+2026-05-20 07:30:52,122 [INFO] [FULL] dim_agente_arrecadador ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:54,653 [INFO]   OK dim_agente_arrecadador: 9 linhas (full) -> dim_agente_arrecadador.parquet
-2026-05-19 07:30:54,654 [INFO] [FULL] dim_forma_arrecadacao ...
+2026-05-20 07:30:53,497 [INFO]   OK dim_agente_arrecadador: 9 linhas (full) -> dim_agente_arrecadador.parquet
+2026-05-20 07:30:53,497 [INFO] [FULL] dim_forma_arrecadacao ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:55,850 [INFO]   OK dim_forma_arrecadacao: 13 linhas (full) -> dim_forma_arrecadacao.parquet
-2026-05-19 07:30:55,850 [INFO] [FULL] dim_leiturista ...
+2026-05-20 07:30:54,797 [INFO]   OK dim_forma_arrecadacao: 13 linhas (full) -> dim_forma_arrecadacao.parquet
+2026-05-20 07:30:54,797 [INFO] [FULL] dim_leiturista ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:57,135 [INFO]   OK dim_leiturista: 13 linhas (full) -> dim_leiturista.parquet
-2026-05-19 07:30:57,136 [INFO] [FULL] dim_equipe ...
+2026-05-20 07:30:56,210 [INFO]   OK dim_leiturista: 13 linhas (full) -> dim_leiturista.parquet
+2026-05-20 07:30:56,210 [INFO] [FULL] dim_equipe ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:58,306 [INFO]   OK dim_equipe: 22 linhas (full) -> dim_equipe.parquet
-2026-05-19 07:30:58,306 [INFO] [FULL] dim_setor_operacional ...
+2026-05-20 07:30:57,351 [INFO]   OK dim_equipe: 22 linhas (full) -> dim_equipe.parquet
+2026-05-20 07:30:57,351 [INFO] [FULL] dim_setor_operacional ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:30:59,616 [INFO]   OK dim_setor_operacional: 13 linhas (full) -> dim_setor_operacional.parquet
-2026-05-19 07:30:59,616 [INFO] [FULL] dim_ocorrencia ...
+2026-05-20 07:30:58,421 [INFO]   OK dim_setor_operacional: 13 linhas (full) -> dim_setor_operacional.parquet
+2026-05-20 07:30:58,422 [INFO] [FULL] dim_ocorrencia ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:31:01,440 [INFO]   OK dim_ocorrencia: 29 linhas (full) -> dim_ocorrencia.parquet
-2026-05-19 07:31:01,440 [INFO] [FULL] dim_servico_definicao ...
+2026-05-20 07:30:59,739 [INFO]   OK dim_ocorrencia: 29 linhas (full) -> dim_ocorrencia.parquet
+2026-05-20 07:30:59,740 [INFO] [FULL] dim_servico_definicao ...
 C:\Users\SÚrgioRiciopo\AppData\Local\Programs\Python\Python314\Lib\site-packages\google\cloud\bigquery\table.py:2086: 
 UserWarning: BigQuery Storage module not found, fetch data with the REST endpoint instead.
   warnings.warn(
-2026-05-19 07:31:02,700 [INFO]   OK dim_servico_definicao: 409 linhas (full) -> dim_servico_definicao.parquet
-2026-05-19 07:31:02,700 [INFO] 
-2026-05-19 07:31:02,700 [INFO] ETL concluÝdo: 2026-05-19 07:31:02
-2026-05-19 07:31:02,700 [INFO]   Tabelas full      : 14
-2026-05-19 07:31:02,700 [INFO]   Tabelas incrementais: 11
-2026-05-19 07:31:02,700 [INFO]   Linhas novas/atualizadas: 55,529
-2026-05-19 07:31:02,700 [INFO]   Todas as tabelas concluÝdas com sucesso.
+2026-05-20 07:31:00,890 [INFO]   OK dim_servico_definicao: 409 linhas (full) -> dim_servico_definicao.parquet
+2026-05-20 07:31:00,891 [INFO] 
+2026-05-20 07:31:00,891 [INFO] ETL concluÝdo: 2026-05-20 07:31:00
+2026-05-20 07:31:00,891 [INFO]   Tabelas full      : 14
+2026-05-20 07:31:00,891 [INFO]   Tabelas incrementais: 11
+2026-05-20 07:31:00,891 [INFO]   Linhas novas/atualizadas: 56,233
+2026-05-20 07:31:00,891 [INFO]   Todas as tabelas concluÝdas com sucesso.
 
-[19/05/2026 07:31:02] ETL BigQuery concluido com SUCESSO
-[19/05/2026 07:31:02] Iniciando ETL Frota...
+[20/05/2026 07:31:01] ETL BigQuery concluido com SUCESSO
+[20/05/2026 07:31:01] Iniciando ETL Frota...
 Iniciando ETL de Consumo de Frota CombustÝvel...
 
 [OK] Arquivo encontrado: RelatorioParametrizado 01-04-26 A 30-04-26.xls
@@ -179,24 +179,7 @@ Top 5 motoristas (por valor):
 [OK] Exportado: frota_combustivel.parquet
 [OK] Exportado: dim_veiculo_frota.parquet
 
-ETL concluido com sucesso em 19/05/2026 07:31:03
+ETL concluido com sucesso em 20/05/2026 07:31:01
 
-[19/05/2026 07:31:03] ETL Frota concluido com SUCESSO
-[19/05/2026 07:31:03] Publicando no GitHub (Streamlit Cloud)...
-[main ad1eade] Dados atualizados - 19/05/2026 [auto]
- 16 files changed, 209 insertions(+)
- create mode 100644 scripts/logs/etl_diario_20260518_0727.log
- create mode 100644 scripts/logs/etl_diario_20260519_0730.log
-
-git.exe : To https://github.com/sergioriciopo-hub/bi-ipameri.git
-No C:\BI_Ipameri\scripts\run_etl_diario.ps1:61 caractere:20
-+         $pushOut = & git push origin main 2>&1
-+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (To https://gith.../bi-ipameri.git:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-   c3ed041..ad1eade  main -> main
-
-[19/05/2026 07:31:10] Publicado no GitHub com SUCESSO - Streamlit Cloud atualizara em ~2 min
-[19/05/2026 07:31:10] ======================================================
-[19/05/2026 07:31:10] ETL DIARIO CONCLUIDO COM SUCESSO
+[20/05/2026 07:31:01] ETL Frota concluido com SUCESSO
+[20/05/2026 07:31:01] Publicando no GitHub (Streamlit Cloud)...
