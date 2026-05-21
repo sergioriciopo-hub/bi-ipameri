@@ -2162,20 +2162,16 @@ def pg_arrecadacao(D, d0, d1):
     vl_agua_arr = arr["vl_agua"].sum() if not arr.empty and "vl_agua" in arr.columns else 0
     vl_esg_arr  = arr["vl_esgoto"].sum() if not arr.empty and "vl_esgoto" in arr.columns else 0
     c1, c2 = st.columns(2)
-    kpi(c1, "Arrecadado Líquido", vl_arr,
-        help="Total arrecadado deduzido do repasse de lixo à Prefeitura")
-    kpi(c2, "Faturado Líquido", vl_fat,
-        help="Total faturado deduzido do lixo (receita da empresa)")
+    kpi(c1, "Arrecadado Líquido", vl_arr)
+    kpi(c2, "Faturado Líquido", vl_fat)
 
     c3, c4 = st.columns(2)
     kpi(c3, "Água Arrecadada", vl_agua_arr)
-    kpi(c4, "Lixo (Prefeitura)", vl_lixo_arr,
-        help="Valor arrecadado de lixo — repassado à Prefeitura, não compõe receita da empresa")
+    kpi(c4, "Lixo (Prefeitura)", vl_lixo_arr)
 
     if efic is not None:
         c5, c6 = st.columns(2)
-        kpi(c5, "Eficiência Arrecadação", efic, prefixo="%",
-            help="Arrecadado líquido ÷ Faturado líquido (ambos sem lixo)")
+        kpi(c5, "Eficiência Arrecadação", efic, prefixo="%")
         kpi(c6, "Esgoto Arrecadado", vl_esg_arr)
     else:
         c5, c6 = st.columns(2)
