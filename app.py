@@ -3173,9 +3173,10 @@ def pg_cortes(D, d0, d1):
         ])
 
     st.markdown("---")
-    if not cor.empty:
-        cor_m = cor.drop_duplicates("id_servico").copy()
-        cor_m["_mes"] = pd.to_datetime(cor_m["dt_solicitacao"]).dt.strftime("%m/%Y")
+    # Gráfico alinhado ao KPI: dt_fim_execucao + id_servico_definicao == 30
+    if not cor_cavalete.empty:
+        cor_m = cor_cavalete.drop_duplicates("id_servico").copy()
+        cor_m["_mes"] = pd.to_datetime(cor_m["dt_fim_execucao"]).dt.strftime("%m/%Y")
         ag_c = cor_m.groupby("_mes")["id_servico"].nunique().reset_index()
         ag_c.columns = ["Mês", "Qtd"]
         ag_c["Tipo"] = "Cortes"
@@ -3196,12 +3197,14 @@ def pg_cortes(D, d0, d1):
         fig = go.Figure()
         if _comp:
             _cd0, _cd1 = _comp["comp_d0"], _comp["comp_d1"]
-            _cor_cg = filtrar(D["cor"], "dt_solicitacao", _cd0, _cd1)
+            _cor_cg = filtrar(D["cor"], "dt_fim_execucao", _cd0, _cd1)
+            if not _cor_cg.empty and "id_servico_definicao" in _cor_cg.columns:
+                _cor_cg = _cor_cg[_cor_cg["id_servico_definicao"] == 30]
             _rel_cg = filtrar(D["rel"], "dt_reliagacao",  _cd0, _cd1)
             _cor_c_idx = pd.Series(dtype=float); _rel_c_idx = pd.Series(dtype=float)
             if not _cor_cg.empty:
                 _cg_m = _cor_cg.drop_duplicates("id_servico").copy()
-                _cg_m["_mes"] = pd.to_datetime(_cg_m["dt_solicitacao"]).dt.strftime("%m/%Y")
+                _cg_m["_mes"] = pd.to_datetime(_cg_m["dt_fim_execucao"]).dt.strftime("%m/%Y")
                 _cor_c_idx = _cg_m.groupby("_mes")["id_servico"].nunique()
             if not _rel_cg.empty:
                 _rg_m = _rel_cg.drop_duplicates("id_servico").copy()
