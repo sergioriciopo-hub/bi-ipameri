@@ -2371,16 +2371,14 @@ def pg_arrecadacao_diaria(D, d0, d1):
     media_dia = vl_liq / qtd_dias if qtd_dias else 0
 
     c1, c2, c3 = st.columns(3)
-    kpi(c1, "Arrecadação Líquida (D+)", vl_liq,
-        help="Deduzidos tarifas bancárias e repasse de lixo à Prefeitura")
+    kpi(c1, "Arrecadação Líquida (D+)", vl_liq)
     kpi(c2, "Dias Úteis", qtd_dias, prefixo="")
     kpi(c3, "Média por Dia Útil", media_dia)
 
     if _has_tarifa or vl_lixo_d:
         c4, c5, c6 = st.columns(3)
         kpi(c4, "Total Tarifas Bancárias", vl_tarifa)
-        kpi(c5, "Lixo (Prefeitura)", vl_lixo_d,
-            help="Repasse à Prefeitura — deduzido da arrecadação líquida")
+        kpi(c5, "Lixo (Prefeitura)", vl_lixo_d)
         kpi(c6, "Arrecadação Bruta", vl_bruto)
 
     # ── Bloco comparativo ─────────────────────────────────────────────────────
