@@ -1174,7 +1174,7 @@ def pg_cockpit(D, d0, d1):
     c5, c6, c7, c8 = st.columns(4)
     kpi(c5, "Cortes Executados", qtd_cor, prefixo="")
     kpi(c6, "SLA Serviços", sla_ok, delta=sla_ok - 0.9, prefixo="%")
-    kpi(c7, "Total Ligações", qtd_lig, prefixo="")
+    kpi(c7, "Economias Ativas", qtd_lig, prefixo="")
     c8.empty()
 
     # ── Bloco comparativo ─────────────────────────────────────────────────────
