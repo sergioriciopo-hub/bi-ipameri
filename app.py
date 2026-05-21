@@ -2356,7 +2356,6 @@ def pg_arrecadacao_diaria(D, d0, d1):
         "Monday":"Segunda-feira","Tuesday":"Terça-feira","Wednesday":"Quarta-feira",
         "Thursday":"Quinta-feira","Friday":"Sexta-feira","Saturday":"Sábado","Sunday":"Domingo"
     })
-    diario["Acumulado"] = diario["Valor"].cumsum()
     diario["Útil"] = range(1, len(diario)+1)
 
     vl_total  = diario["Valor"].sum()
@@ -2366,9 +2365,13 @@ def pg_arrecadacao_diaria(D, d0, d1):
     # Lixo: busca do parquet mensal (arr_d não tem breakdown por rubrica)
     _arr_per = filtrar(D["arr"], "dt_ref", d0, d1)
     vl_lixo_d = _arr_per["vl_lixo"].sum() if not _arr_per.empty and "vl_lixo" in _arr_per.columns else 0
-    vl_liq    = vl_total - vl_lixo_d   # líquido: deduz tarifa bancária e lixo
+    vl_liq    = vl_total - vl_lixo_d
     qtd_dias  = len(diario)
     media_dia = vl_liq / qtd_dias if qtd_dias else 0
+    # Distribui lixo proporcionalmente por dia (não há breakdown diário de lixo na fonte)
+    _ratio_liq = vl_liq / vl_total if vl_total else 1
+    diario["Valor_liq"] = (diario["Valor"] * _ratio_liq).round(2)
+    diario["Acumulado"] = diario["Valor_liq"].cumsum()
 
     c1, c2, c3 = st.columns(3)
     kpi(c1, "Arrecadação Líquida (D+)", vl_liq)
@@ -2416,10 +2419,10 @@ def pg_arrecadacao_diaria(D, d0, d1):
     _comp = _comp_periodo()
     fig = go.Figure()
     _lbl_a = _comp["label_atual"] if _comp else "Atual"
-    fig.add_bar(x=diario["Data"], y=diario["Valor"],
+    fig.add_bar(x=diario["Data"], y=diario["Valor_liq"],
                 name=f"Arrecadação {_lbl_a}",
                 marker_color=COR["azul"],
-                text=diario["Valor"].apply(lambda v: f"R$ {v:,.0f}"),
+                text=diario["Valor_liq"].apply(lambda v: f"R$ {v:,.0f}"),
                 textposition="outside")
     fig.add_scatter(x=diario["Data"], y=diario["Acumulado"],
                     name=f"Acumulado {_lbl_a}", mode="lines+markers",
@@ -2434,8 +2437,14 @@ def pg_arrecadacao_diaria(D, d0, d1):
             _diario_c = (_ad_c.groupby("data_credito")
                          .agg(Valor=("vl_arrecadado","sum")).reset_index()
                          .rename(columns={"data_credito":"Data"}).sort_values("Data"))
-            _diario_c["Acumulado"] = _diario_c["Valor"].cumsum()
-            fig.add_bar(x=_diario_c["Data"], y=_diario_c["Valor"],
+            # Aplica mesma proporção líquida do período comparativo
+            _arr_per_c2 = filtrar(D["arr"], "dt_ref", _cd0, _cd1)
+            _lixo_c2 = _arr_per_c2["vl_lixo"].sum() if not _arr_per_c2.empty and "vl_lixo" in _arr_per_c2.columns else 0
+            _tot_c2 = _diario_c["Valor"].sum()
+            _ratio_c2 = (_tot_c2 - _lixo_c2) / _tot_c2 if _tot_c2 else 1
+            _diario_c["Valor_liq"] = (_diario_c["Valor"] * _ratio_c2).round(2)
+            _diario_c["Acumulado"] = _diario_c["Valor_liq"].cumsum()
+            fig.add_bar(x=_diario_c["Data"], y=_diario_c["Valor_liq"],
                         name=f"Arrecadação {_comp['label_comp']}",
                         marker_color="rgba(220,38,38,0.45)", opacity=0.7)
             fig.add_scatter(x=_diario_c["Data"], y=_diario_c["Acumulado"],
@@ -2461,6 +2470,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
                   .sum().sort_values(ascending=False).reset_index())
         ag_frm.columns = ["Canal","Valor"]
         ag_frm["Canal"] = ag_frm["Canal"].str.strip()
+        ag_frm["Valor"] = (ag_frm["Valor"] * _ratio_liq).round(2)
         cores_pie = px.colors.qualitative.Pastel
         fig2 = go.Figure(data=[go.Pie(
             labels=ag_frm.head(7)["Canal"],
@@ -2494,11 +2504,13 @@ def pg_arrecadacao_diaria(D, d0, d1):
 
     # Tabela detalhada — igual ao relatório do sistema
     st.markdown("#### Tabela Diária de Arrecadação")
+    # Usa Valor_liq (sem lixo) renomeado para "Valor" na exibição
+    diario_tbl = diario.rename(columns={"Valor_liq": "Valor"})
     _cols_tbl = ["Útil","Data","Dia Semana","Qtd Docs","Valor"]
     if _has_tarifa:
         _cols_tbl.append("Tarifa")
     _cols_tbl.append("Acumulado")
-    tbl_view = diario[_cols_tbl].copy()
+    tbl_view = diario_tbl[_cols_tbl].copy()
     tbl_view["Data"] = tbl_view["Data"].dt.strftime("%d/%m/%Y")
 
     # Linha de total
@@ -2544,6 +2556,7 @@ def pg_arrecadacao_diaria(D, d0, d1):
                      .sort_values("Valor", ascending=False)
                      .reset_index())
             ag_ag.columns = ["Agente"] + list(ag_ag.columns[1:])
+            ag_ag["Valor"] = (ag_ag["Valor"] * _ratio_liq).round(2)
             if _has_tarifa:
                 _vl_ag = ag_ag["Valor"].sum()
                 _tar_ag = ag_ag["Tarifa"].sum()
