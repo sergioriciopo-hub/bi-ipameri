@@ -2359,22 +2359,21 @@ def pg_arrecadacao_diaria(D, d0, d1):
     vl_tarifa = diario["Tarifa"].sum() if _has_tarifa else 0
     vl_bruto  = vl_total + vl_tarifa
     pct_tar   = vl_tarifa / vl_bruto * 100 if vl_bruto else 0
-    # Lixo: busca do parquet mensal (arr_d não tem breakdown diário por rubrica)
+    # Lixo: apenas informativo — não deduzido do líquido (parquet mensal não tem granularidade diária)
     _arr_per = filtrar(D["arr"], "dt_ref", d0, d1)
     vl_lixo_d = _arr_per["vl_lixo"].sum() if not _arr_per.empty and "vl_lixo" in _arr_per.columns else 0
-    vl_liq    = vl_total - vl_lixo_d
     qtd_dias  = len(diario)
-    media_dia = vl_liq / qtd_dias if qtd_dias else 0
+    media_dia = vl_total / qtd_dias if qtd_dias else 0
 
     c1, c2, c3 = st.columns(3)
-    kpi(c1, "Arrecadação Líquida (D+)", vl_liq)
+    kpi(c1, "Arrecadação Líquida (D+)", vl_total)
     kpi(c2, "Dias Úteis", qtd_dias, prefixo="")
     kpi(c3, "Média por Dia Útil", media_dia)
 
     if _has_tarifa or vl_lixo_d:
         c4, c5, c6 = st.columns(3)
         kpi(c4, "Total Tarifas Bancárias", vl_tarifa)
-        kpi(c5, "Lixo (Prefeitura)", vl_lixo_d)
+        kpi(c5, "Lixo (Prefeitura) ℹ️", vl_lixo_d)
         kpi(c6, "Arrecadação Bruta", vl_bruto)
 
     # ── Bloco comparativo ─────────────────────────────────────────────────────
@@ -2390,16 +2389,12 @@ def pg_arrecadacao_diaria(D, d0, d1):
             _md_c = _vt_c / _qd_c if _qd_c else 0
         else:
             _qd_c, _md_c = 0, 0
-        # Lixo do período comparativo (parquet mensal)
-        _arr_per_c = filtrar(D["arr"], "dt_ref", _cd0, _cd1)
-        _vl_lixo_c = _arr_per_c["vl_lixo"].sum() if not _arr_per_c.empty and "vl_lixo" in _arr_per_c.columns else 0
-        _vt_liq_c  = _vt_c - _vl_lixo_c
-        _md_c_liq  = _vt_liq_c / _qd_c if _qd_c else 0
+        _md_c = _vt_c / _qd_c if _qd_c else 0
         _brl   = lambda v: f"R$ {v:,.0f}".replace(",","X").replace(".",",").replace("X",".")
         render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
-            ("Arrecadação Líquida (D+)", vl_liq,    _vt_liq_c, _brl,                  True),
-            ("Dias Úteis",               qtd_dias,  _qd_c,     lambda v: f"{int(v)}", None),
-            ("Média por Dia Útil",       media_dia, _md_c_liq, _brl,                  True),
+            ("Arrecadação Líquida (D+)", vl_total,  _vt_c,  _brl,                  True),
+            ("Dias Úteis",               qtd_dias,  _qd_c,  lambda v: f"{int(v)}", None),
+            ("Média por Dia Útil",       media_dia, _md_c,  _brl,                  True),
         ])
 
     st.info(
