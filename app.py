@@ -2149,25 +2149,22 @@ def pg_arrecadacao(D, d0, d1):
         return
 
     # KPI total: usa arr_d com D+ (mais preciso); fallback para arr se arr_d vazio
-    vl_arr_bruto = (arr_d_f["vl_arrecadado"].sum() if not arr_d_f.empty
-                    else arr["vl_total_arrecadado"].sum() if not arr.empty else 0)
-    # Lixo é repasse à Prefeitura — deduzido para obter receita líquida da empresa
+    vl_arr = (arr_d_f["vl_arrecadado"].sum() if not arr_d_f.empty
+              else arr["vl_total_arrecadado"].sum() if not arr.empty else 0)
+    # Lixo: apenas informativo — aguardando breakdown diário da Jtech para dedução correta
     vl_lixo_arr = arr["vl_lixo"].sum() if not arr.empty and "vl_lixo" in arr.columns else 0
-    vl_arr      = vl_arr_bruto - vl_lixo_arr
-    vl_fat_bruto = fat["vl_total_faturado"].sum() if not fat.empty else 0
-    vl_lixo_fat  = fat["vl_lixo"].sum() if not fat.empty and "vl_lixo" in fat.columns else 0
-    vl_fat       = vl_fat_bruto - vl_lixo_fat
+    vl_fat = fat["vl_total_faturado"].sum() if not fat.empty else 0
     efic   = vl_arr / vl_fat if vl_fat else None
     # Rubricas (água/esgoto) vêm de arr — arr_d não tem breakdown por rubrica
     vl_agua_arr = arr["vl_agua"].sum() if not arr.empty and "vl_agua" in arr.columns else 0
     vl_esg_arr  = arr["vl_esgoto"].sum() if not arr.empty and "vl_esgoto" in arr.columns else 0
     c1, c2 = st.columns(2)
-    kpi(c1, "Arrecadado Líquido", vl_arr)
-    kpi(c2, "Faturado Líquido", vl_fat)
+    kpi(c1, "Total Arrecadado", vl_arr)
+    kpi(c2, "Faturado no Período", vl_fat)
 
     c3, c4 = st.columns(2)
     kpi(c3, "Água Arrecadada", vl_agua_arr)
-    kpi(c4, "Lixo (Prefeitura)", vl_lixo_arr)
+    kpi(c4, "Lixo (Prefeitura) ℹ️", vl_lixo_arr)
 
     if efic is not None:
         c5, c6 = st.columns(2)
@@ -2186,18 +2183,16 @@ def pg_arrecadacao(D, d0, d1):
         _fat_c  = filtrar(D["fat"],   "dt_ref",        _cd0, _cd1)
         _arrd_c = filtrar(D["arr_d"], "data_pagamento", _cd0, _cd1)
         _arr_c  = filtrar(D["arr"],   "dt_ref",        _cd0, _cd1)
-        _va_bruto_c = (_arrd_c["vl_arrecadado"].sum() if not _arrd_c.empty
-                       else _arr_c["vl_total_arrecadado"].sum() if not _arr_c.empty else 0)
-        _vl_c   = _arr_c["vl_lixo"].sum() if not _arr_c.empty and "vl_lixo" in _arr_c.columns else 0
-        _va_c   = _va_bruto_c - _vl_c
-        _vf_c   = (_fat_c["vl_total_faturado"].sum() - (_fat_c["vl_lixo"].sum() if "vl_lixo" in _fat_c.columns else 0)) if not _fat_c.empty else 0
+        _va_c   = (_arrd_c["vl_arrecadado"].sum() if not _arrd_c.empty
+                   else _arr_c["vl_total_arrecadado"].sum() if not _arr_c.empty else 0)
+        _vf_c   = _fat_c["vl_total_faturado"].sum() if not _fat_c.empty else 0
         _ei_c   = _va_c / _vf_c if _vf_c else None
         _ag_c   = _arr_c["vl_agua"].sum()   if not _arr_c.empty and "vl_agua"   in _arr_c.columns else 0
         _eg_c   = _arr_c["vl_esgoto"].sum() if not _arr_c.empty and "vl_esgoto" in _arr_c.columns else 0
         _brl    = lambda v: f"R$ {v:,.0f}".replace(",","X").replace(".",",").replace("X",".")
         render_comp_bloco(_comp["label_atual"], _comp["label_comp"], [
-            ("Arrecadado Líquido",     vl_arr,      _va_c, _brl,                              True),
-            ("Faturado Líquido",       vl_fat,      _vf_c, _brl,                              True),
+            ("Total Arrecadado",       vl_arr,      _va_c, _brl,                              True),
+            ("Faturado no Período",    vl_fat,      _vf_c, _brl,                              True),
             ("Eficiência Arrecadação", efic,        _ei_c, lambda v: f"{v:.1%}" if v else "—", True),
             ("Água Arrecadada",        vl_agua_arr, _ag_c, _brl,                              True),
             ("Esgoto Arrecadado",      vl_esg_arr,  _eg_c, _brl,                              True),
@@ -2205,19 +2200,15 @@ def pg_arrecadacao(D, d0, d1):
 
     st.markdown("---")
     # Arrecadação mensal (usa arr — tabela mensal, cobertura completa)
-    # Valores líquidos: deduz lixo (repasse Prefeitura) de arrecadado e faturado
     arr_hist = D["arr"].copy()
     arr_hist["_mes"] = pd.to_datetime(arr_hist["dt_ref"]).dt.to_period("M").dt.to_timestamp()
-    arr_hist["_vl_lixo"] = arr_hist["vl_lixo"] if "vl_lixo" in arr_hist.columns else 0
-    arr_hist["_arr_liq"] = arr_hist["vl_total_arrecadado"] - arr_hist["_vl_lixo"]
-    ag_arr = arr_hist.groupby("_mes")["_arr_liq"].sum().reset_index()
+    ag_arr = arr_hist.groupby("_mes")["vl_total_arrecadado"].sum().reset_index()
     ag_arr.columns = ["Mês", "Arrecadado"]
 
     fat_hist = D["fat"].copy()
     if not fat_hist.empty:
         fat_hist["_mes"] = pd.to_datetime(fat_hist["dt_ref"]).dt.to_period("M").dt.to_timestamp()
-        fat_hist["_fat_liq"] = fat_hist["vl_total_faturado"] - (fat_hist["vl_lixo"] if "vl_lixo" in fat_hist.columns else 0)
-        fat_ag = fat_hist.groupby("_mes")["_fat_liq"].sum().reset_index()
+        fat_ag = fat_hist.groupby("_mes")["vl_total_faturado"].sum().reset_index()
         fat_ag.columns = ["Mês", "Faturado"]
         ag_both = ag_arr.merge(fat_ag, on="Mês", how="outer").sort_values("Mês")
     else:
@@ -2266,7 +2257,7 @@ def pg_arrecadacao(D, d0, d1):
         f_ag = fat_hist2.groupby("_mes")["vl_total_faturado"].sum().reset_index()
         f_ag.columns = ["Mês", "Faturado"]
 
-        a_ag2 = arr_hist.groupby("_mes")["_arr_liq"].sum().reset_index()
+        a_ag2 = arr_hist.groupby("_mes")["vl_total_arrecadado"].sum().reset_index()
         a_ag2.columns = ["Mês", "Arrecadado"]
 
         idx_m = a_ag2.merge(f_ag, on="Mês", how="inner")
