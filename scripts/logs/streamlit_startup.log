@@ -4056,3 +4056,10 @@ For `use_container_width=True`, use `width='stretch'`. For `use_container_width=
   Network URL: http://192.168.210.212:8501
   External URL: http://187.43.216.244:8501
 
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://192.168.1.220:8501
+  External URL: http://186.251.78.91:8501
+
