@@ -1725,31 +1725,35 @@ def pg_cockpit(D, d0, d1):
     # ══════════════════════════════════════════════════════════════════════════
     # 6 — Inadimplência Geral
     # ══════════════════════════════════════════════════════════════════════════
-    if not inad.empty and vl_fat > 0:
+    if not inad.empty:
         FAIXA_IN = {
-            "01-Até 30 dias":    "IN30",
-            "02-31 a 60 dias":   "IN60",
-            "03-61 a 90 dias":   "IN90",
-            "04-91 a 180 dias":  "IN180",
-            "05-181 a 365 dias": "IN365",
+            "01-Até 30 dias":      "IN30",
+            "02-31 a 60 dias":     "IN60",
+            "03-61 a 90 dias":     "IN90",
+            "04-91 a 180 dias":    "IN180",
+            "05-181 a 365 dias":   "IN365",
+            "06-Mais de 365 dias": "IN365+",
         }
         fi_g = inad[inad["faixa_atraso"].isin(FAIXA_IN)].copy()
         fi_g = fi_g.groupby("faixa_atraso")["vl_divida"].sum().reset_index()
         fi_g["Label"] = fi_g["faixa_atraso"].map(FAIXA_IN)
-        fi_g["Pct"]   = fi_g["vl_divida"] / vl_fat * 100
-        fi_g["Txt"]   = fi_g["Pct"].apply(lambda v: f"{v:.2f}%")
+        vl_inad_total = fi_g["vl_divida"].sum()
+        fi_g["Pct"]   = fi_g["vl_divida"] / vl_inad_total * 100
+        fi_g["Txt"]   = fi_g["Pct"].apply(lambda v: f"{v:.1f}%")
         fi_g = fi_g.sort_values("faixa_atraso")
         fig6 = go.Figure(go.Bar(
-            x=fi_g["Label"], y=fi_g["Pct"], orientation="v",
+            x=fi_g["Label"], y=fi_g["vl_divida"], orientation="v",
             text=fi_g["Txt"], textposition="outside",
             textfont=dict(color=COR["vermelho"], size=12, family="Arial Black"),
             marker_color=COR["vermelho"],
+            customdata=fi_g["Pct"],
+            hovertemplate="<b>%{x}</b><br>R$ %{y:,.0f}<br>%{customdata:.1f}% do total<extra></extra>",
         ))
         fig6.update_layout(
-            title="Inadimplência Geral",
+            title=f"Inadimplência por Faixa de Atraso — % do total (R$ {vl_inad_total:,.0f})".replace(",", "."),
             margin=dict(t=40, b=50, l=0, r=20), height=350,
             xaxis=dict(title="", tickangle=-45),
-            yaxis=dict(title=""),
+            yaxis=dict(title="", tickformat=",.0f"),
             showlegend=False,
         )
         st.plotly_chart(fig6, width="stretch")
